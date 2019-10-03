@@ -1,0 +1,14 @@
+(executable
+ (public_name c64say)
+ (libraries imagelib imagelib-unix cmdliner astring)
+)
+
+(alias
+ (name runtest)
+  (action
+   (progn
+    (run c64say "A/B/O is weird\njust sayin'")
+    (run display isaid.png)
+    (run c64say -o pangram.png "THE QUICK BROWN FOX\njumps over the lazy dog\n\nsphinx of black quartz\nJUDGE MY VOW!")
+    (run display pangram.png)
+)))
