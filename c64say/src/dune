@@ -1,6 +1,6 @@
 (executable
  (public_name c64say)
- (libraries imagelib imagelib-unix cmdliner astring)
+ (libraries c64say astring cmdliner imagelib imagelib-unix)
 )
 
 (alias

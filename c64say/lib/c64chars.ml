@@ -5,18 +5,6 @@ module CharMap = Map.Make(Char)
 
 let h, w = 8, 8 (* c64 chars are 8x8 *)
 
-(* this defaults to all pixels being transparent *)
-let make_background () = Image.create_grey ~alpha:true h w
-
-let paint_pixels i ~x_off ~y_off l =
-  let alpha = 255 in
-  List.iter (fun (x, y) -> Image.write_greya i (x + x_off) (y + y_off) 0 alpha) l
-
-let make_char l : Image.image =
-  let i = make_background () in
-  paint_pixels i ~x_off:0 ~y_off:0 l;
-  i
-
 let left_bar = [
   (1, 1); (2, 1);
   (1, 2); (2, 2);
