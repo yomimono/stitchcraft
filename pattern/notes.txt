@@ -1,0 +1,26 @@
+It might be worth defining palette -> thread translators for individual bits of hardware, after looking a bit into the color distance calculation math and Wikipedia's page on color depth on various platforms.
+
+Of course, that's not a good match with the problem space I'm currently in (take a PNG and make a pattern), because PNGs as I've been addressing them are very much a 32-bit color depth thing anyway.
+
+I already have the direct map attempt stuff in js_png_canvas (which can be split out into its own thing and more easily referred to in common).  We can try to do a better job of mapping the color similarities using the perceptually-biased CIELAB stuff (although that depends on remapping stuff into a new color space).
+
+We can also imagine some ways of handling this related to DMC's "color family" stuff - if there are a set of flosses that compose points on a line and we have another color which is on that line, choose a nearby point on the line over a nearer point off the line (I imagine this should map to a good perceptual distance algorithm but maybe not?).
+
+Figuring color distance -- this will probably be best done with the CIELAB 2000 calculation but in order to do that, we need to translate both the source color (24-bit RGB) and the destination (DMC).
+
+I would really like to figure out a way to avoid doing this translation if possible, and it's worth remembering my goal (and the explicit non-goal of being Yet Another Photograph To Pattern Renderer).  For my purposes `basics` should be sufficient; anything complicated should already have been color-chosen (or should be color-hackable) as I was thinking in the js_png_canvas design some time ago.
+
+So in that case, the right thing to do might actually be to compress all of this stuff down to a smaller color space, in which it's more reasonable that we'll find matches in the DMC/Anchor/Prism/whatever group.
+
+In that vein, what I'd rather do is have a nice programmatic way of assembling these as a specific file type (e.g. the thread, pattern, etc thing I was working on with js_png_canvas) rather than continue this image/png based approach.
+
+For what we really want to do, the elements to compose are 1) textual message 2) textual display (font, in other words) 3) decorative elements (borders usually, possibly additional decoration).  I think each of these is easier to *start* as a thread color and then push onward with, than to try and infer a color from.
+
+So perhaps a place to start is a C64 font and a command-line program that will make some arbitrary string, properly formatted, be my center.png .  This is `c64say`, shall we say?
+
+I keep wanting nice ways to concatenate this stuff; so far I've written a few blit routines but that's not very satisfying.
+
+So instead of inferring the threads from a stated color, instead constrain the available colors to a platform and have a known set of matching threads for that constrained palette.
+
+That's definitely good enough for C64 and probably for EGA, and maybe VGA too?
+
