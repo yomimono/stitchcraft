@@ -1,6 +1,12 @@
 (executable
  (public_name c64say)
  (libraries c64say astring cmdliner imagelib imagelib-unix)
+ (modules c64say)
+)
+(executable
+ (public_name c64stitch)
+ (libraries c64say astring cmdliner stitchy)
+ (modules c64stitch)
 )
 
 (alias
