@@ -21,17 +21,9 @@ let make_char l : Image.image =
   i
 
 let translate phrase interline =
-  (* make the user figure out the line wrapping for us, for the moment. *)
-  let lines = Astring.String.cuts ~sep:"\n" phrase in
-  let height = List.length lines in
-  let width =
-    (* find the longest line *)
-    List.fold_left (fun longest s ->
-        max (Astring.String.length s) longest) 0 lines
-  in
+  let {C64chars.lines; height; width} = C64chars.get_dimensions phrase interline in
   let image =
-    Image.create_grey ~alpha:true (C64chars.w * width)
-      ((C64chars.h * height) + (interline * (height - 1)))
+    Image.create_grey ~alpha:true width height 
   in
   (* try looking up individual chars of the string *)
   List.iteri (fun y line ->

@@ -3,7 +3,28 @@
 
 module CharMap = Map.Make(Char)
 
+(* some useful dimensions to have access to from a phrase *)
+type dimensions = {
+  lines : string list;
+  height : int;
+  width : int;
+}
+
 let h, w = 8, 8 (* c64 chars are 8x8 *)
+
+let get_dimensions phrase interline =
+  (* make the user figure out the line wrapping for us, for the moment. *)
+  let lines = Astring.String.cuts ~sep:"\n" phrase in
+  let height = (List.length lines) * h in
+  let interline = (max 0 (List.length lines - 1)) * interline in
+  let longest_line =
+    List.fold_left (fun longest s ->
+        max (Astring.String.length s) longest) 0 lines
+  in
+  let width = longest_line * w in
+  { lines;
+    height = height + interline;
+    width }
 
 let left_bar = [
   (1, 1); (2, 1);
