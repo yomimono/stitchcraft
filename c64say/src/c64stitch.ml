@@ -6,6 +6,8 @@ let interline =
   let doc = "extra space to insert between lines (in stitches)" in
   Cmdliner.Arg.(value & opt int 0 & info ["interline"] ~doc)
 
+let output = Cmdliner.Arg.(value & opt string "stitch.json" & info ["f"; "file"])
+
 (* TODO: background and text color ought to be choosable from the known C64 colors. *)
 
 (* TODO: grid size should be choosable from the known valid values. *)
@@ -38,3 +40,20 @@ let blocks_of_phrase block phrase interline =
       let next_y_off = y_off + (C64chars.h + interline) in
       (next_y_off, (snd @@ add_line ~y_off line map))
     ) (0, blockmap) (C64chars.get_dimensions phrase interline).lines
+
+let stitch phrase interline output =
+  match Stitchy.DMC.Thread.of_rgb (0, 0, 0) with
+  | None -> failwith "oh no"
+  | Some thread ->
+    let block : Stitchy.Types.block = { thread;
+                                        stitch = Full; } in
+    let (_, phrase) = blocks_of_phrase block phrase interline in
+    Yojson.Safe.to_file output (Stitchy.Types.BlockMap.to_yojson phrase)
+
+let stitch_t = Cmdliner.Term.(const stitch $ phrase $ interline $ output)
+
+let info =
+  let doc = "make a stitch file repesenting a phrase in c64 font" in
+  Cmdliner.Term.info "c64stitch" ~doc
+
+let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (stitch_t, info)
