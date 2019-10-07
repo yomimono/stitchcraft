@@ -5,7 +5,7 @@
    *)
 
 open Cmdliner
-open Output_pdf
+open Pattern.Output_pdf
 
 let grid_size =
   let doc = "Size of a grid entry representing one stitch, in points. 72 points is one inch." in
@@ -48,8 +48,8 @@ let paint_pixels image doc page =
       (* but color is based on the placement in the actual image, so pass those coordinates
          to the painting function *)
       let (r, g, b) = Image.read_rgba image x y (fun r g b _ -> r, g, b) in
-      let symbol = match Palette.ColorMap.find_opt (r, g, b) doc.symbols with
-        | None -> Palette.Symbol "\x20"
+      let symbol = match Pattern.Palette.ColorMap.find_opt (r, g, b) doc.symbols with
+        | None -> Pattern.Palette.Symbol "\x20"
         | Some symbol -> symbol
       in
       aux (x+1) y (paint_pixel ~x_pos ~y_pos ~pixel_size:(float_of_int doc.pixel_size)
@@ -60,11 +60,11 @@ let paint_pixels image doc page =
 
 let assign_symbols image =
   let next = function
-    | [] -> (Palette.Symbol "\x20", [])
+    | [] -> (Pattern.Palette.Symbol "\x20", [])
     | hd::tl -> (hd, tl)
   in
   (* TODO: is there a quicker way to get the palette than running through the pixmap? *)
-  let color_counts = Palette.ColorMap.empty in
+  let color_counts = Pattern.Palette.ColorMap.empty in
   let count_color freelist x y m =
     Image.read_rgba image x y (fun r g b a ->
         (* ignore entirely transparent pixels *)
@@ -73,11 +73,11 @@ let assign_symbols image =
         | _ ->
           begin
             let (new_freelist, new_map) =
-              match Palette.ColorMap.mem (r, g, b) m with
+              match Pattern.Palette.ColorMap.mem (r, g, b) m with
               | true -> (freelist, m)
               | false ->
                 let (symbol, new_freelist) = next freelist in
-                (new_freelist, Palette.ColorMap.add (r, g, b) symbol m)
+                (new_freelist, Pattern.Palette.ColorMap.add (r, g, b) symbol m)
             in
             (new_freelist, new_map)
           end
@@ -93,7 +93,7 @@ let assign_symbols image =
       aux freelist (x+1) y m
     end
   in
-  let (_, color_map) = aux Palette.symbols 0 0 color_counts in
+  let (_, color_map) = aux Pattern.Palette.symbols 0 0 color_counts in
   color_map
 
 let pages ~pixel_size ~fat_line_interval image =

@@ -1,6 +1,6 @@
 (executable
  (public_name pngpattern)
- (libraries cmdliner camlpdf imagelib imagelib-unix)
+ (libraries pattern cmdliner camlpdf imagelib imagelib-unix)
 )
 
 (data_only_dirs test)
