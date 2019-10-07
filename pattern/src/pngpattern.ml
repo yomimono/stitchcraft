@@ -27,53 +27,6 @@ let info =
   let doc = "construct a cross-stitch pattern based on an image" in
   Term.info "pattern" ~doc
 
-(* note that this paints *only* the pixels - the grid lines should be added later *)
-(* (otherwise we end up with a lot of tiny segments when we could have just one through-line,
-   and also we can more easily do thicker lines on grid intervals when we put them all in at once) *)
-(* x_pos and y_pos are the position of the upper left-hand corner of the pixel on the page *)
-let paint_pixel ~symbols ~pixel_size ~x_pos ~y_pos x y image =
-  let scale n = (float_of_int n) /. 255.0 in
-  let r, g, b, a, s = Image.read_rgba image x y (fun r g b a ->
-      let symbol = match Palette.ColorMap.find_opt (r, g, b) symbols with
-        | None -> Palette.Zapf "\x46"
-        | Some c -> c
-      in
-      scale r, scale g, scale b, a, symbol) in
-  (* for now, paint anything with *any* amount of opacity *)
-  match a with
-  | 0 -> []
-  | _ ->
-    let stroke_width = 3. in (* TODO this should be relative to the thickness of fat lines *)
-    (* the color now needs to come in a bit from the grid sides, since
-       we're doing a border rather than a fill; this is the constant
-       by which it is inset *)
-    let color_inset = (stroke_width *. 0.5) in
-    let (font_key, s) = match s with
-      | Palette.Zapf s -> zapf_key, s
-      | Symbol s -> symbol_key, s
-    in
-    Pdfops.([
-        Op_q;
-        Op_w stroke_width;
-        Op_RG (r, g, b);
-        Op_re (x_pos +. color_inset, (y_pos -. pixel_size +. color_inset),
-               (pixel_size -. (color_inset *. 2.)),
-               (pixel_size -. (color_inset *. 2.)));
-        Op_s;
-        Op_cm
-          (* TODO: find a better way to center this *)
-          (Pdftransform.matrix_of_transform
-             [Pdftransform.Translate
-                ((x_pos +. pixel_size *. 0.3),
-                 (y_pos -. pixel_size *. 0.6))
-             ]);
-        Op_Tf (font_key, 12.);
-        Op_BT;
-        Op_Tj s; (* draw the correct symbol *)
-        Op_ET;
-        Op_Q;
-      ])
-
 let paint_pixels t image =
   (* x and y are the relative offsets within the page. *)
   (* (so, even if this is page 3 and the grid that's painted over this will be
@@ -94,8 +47,13 @@ let paint_pixels t image =
       let (x_pos, y_pos) = find_upper_left t (x - (fst t.x_range)) (y - (fst t.y_range)) in
       (* but color is based on the placement in the actual image, so pass those coordinates
          to the painting function *)
-      aux (x+1) y (paint_pixel ~symbols:t.symbols ~x_pos ~y_pos ~pixel_size:(float_of_int t.pixel_size)
-                     x y image @ l)
+      let (r, g, b) = Image.read_rgba image x y (fun r g b _ -> r, g, b) in
+      let symbol = match Palette.ColorMap.find_opt (r, g, b) t.symbols with
+        | None -> Palette.Symbol "\x20"
+        | Some symbol -> symbol
+      in
+      aux (x+1) y (paint_pixel ~x_pos ~y_pos ~pixel_size:(float_of_int t.pixel_size)
+                     r g b symbol @ l)
     end
   in
   aux (fst t.x_range) (fst t.y_range) []

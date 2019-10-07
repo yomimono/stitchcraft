@@ -140,6 +140,42 @@ let number_page number =
       Op_Tj (string_of_int number);
       Op_ET;
       Op_Q;
+    ])
 
+(* note that this paints *only* the pixels - the grid lines should be added later *)
+(* (otherwise we end up with a lot of tiny segments when we could have just one through-line,
+   and also we can more easily do thicker lines on grid intervals when we put them all in at once) *)
+(* x_pos and y_pos are the position of the upper left-hand corner of the pixel on the page *)
+let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
+  let stroke_width = 3. in (* TODO this should be relative to the thickness of fat lines *)
+  (* the color now needs to come in a bit from the grid sides, since
+       we're doing a border rather than a fill; this is the constant
+       by which it is inset *)
+  let color_inset = (stroke_width *. 0.5) in
+  let scale n = (float_of_int n) /. 255.0 in
+  let (font_key, symbol) = match symbol with
+    | Palette.Zapf symbol -> zapf_key, symbol
+    | Symbol symbol -> symbol_key, symbol
+  in
+  Pdfops.([
+      Op_q;
+      Op_w stroke_width;
+      Op_RG (scale r, scale g, scale b);
+      Op_re (x_pos +. color_inset, (y_pos -. pixel_size +. color_inset),
+             (pixel_size -. (color_inset *. 2.)),
+             (pixel_size -. (color_inset *. 2.)));
+      Op_s;
+      Op_cm
+        (* TODO: find a better way to center this *)
+        (Pdftransform.matrix_of_transform
+           [Pdftransform.Translate
+              ((x_pos +. pixel_size *. 0.3),
+               (y_pos -. pixel_size *. 0.6))
+           ]);
+      Op_Tf (font_key, 12.);
+      Op_BT;
+      Op_Tj symbol;
+      Op_ET;
+      Op_Q;
     ])
 
