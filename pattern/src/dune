@@ -1,5 +1,5 @@
 (executable
- (public_name pattern)
+ (public_name pngpattern)
  (libraries cmdliner camlpdf imagelib imagelib-unix)
 )
 
@@ -10,7 +10,7 @@
  (deps test/ocaml.png test/hecko.png)
  (action
   (progn
-   (run pattern -p20 -o ocaml.pdf test/hecko.png)
+   (run pngpattern -p20 -o ocaml.pdf test/hecko.png)
    (run pdfinfo ocaml.pdf)
    (run evince ocaml.pdf)
 )))
