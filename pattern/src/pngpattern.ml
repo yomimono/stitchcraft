@@ -27,7 +27,7 @@ let info =
   let doc = "construct a cross-stitch pattern based on an image" in
   Term.info "pattern" ~doc
 
-let paint_pixels doc page image =
+let paint_pixels image doc page =
   (* x and y are the relative offsets within the page. *)
   (* (so, even if this is page 3 and the grid that's painted over this will be
      stitches 100-200 (x) and 50-70 (y), x and y will count up from 0 here.
@@ -58,14 +58,14 @@ let paint_pixels doc page image =
   in
   aux (fst page.x_range) (fst page.y_range) []
 
-let make_page doc ~first_x ~first_y page_number image =
+let make_page doc ~first_x ~first_y page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
   let xpp = x_per_page ~pixel_size:doc.pixel_size
   and ypp = y_per_page ~pixel_size:doc.pixel_size
   in
   let last_x =
-    if image.Image.width < first_x + xpp then image.Image.width else first_x + xpp
+    if width < first_x + xpp then width else first_x + xpp
   and last_y =
-    if image.Image.height < first_y + ypp then image.Image.height else first_y + ypp
+    if height < first_y + ypp then height else first_y + ypp
   in
   let page = {
     page_number;
@@ -74,7 +74,7 @@ let make_page doc ~first_x ~first_y page_number image =
     } in
   {(Pdfpage.blankpage Pdfpaper.uslegal) with
    Pdfpage.content = [
-     Pdfops.stream_of_ops @@ paint_pixels doc page image;
+     Pdfops.stream_of_ops @@ (pixels doc page);
      Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
      Pdfops.stream_of_ops @@ label_top_grid doc page;
      Pdfops.stream_of_ops @@ label_left_grid doc page;
@@ -128,13 +128,15 @@ let assign_symbols image =
 
 let pages ~pixel_size ~fat_line_interval image =
   let xpp = x_per_page ~pixel_size
-  and ypp = y_per_page ~pixel_size in
+  and ypp = y_per_page ~pixel_size
+  and width, height = image.Image.width, image.Image.height in
   let symbols = assign_symbols image in
   let doc = { pixel_size; fat_line_interval; symbols; } in
+  let pixels = paint_pixels image in
   let rec page x y n l =
-    let l = make_page doc ~first_x:x ~first_y:y n image :: l in
-    if (x + xpp) >= image.Image.width && (y + ypp) >= image.Image.height then l    
-    else if (y + ypp) >= image.Image.height then page (x+xpp) 0 (n+1) l
+    let l = make_page doc ~first_x:x ~first_y:y ~width ~height n pixels :: l in
+    if (x + xpp) >= width && (y + ypp) >= height then l    
+    else if (y + ypp) >= height then page (x+xpp) 0 (n+1) l
     else page x (y + ypp) (n+1) l
   in
   List.rev @@ page 0 0 1 []
