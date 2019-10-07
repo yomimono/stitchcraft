@@ -48,7 +48,7 @@ let paint_pixels image doc page =
       (* but color is based on the placement in the actual image, so pass those coordinates
          to the painting function *)
       let (r, g, b) = Image.read_rgba image x y (fun r g b _ -> r, g, b) in
-      let symbol = match Pattern.Palette.ColorMap.find_opt (r, g, b) doc.symbols with
+      let symbol = match Stitchy.Types.SymbolMap.find_opt (r, g, b) doc.symbols with
         | None -> Pattern.Palette.Symbol "\x20"
         | Some symbol -> symbol
       in
@@ -64,7 +64,7 @@ let assign_symbols image =
     | hd::tl -> (hd, tl)
   in
   (* TODO: is there a quicker way to get the palette than running through the pixmap? *)
-  let color_counts = Pattern.Palette.ColorMap.empty in
+  let color_counts = Stitchy.Types.SymbolMap.empty in
   let count_color freelist x y m =
     Image.read_rgba image x y (fun r g b a ->
         (* ignore entirely transparent pixels *)
@@ -73,11 +73,11 @@ let assign_symbols image =
         | _ ->
           begin
             let (new_freelist, new_map) =
-              match Pattern.Palette.ColorMap.mem (r, g, b) m with
+              match Stitchy.Types.SymbolMap.mem (r, g, b) m with
               | true -> (freelist, m)
               | false ->
                 let (symbol, new_freelist) = next freelist in
-                (new_freelist, Pattern.Palette.ColorMap.add (r, g, b) symbol m)
+                (new_freelist, Stitchy.Types.SymbolMap.add (r, g, b) symbol m)
             in
             (new_freelist, new_map)
           end

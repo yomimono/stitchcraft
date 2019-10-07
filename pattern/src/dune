@@ -1,6 +1,13 @@
 (executable
  (public_name pngpattern)
+ (modules pngpattern)
  (libraries pattern cmdliner camlpdf imagelib imagelib-unix)
+)
+
+(executable
+ (public_name stitchpattern)
+ (modules stitchpattern)
+ (libraries pattern cmdliner camlpdf stitchy)
 )
 
 (data_only_dirs test)

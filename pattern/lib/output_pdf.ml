@@ -29,7 +29,7 @@ let zapf_key = "/F1"
 let helvetica_key = "/F2"
 
 type doc = {
-  symbols : Palette.symbol Palette.ColorMap.t;
+  symbols : Palette.symbol Stitchy.Types.SymbolMap.t;
   pixel_size : int;
   fat_line_interval : int;
 }

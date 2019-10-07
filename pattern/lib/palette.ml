@@ -1,13 +1,3 @@
-module Color = struct
-  type t = int * int * int (* r g b *)
-  let compare (r1, g1, b1) (r2, g2, b2) =
-    match compare r1 r2 with
-    | 0 -> if compare g1 g2 = 0 then compare b1 b2 else compare g1 g2
-    | n -> n
-end
-
-module ColorMap = Map.Make(Color)
-
 type symbol = | Symbol of string | Zapf of string
 
 let symbols = [
