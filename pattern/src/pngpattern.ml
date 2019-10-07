@@ -27,7 +27,7 @@ let info =
   let doc = "construct a cross-stitch pattern based on an image" in
   Term.info "pattern" ~doc
 
-let paint_pixels t image =
+let paint_pixels doc page image =
   (* x and y are the relative offsets within the page. *)
   (* (so, even if this is page 3 and the grid that's painted over this will be
      stitches 100-200 (x) and 50-70 (y), x and y will count up from 0 here.
@@ -38,49 +38,46 @@ let paint_pixels t image =
      corner is at the same location regardless of whether it represents (100, 50) from
      the original image, or (50, 25), or (1024, 768). *)
   let rec aux x y l =
-    if x >= (snd t.x_range) then
-      aux (fst t.x_range) (y+1) l
-    else if y >= (snd t.y_range) then
+    if x >= (snd page.x_range) then
+      aux (fst page.x_range) (y+1) l
+    else if y >= (snd page.y_range) then
       l
     else begin
       (* position is based on x and y relative to the range expressed on this page *)
-      let (x_pos, y_pos) = find_upper_left t (x - (fst t.x_range)) (y - (fst t.y_range)) in
+      let (x_pos, y_pos) = find_upper_left doc (x - (fst page.x_range)) (y - (fst page.y_range)) in
       (* but color is based on the placement in the actual image, so pass those coordinates
          to the painting function *)
       let (r, g, b) = Image.read_rgba image x y (fun r g b _ -> r, g, b) in
-      let symbol = match Palette.ColorMap.find_opt (r, g, b) t.symbols with
+      let symbol = match Palette.ColorMap.find_opt (r, g, b) doc.symbols with
         | None -> Palette.Symbol "\x20"
         | Some symbol -> symbol
       in
-      aux (x+1) y (paint_pixel ~x_pos ~y_pos ~pixel_size:(float_of_int t.pixel_size)
+      aux (x+1) y (paint_pixel ~x_pos ~y_pos ~pixel_size:(float_of_int doc.pixel_size)
                      r g b symbol @ l)
     end
   in
-  aux (fst t.x_range) (fst t.y_range) []
+  aux (fst page.x_range) (fst page.y_range) []
 
-let make_page ~symbols ~first_x ~first_y ~pixel_size ~fat_line_interval page_number image =
-  let xpp = x_per_page ~pixel_size
-  and ypp = y_per_page ~pixel_size
+let make_page doc ~first_x ~first_y page_number image =
+  let xpp = x_per_page ~pixel_size:doc.pixel_size
+  and ypp = y_per_page ~pixel_size:doc.pixel_size
   in
   let last_x =
     if image.Image.width < first_x + xpp then image.Image.width else first_x + xpp
   and last_y =
     if image.Image.height < first_y + ypp then image.Image.height else first_y + ypp
   in
-  let t = {
-    symbols;
-    pixel_size;
-    fat_line_interval;
+  let page = {
     page_number;
     x_range = (first_x, last_x);
     y_range = (first_y, last_y);
-  } in
+    } in
   {(Pdfpage.blankpage Pdfpaper.uslegal) with
    Pdfpage.content = [
-     Pdfops.stream_of_ops @@ paint_pixels t image;
-     Pdfops.stream_of_ops @@ paint_grid_lines t ;
-     Pdfops.stream_of_ops @@ label_top_grid t;
-     Pdfops.stream_of_ops @@ label_left_grid t;
+     Pdfops.stream_of_ops @@ paint_pixels doc page image;
+     Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
+     Pdfops.stream_of_ops @@ label_top_grid doc page;
+     Pdfops.stream_of_ops @@ label_left_grid doc page;
      Pdfops.stream_of_ops @@ number_page page_number;
    ];
    Pdfpage.resources = Pdf.(Dictionary [
@@ -133,8 +130,9 @@ let pages ~pixel_size ~fat_line_interval image =
   let xpp = x_per_page ~pixel_size
   and ypp = y_per_page ~pixel_size in
   let symbols = assign_symbols image in
+  let doc = { pixel_size; fat_line_interval; symbols; } in
   let rec page x y n l =
-    let l = make_page ~symbols ~first_x:x ~first_y:y ~pixel_size ~fat_line_interval n image :: l in
+    let l = make_page doc ~first_x:x ~first_y:y n image :: l in
     if (x + xpp) >= image.Image.width && (y + ypp) >= image.Image.height then l    
     else if (y + ypp) >= image.Image.height then page (x+xpp) 0 (n+1) l
     else page x (y + ypp) (n+1) l

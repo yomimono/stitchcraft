@@ -28,13 +28,16 @@ let symbol_key = "/F0"
 let zapf_key = "/F1"
 let helvetica_key = "/F2"
 
-type t = {
-  x_range : int * int;
-  y_range : int * int;
+type doc = {
+  symbols : Palette.symbol Palette.ColorMap.t;
   pixel_size : int;
   fat_line_interval : int;
+}
+
+type page = {
+  x_range : int * int;
+  y_range : int * int;
   page_number : int;
-  symbols : Palette.symbol Palette.ColorMap.t;
 }
 
 let x_per_page ~pixel_size =
@@ -45,15 +48,15 @@ let y_per_page ~pixel_size =
   (* assume 9 usable inches after margins, axis labels, and page number *)
   (72 * 9) / pixel_size
 
-let find_upper_left t x y =
+let find_upper_left doc x y =
   (* on the page, find the right upper-left-hand corner for this pixel
      given the x and y coordinates and `t` representing this page *)
-  let left_adjust = x * t.pixel_size
-  and top_adjust = y * t.pixel_size in
+  let left_adjust = x * doc.pixel_size
+  and top_adjust = y * doc.pixel_size in
   (min_x +. (float_of_int left_adjust), max_y -. (float_of_int top_adjust))
 
-let paint_grid_lines t =
-  let thickness n = if n mod t.fat_line_interval = 0 then 2. else 1. in
+let paint_grid_lines (doc : doc) (page : page) =
+  let thickness n = if n mod doc.fat_line_interval = 0 then 2. else 1. in
   let paint_line ~thickness (x1, y1) (x2, y2) =
     Pdfops.([
         Op_q;
@@ -65,22 +68,22 @@ let paint_grid_lines t =
       ])
   in
   let paint_horizontal_line y =
-    let (left_pt_x, y_pt) = find_upper_left t 0 y in
-    let (right_pt_x, _) = find_upper_left t (snd t.x_range - fst t.x_range) y in
-    paint_line ~thickness:(thickness (y + fst t.y_range)) (left_pt_x, y_pt) (right_pt_x, y_pt)
+    let (left_pt_x, y_pt) = find_upper_left doc 0 y in
+    let (right_pt_x, _) = find_upper_left doc (snd page.x_range - fst page.x_range) y in
+    paint_line ~thickness:(thickness (y + fst page.y_range)) (left_pt_x, y_pt) (right_pt_x, y_pt)
   in
   let paint_vertical_line x =
-    let (x_pt, top_y_pt) = find_upper_left t x 0 in
-    let (_, bottom_y_pt) = find_upper_left t x (snd t.y_range - fst t.y_range) in
-    paint_line ~thickness:(thickness (x + fst t.x_range)) (x_pt, top_y_pt) (x_pt, bottom_y_pt)
+    let (x_pt, top_y_pt) = find_upper_left doc x 0 in
+    let (_, bottom_y_pt) = find_upper_left doc x (snd page.y_range - fst page.y_range) in
+    paint_line ~thickness:(thickness (x + fst page.x_range)) (x_pt, top_y_pt) (x_pt, bottom_y_pt)
   in
   let rec paint_horizontal_lines n l =
-    let n_lines = (snd t.y_range) - (fst t.y_range) in
+    let n_lines = (snd page.y_range) - (fst page.y_range) in
     if n > n_lines then l
     else (paint_horizontal_lines (n+1) (paint_horizontal_line n @ l))
   in
   let rec paint_vertical_lines n l =
-    let n_lines = (snd t.x_range) - (fst t.x_range) in
+    let n_lines = (snd page.x_range) - (fst page.x_range) in
     if n > n_lines then l
     else (paint_vertical_lines (n+1) (paint_vertical_line n @ l))
   in
@@ -97,39 +100,39 @@ let make_grid_label ~text_size n n_x_pos n_y_pos =
       Op_Q;
     ])
 
-let label_top_line t n =
+let label_top_line doc page n =
   (* label n goes where the nth pixel would go, just nudged up a bit *)
-  let (n_x_pos, n_y_pos) = find_upper_left t (n - (fst t.x_range)) 0 in
-  make_grid_label ~text_size:(float_of_int t.pixel_size) n n_x_pos (n_y_pos +. (float_of_int t.pixel_size))
+  let (n_x_pos, n_y_pos) = find_upper_left doc (n - (fst page.x_range)) 0 in
+  make_grid_label ~text_size:(float_of_int doc.pixel_size) n n_x_pos (n_y_pos +. (float_of_int doc.pixel_size))
 
-let label_left_line t n =
+let label_left_line doc page n =
   (* label n goes where the nth pixel would go, just nudged left a bit *)
   (* TODO: it would be good to right-justify this; it's weird-looking with different-width labels *)
   (* is there a way to right-justify this bad boy? *)
-  let (n_x_pos, n_y_pos) = find_upper_left t 0 (n - (fst t.y_range)) in
-  make_grid_label ~text_size:(float_of_int t.pixel_size) n (n_x_pos -. (float_of_int (t.pixel_size * 2))) n_y_pos
+  let (n_x_pos, n_y_pos) = find_upper_left doc 0 (n - (fst page.y_range)) in
+  make_grid_label ~text_size:(float_of_int doc.pixel_size) n (n_x_pos -. (float_of_int (doc.pixel_size * 2))) n_y_pos
 
-let label_top_grid t =
+let label_top_grid doc page =
   let rec label n l =
-    if n > snd t.x_range then l
+    if n > snd page.x_range then l
     else
-      label (n+t.fat_line_interval) (label_top_line t n @ l) 
+      label (n+doc.fat_line_interval) (label_top_line doc page n @ l) 
   in
   (* find the first grid line that is evenly divisible by fat_line_interval; start there *)
-  match (fst t.x_range) mod t.fat_line_interval with
-  | 0 -> label (fst t.x_range) []
-  | _ -> label (((fst t.x_range / t.fat_line_interval) + 1) * t.fat_line_interval) []
+  match (fst page.x_range) mod doc.fat_line_interval with
+  | 0 -> label (fst page.x_range) []
+  | _ -> label (((fst page.x_range / doc.fat_line_interval) + 1) * doc.fat_line_interval) []
 
-let label_left_grid t =
+let label_left_grid doc page =
   let rec label n l =
-    if n > snd t.y_range then l
+    if n > snd page.y_range then l
     else
-      label (n+t.fat_line_interval) (label_left_line t n @ l) 
+      label (n+doc.fat_line_interval) (label_left_line doc page n @ l) 
   in
   (* find the first grid line that is evenly divisible by fat_line_interval; start there *)
-  match (fst t.y_range) mod t.fat_line_interval with
-  | 0 -> label (fst t.y_range) []
-  | _ -> label (((fst t.y_range / t.fat_line_interval) + 1) * t.fat_line_interval) []
+  match (fst page.y_range) mod doc.fat_line_interval with
+  | 0 -> label (fst page.y_range) []
+  | _ -> label (((fst page.y_range / doc.fat_line_interval) + 1) * doc.fat_line_interval) []
 
 let number_page number =
   Pdfops.([
