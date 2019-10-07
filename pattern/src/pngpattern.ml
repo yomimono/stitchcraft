@@ -58,36 +58,6 @@ let paint_pixels image doc page =
   in
   aux (fst page.x_range) (fst page.y_range) []
 
-let make_page doc ~first_x ~first_y page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
-  let xpp = x_per_page ~pixel_size:doc.pixel_size
-  and ypp = y_per_page ~pixel_size:doc.pixel_size
-  in
-  let last_x =
-    if width < first_x + xpp then width else first_x + xpp
-  and last_y =
-    if height < first_y + ypp then height else first_y + ypp
-  in
-  let page = {
-    page_number;
-    x_range = (first_x, last_x);
-    y_range = (first_y, last_y);
-    } in
-  {(Pdfpage.blankpage Pdfpaper.uslegal) with
-   Pdfpage.content = [
-     Pdfops.stream_of_ops @@ (pixels doc page);
-     Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
-     Pdfops.stream_of_ops @@ label_top_grid doc page;
-     Pdfops.stream_of_ops @@ label_left_grid doc page;
-     Pdfops.stream_of_ops @@ number_page page_number;
-   ];
-   Pdfpage.resources = Pdf.(Dictionary [
-       ("/Font", Pdf.Dictionary [(symbol_key, symbol_font);
-                                 (zapf_key, zapf_font);
-                                 (helvetica_key, helvetica_font)]);
-     ])
-  }
-
-
 let assign_symbols image =
   let next = function
     | [] -> (Palette.Symbol "\x20", [])
