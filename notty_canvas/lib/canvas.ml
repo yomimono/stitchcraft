@@ -76,7 +76,7 @@ let color_key substrate symbols view colors =
         | None -> Uchar.of_int 0x2588
       in
       Notty.(I.uchar style symbol 1 1) <|> Notty.I.void 1 0 <|>
-      Notty.(I.string A.empty @@ Stitchy.DMC.Thread.to_string c)
+      Notty.(I.string style @@ Stitchy.DMC.Thread.to_string c)
     ) colors |> Notty.I.vcat
 
 let show_grid {substrate; stitches} symbol_map view (width, height) =
@@ -97,7 +97,7 @@ let show_grid {substrate; stitches} symbol_map view (width, height) =
     | Some ({thread; _} as block) ->
       let symbol = match view.block_display with
         | `Symbol -> symbol_of_block symbol_map block
-        | `Solid -> Uchar.of_int 0x25cc
+        | `Solid -> Uchar.of_int 0x2588
       in
       let fg_color = color_map @@ Stitchy.DMC.Thread.to_rgb thread in
       Notty.(I.uchar A.(background ++ fg fg_color) symbol 1 1)
@@ -127,36 +127,39 @@ let minimap _substrate view (grid_width, grid_height) (minimap_width, minimap_he
   Notty.I.tabulate minimap_width minimap_height @@ fun x y ->
       Notty.I.char (in_view x y) ' ' 1 1
 
-let key_help _view =
+let key_help view =
   let open Notty in
   let open Notty.Infix in
   let highlight = A.(fg lightyellow ++ bg blue)
   and lowlight = A.(fg yellow ++ bg black)
   in
+  let symbol_text = match view.block_display with
+    | `Solid -> "ymbol view"
+    | `Symbol -> "olid view"
+  in
   let quit = I.string highlight "Q" <|> I.string lowlight "uit" in
-  let symbol = I.string highlight "S" <|> I.string lowlight "witch block view" in
+  let symbol = I.string highlight "S" <|> I.string lowlight symbol_text in
   quit <|> I.void 1 1 <|> symbol
 
 let main_view {substrate; stitches} view (width, height) =
   let open Notty.Infix in
   let grid_height = height - 1 in
   let grid_width = width * 2 / 3 in
-  let symbol_map = symbol_map (Stitchy.Types.BlockMap.bindings stitches |> List.map snd |> List.map (fun b -> b.thread)) in
+  let just_stitches = Stitchy.Types.BlockMap.bindings stitches |> List.map snd |> List.sort_uniq (fun block1 block2 -> Stitchy.DMC.Thread.compare block1.thread block2.thread) in
+  let color_list = just_stitches |> List.map (fun b -> Stitchy.DMC.Thread.to_rgb b.thread) in
+  let symbol_map = symbol_map (List.map (fun b -> b.thread) just_stitches) in
   let stitch_grid = show_grid {substrate; stitches} symbol_map view (grid_width, grid_height) in
   let color_key = 
     color_key substrate symbol_map view
      @@ colors ~x_off:view.x_off ~y_off:view.y_off ~width ~height stitches
   in
-  let (key_height, key_width) = Notty.I.(height color_key), (width - grid_width)  in
-  (* minimap can be the part of the right pane not consumed by the color key *)
-  let minimap_height = height - key_height - 1 in
-  let minimap_width = key_width in
-  (stitch_grid <|>
-   (color_key <->
-    minimap substrate view (grid_width, grid_height) (minimap_width, minimap_height)
-  ))
+  let debug =
+    Notty.(I.string A.empty (Printf.sprintf "%d colors found, %d symbols" (List.length color_list) (SymbolMap.cardinal symbol_map)))
+  in
+  let (_key_height, _key_width) = Notty.I.(height color_key), (width - grid_width)  in
+  (stitch_grid <|> color_key)
   <->
-  key_help view
+  key_help view <|> debug
 
 let scroll_down substrate view height =
   let next_page = view.y_off + height
