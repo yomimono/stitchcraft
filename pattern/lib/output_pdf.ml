@@ -185,7 +185,8 @@ let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
     if contrast_ratio (r, g, b) (0, 0, 0) >= 4.5 then
       Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
     else
-      Pdfops.Op_RG (1., 1., 1.), Pdfops.Op_rg (1., 1., 1.)
+      (* TODO: check the background as well and make sure this won't fade in there *)
+      Pdfops.Op_RG (0.75, 0.75, 0.75), Pdfops.Op_rg (0.75, 0.75, 0.75)
   in
   Pdfops.([
       Op_q;
@@ -199,8 +200,8 @@ let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
         (* TODO: find a better way to center this *)
         (Pdftransform.matrix_of_transform
            [Pdftransform.Translate
-              ((x_pos +. pixel_size *. 0.3),
-               (y_pos -. pixel_size *. 0.6))
+              ((x_pos +. pixel_size *. 0.0),
+               (y_pos -. pixel_size *. 1.0))
            ]);
       font_stroke;
       font_paint;
