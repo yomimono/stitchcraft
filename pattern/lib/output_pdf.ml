@@ -145,6 +145,28 @@ let number_page number =
       Op_Q;
     ])
 
+let scale n = (float_of_int n) /. 255.0
+
+(* relative luminance calculation is as described in Web Content
+   Accessibility Guidelines (WCAG) 2.0, retrieved from
+   https://www.w3.org/TR/2008/REC-WCAG20-20081211/#relativeluminancedef *)
+let relative_luminance (r, g, b) : float =
+  let r_srgb = scale r
+  and g_srgb = scale g
+  and b_srgb = scale b
+  in
+  let adjust n = if n <= 0.03928 then n /. 12.92 else Float.pow ((n +. 0.055) /. 1.055) 2.4 in
+  0.2126 *. (adjust r_srgb) +. 0.7152 *. (adjust g_srgb) +. 0.0722 *. (adjust b_srgb)
+
+(* to get a contrast ratio, calculate (RL of the lighter color + 0.05) / (RL of the darker color + 0.05). W3C wants that ratio to be at least 4.5:1. *)
+
+let contrast_ratio a b =
+  let cr lighter darker = (lighter +. 0.05) /. (darker +. 0.05) in
+  let a_rl = relative_luminance a
+  and b_rl = relative_luminance b
+  in
+  if a_rl >= b_rl then cr a_rl b_rl else cr b_rl a_rl
+
 (* note that this paints *only* the pixels - the grid lines should be added later *)
 (* (otherwise we end up with a lot of tiny segments when we could have just one through-line,
    and also we can more easily do thicker lines on grid intervals when we put them all in at once) *)
@@ -155,10 +177,15 @@ let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
        we're doing a border rather than a fill; this is the constant
        by which it is inset *)
   let color_inset = (stroke_width *. 0.5) in
-  let scale n = (float_of_int n) /. 255.0 in
   let (font_key, symbol) = match symbol with
     | Palette.Zapf symbol -> zapf_key, symbol
     | Symbol symbol -> symbol_key, symbol
+  in
+  let font_stroke, font_paint =
+    if contrast_ratio (r, g, b) (0, 0, 0) >= 4.5 then
+      Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
+    else
+      Pdfops.Op_RG (1., 1., 1.), Pdfops.Op_rg (1., 1., 1.)
   in
   Pdfops.([
       Op_q;
@@ -175,6 +202,8 @@ let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
               ((x_pos +. pixel_size *. 0.3),
                (y_pos -. pixel_size *. 0.6))
            ]);
+      font_stroke;
+      font_paint;
       Op_Tf (font_key, 12.);
       Op_BT;
       Op_Tj symbol;
