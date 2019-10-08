@@ -45,10 +45,12 @@ let stitch phrase interline output =
   match Stitchy.DMC.Thread.of_rgb (0, 0, 0) with
   | None -> failwith "oh no"
   | Some thread ->
+    let substrate = substrate_of_phrase phrase interline in
     let block : Stitchy.Types.block = { thread;
                                         stitch = Full; } in
     let (_, phrase) = blocks_of_phrase block phrase interline in
-    Yojson.Safe.to_file output (Stitchy.Types.BlockMap.to_yojson phrase)
+    let state = {stitches = phrase; substrate;} in
+    Yojson.Safe.to_file output (Stitchy.Types.state_to_yojson state)
 
 let stitch_t = Cmdliner.Term.(const stitch $ phrase $ interline $ output)
 
