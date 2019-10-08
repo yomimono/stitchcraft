@@ -1,5 +1,6 @@
 (executable
  (name notty_canvas)
  (public_name notty_canvas)
- (libraries notty notty.lwt stitchy)
+ (package notty_canvas)
+ (libraries cmdliner notty notty.lwt canvas stitchy)
 )
