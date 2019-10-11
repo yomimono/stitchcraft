@@ -1,6 +1,5 @@
 (* known issues:
    grid labels can easily be made not to align or display properly with large pixel sizes
-   symbol placement is not great
    large images produce inordinately large PDFs (possibly only solvable with region detection/drawing, or another library which knows how to coalesce regions)
    *)
 
@@ -16,8 +15,8 @@ let fat_line_interval =
   Arg.(value & opt int 5 & info ["guideline"; "g"] ~docv:"GUIDELINE" ~doc)
 
 let src =
-  let doc = "Stitch pattern to put in PDF." in
-  Arg.(value & pos 0 file "input.json" & info [] ~docv:"INPUT" ~doc)
+  let doc = "Stitch pattern to put in PDF. By default, will read from stdin." in
+  Arg.(value & opt string "-" & info ["i"; "input"] ~docv:"INPUT" ~doc)
 
 let dst =
   let doc = "Filename for output PDF." in
@@ -95,11 +94,14 @@ let pages ~pixel_size ~fat_line_interval state =
   List.rev @@ page 0 0 1 []
 
 let write_pattern pixel_size fat_line_interval src dst =
-  let json =
-    try Yojson.Safe.from_file src with
-    | _exn -> failwith "couldn't read file"
+  let json = function
+    | s when 0 = String.compare s "-" -> begin
+        try Yojson.Safe.from_channel stdin with _exn -> failwith "couldn't understand input"
+      end
+    | src ->
+      try Yojson.Safe.from_file src with _exn -> failwith "couldn't read file"
   in
-  match Stitchy.Types.state_of_yojson json with
+  match Stitchy.Types.state_of_yojson (json src) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
     let pages = pages ~pixel_size ~fat_line_interval pattern in

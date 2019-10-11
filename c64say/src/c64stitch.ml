@@ -6,7 +6,9 @@ let interline =
   let doc = "extra space to insert between lines (in stitches)" in
   Cmdliner.Arg.(value & opt int 0 & info ["interline"] ~doc)
 
-let output = Cmdliner.Arg.(value & opt string "stitch.json" & info ["f"; "file"])
+let output =
+  let doc = "file to output json to, or - for stdout" in
+  Cmdliner.Arg.(value & opt string "stitch.json" & info ["f"; "file"] ~doc)
 
 (* TODO: background and text color ought to be choosable from the known C64 colors. *)
 
@@ -41,6 +43,11 @@ let blocks_of_phrase block phrase interline =
       (next_y_off, (snd @@ add_line ~y_off line map))
     ) (0, blockmap) (C64chars.get_dimensions phrase interline).lines
 
+let spoo json output =
+  if 0 = String.compare output "-" then
+    Yojson.Safe.to_channel stdout json
+  else Yojson.Safe.to_file output json
+
 let stitch phrase interline output =
   match Stitchy.DMC.Thread.of_rgb (0, 0, 0) with
   | None -> failwith "oh no"
@@ -50,7 +57,8 @@ let stitch phrase interline output =
                                         stitch = Full; } in
     let (_, phrase) = blocks_of_phrase block phrase interline in
     let state = {stitches = phrase; substrate;} in
-    Yojson.Safe.to_file output (Stitchy.Types.state_to_yojson state)
+    let json = Stitchy.Types.state_to_yojson state in
+    spoo json output
 
 let stitch_t = Cmdliner.Term.(const stitch $ phrase $ interline $ output)
 
