@@ -7,6 +7,18 @@ type view = {
   zoom : int;
 }
 
+type pane = {
+  width : int;
+  height : int;
+}
+
+type left_pane = {
+  empty_corner : pane;
+  x_axis_labels : pane;
+  y_axis_labels : pane;
+  stitch_grid : pane;
+}
+
 let switch_view v =
   match v.block_display with
   | `Symbol -> {v with block_display = `Solid }
@@ -79,17 +91,64 @@ let color_key substrate symbols view colors =
       Notty.(I.string style @@ Stitchy.DMC.Thread.to_string c)
     ) colors |> Notty.I.vcat
 
-let show_grid {substrate; stitches} symbol_map view (width, height) =
-  (* figure out how much space we need for grid numbers. *)
-  let _max_x, max_y = width + view.x_off, height + view.y_off in
-  let label_size n = Notty.(I.width @@ I.string A.empty (Printf.sprintf "%d" n)) in
-  let background = Notty.A.(bg @@ color_map substrate.background) in
-  let width = width - label_size max_y in
-  (* TODO: we assume the x-axis labels will take up only one row,
-   * because we're printing them horizontally
-   * the right thing to do is pobably to pint them vertically instead,
-   * in which case we'll need to adjust this logic. *)
+let label_size n = Notty.(I.width @@ I.strf "%d" n)
+
+let label_y_axis ~width ~start_y ~max_y style =
+  let rec next_line l n = if n > (max_y + 1) then List.rev l else
+      let i = Notty.I.hsnap ~align:(`Right) width @@
+        Notty.I.strf ~attr:style "%d" n in
+      next_line (i::l) (n+1)
+  in
+  Notty.I.vcat @@ next_line [] start_y
+
+let label_x_axis ~height ~start_x ~max_x style =
+  let verticalize s =
+    Astring.String.fold_left (fun l c -> Notty.I.char style c 1 1 :: l) [] s
+    |> Notty.I.vcat
+  in
+  let rec next_line l n = if n > (max_x + 1) then List.rev l else
+      let l = (Notty.I.vsnap ~align:(`Bottom) height @@
+               verticalize (string_of_int n)) :: l in
+      next_line l (n+1)
+  in
+  Notty.I.hcat @@ next_line [] start_x
+
+
+(* given a width and height for the left pane,
+   figure out the dimensions appropriate for the x and y axis labels
+   as well as the stitch grid representation itself. *)
+let subdivide_left_pane ~left_pane_width ~left_pane_height substrate =
+  (* this was previously scaled for the largest number in the view,
+     but it's disconcerting when the grid moves,
+     so scale it for the largest number that will appear. *)
+  let y_axis_label_width = label_size substrate.max_y
+  and x_axis_label_height = label_size substrate.max_x
+  in
+  let stitch_grid_width = left_pane_width - y_axis_label_width
+  and stitch_grid_height = left_pane_height - x_axis_label_height
+  in
+  { empty_corner = { width = y_axis_label_width;
+                     height = x_axis_label_height;
+                   };
+    x_axis_labels = { width = stitch_grid_width;
+                      height = x_axis_label_height;
+                    };
+    y_axis_labels = { width = y_axis_label_width;
+                      height = stitch_grid_height;
+                    };
+    stitch_grid = { width = stitch_grid_width;
+                    height = stitch_grid_height;
+                  }
+  }
+
+let left_pane substrate (width, height) =
   let height = height - 1 in
+  let width = width * 2 / 3 in
+  subdivide_left_pane ~left_pane_width:width ~left_pane_height:height substrate
+
+let show_left_pane {substrate; stitches} symbol_map view left_pane =
+  let open Notty.Infix in
+  let background = Notty.A.(bg @@ color_map substrate.background) in
   let c x y = match BlockMap.find_opt (x + view.x_off, y + view.y_off) stitches with
     | None -> (* no stitch here *)
       (* TODO: column/row display? *)
@@ -102,30 +161,16 @@ let show_grid {substrate; stitches} symbol_map view (width, height) =
       let fg_color = color_map @@ Stitchy.DMC.Thread.to_rgb thread in
       Notty.(I.uchar A.(background ++ fg fg_color) symbol 1 1)
   in
-  Notty.I.tabulate (min (substrate.max_x + 1) width) (min (substrate.max_y + 1) height) c
-
-let minimap _substrate view (grid_width, grid_height) (minimap_width, minimap_height) =
-  let highlighted = Notty.A.(bg green) in
-  let not_highlighted = Notty.A.(bg @@ gray 10) in
-  let in_view x y =
-    if x >= view.x_off && x < (view.x_off + grid_width) &&
-       y >= view.y_off && y < (view.y_off + grid_height)
-    then highlighted else not_highlighted
+  let max_x = min substrate.max_x ((view.x_off + left_pane.stitch_grid.width) - 1)
+  and max_y = min substrate.max_y ((view.y_off + left_pane.stitch_grid.height) - 1)
   in
-  (* TODO: this logic is wrong; we need to map the minimap size onto the grid *)
-  (* the minimap is not as big as the grid, so we need to shink/scale
-   * what we're showing appropriately *)
-  (* so if the minimap is q wide and r tall,
-   * and the whole pattern is x wide and y tall,
-   * we want to figure out some proportional relationship beween q and x, and r and y, and then figure out what the four corners of the view map to.
-   * then we can paint a rectangle of the right size representing the current view, in a field representing the overall view.
-   * we need to do somethiing to keep the proportions of the mini-map static though -- 
-   * since the color key dynamically grows and shrinks with the view,
-   * just using the unused horizontal area will mean the minimap gets stretched
-   * and compressed unpredictably, which makes it bad for using to navigate.
-   * *)
-  Notty.I.tabulate minimap_width minimap_height @@ fun x y ->
-      Notty.I.char (in_view x y) ' ' 1 1
+  let label_axes i =
+    Notty.I.void left_pane.empty_corner.width left_pane.empty_corner.height
+    <-> label_y_axis ~width:left_pane.y_axis_labels.width ~start_y:view.y_off ~max_y Notty.A.empty
+    <|> (label_x_axis ~height:left_pane.x_axis_labels.height ~start_x:view.x_off ~max_x Notty.A.empty <-> i)
+  in
+  label_axes @@
+    Notty.I.tabulate left_pane.stitch_grid.width left_pane.stitch_grid.height c
 
 let key_help view =
   let open Notty in
@@ -143,62 +188,59 @@ let key_help view =
 
 let main_view {substrate; stitches} view (width, height) =
   let open Notty.Infix in
-  let grid_height = height - 1 in
-  let grid_width = width * 2 / 3 in
   let just_stitches = Stitchy.Types.BlockMap.bindings stitches |> List.map snd |> List.sort_uniq (fun block1 block2 -> Stitchy.DMC.Thread.compare block1.thread block2.thread) in
-  let color_list = just_stitches |> List.map (fun b -> Stitchy.DMC.Thread.to_rgb b.thread) in
   let symbol_map = symbol_map (List.map (fun b -> b.thread) just_stitches) in
-  let stitch_grid = show_grid {substrate; stitches} symbol_map view (grid_width, grid_height) in
-  let color_key = 
-    color_key substrate symbol_map view
-     @@ colors ~x_off:view.x_off ~y_off:view.y_off ~width ~height stitches
+  let left_pane = left_pane substrate (width, height) in
+  let stitch_grid = show_left_pane {substrate; stitches} symbol_map view left_pane in
+  let colors = colors ~x_off:view.x_off ~y_off:view.y_off
+      ~width:left_pane.stitch_grid.width ~height:left_pane.stitch_grid.height 
+      stitches
   in
-  let debug =
-    Notty.(I.string A.empty (Printf.sprintf "%d colors found, %d symbols" (List.length color_list) (SymbolMap.cardinal symbol_map)))
-  in
-  let (_key_height, _key_width) = Notty.I.(height color_key), (width - grid_width)  in
+  let color_key = color_key substrate symbol_map view colors in
   (stitch_grid <|> color_key)
   <->
-  key_help view <|> debug
+  key_help view
 
-let scroll_down substrate view height =
-  let next_page = view.y_off + height
-  and last_page = substrate.max_y - height
-  in
-  let best_offset = max (min next_page last_page) 0 in
-  { view with y_off = best_offset }
-
-let scroll_right substrate view width =
-  let next_page = view.x_off + width
-  and last_page = substrate.max_x - width
+let scroll_right substrate view left_pane =
+  let next_page = view.x_off + left_pane.stitch_grid.width
+  and last_page = (substrate.max_x - left_pane.stitch_grid.width)
   in
   let best_offset = max 0 @@ min next_page last_page in
   { view with x_off = best_offset }
 
-let scroll_up view height =
-  let prev_page = view.y_off - height
+let scroll_left view left_pane =
+  let prev_page = view.x_off - left_pane.stitch_grid.width
   and first_page = 0
   in
   let best_offset = max prev_page first_page in
+  { view with x_off = best_offset }
+
+let scroll_down substrate view left_pane =
+  let next_page = view.y_off + left_pane.stitch_grid.height
+  and last_page = (substrate.max_y - left_pane.stitch_grid.height)
+  in
+  let best_offset = max 0 @@ min next_page last_page in
   { view with y_off = best_offset }
 
-let scroll_left view width =
-  let prev_page = view.x_off - width
+let scroll_up view left_pane =
+  let prev_page = view.y_off - left_pane.stitch_grid.height
   and first_page = 0
   in
   let best_offset = max prev_page first_page in
   { view with x_off = best_offset }
 
 let step state view (width, height) event =
+  (* TODO: scrolling should, by default, be one pixel; big steps should be done with modifiers *)
+  let left_pane = left_pane state.substrate (width, height) in
   match event with
   | `Resize _ | `Mouse _ | `Paste _ -> Some (state, view)
   | `Key (key, mods) -> begin
       match key, mods with
       | (`Escape, _) | (`ASCII 'q', _) -> None
-      | (`Arrow `Left, _) -> Some (state, scroll_left view width)
-      | (`Arrow `Up, _) -> Some (state, scroll_up view height)
-      | (`Arrow `Down, _) -> Some (state, scroll_down state.substrate view height)
-      | (`Arrow `Right, _) -> Some (state, scroll_right state.substrate view width)
+      | (`Arrow `Left, _) -> Some (state, scroll_left view left_pane)
+      | (`Arrow `Up, _) -> Some (state, scroll_up view left_pane)
+      | (`Arrow `Down, _) -> Some (state, scroll_down state.substrate view left_pane)
+      | (`Arrow `Right, _) -> Some (state, scroll_right state.substrate view left_pane)
       | (`ASCII 's', _) -> Some (state, switch_view view)
       | _ -> Some (state, view)
     end

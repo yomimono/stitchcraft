@@ -1,4 +1,4 @@
 (library
  (name canvas)
- (libraries cmdliner notty stitchy)
+ (libraries astring cmdliner notty stitchy)
 )
