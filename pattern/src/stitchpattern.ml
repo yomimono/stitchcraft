@@ -87,7 +87,7 @@ let pages ~pixel_size ~fat_line_interval state =
   let doc = { pixel_size; fat_line_interval; symbols; } in
   let pixels = paint_pixels state.Stitchy.Types.stitches state.Stitchy.Types.substrate in
   let rec page x y n l =
-    let l = make_page doc ~first_x:x ~first_y:y ~width ~height n pixels :: l in
+    let l = make_page doc ~first_x:x ~first_y:y symbols ~width ~height n pixels :: l in
     if (x + xpp) >= width && (y + ypp) >= height then l    
     else if (y + ypp) >= height then page (x+xpp) 0 (n+1) l
     else page x (y + ypp) (n+1) l

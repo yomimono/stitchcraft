@@ -167,6 +167,10 @@ let contrast_ratio a b =
   in
   if a_rl >= b_rl then cr a_rl b_rl else cr b_rl a_rl
 
+let key_and_symbol = function
+  | Palette.Zapf symbol -> zapf_key, symbol
+  | Symbol symbol -> symbol_key, symbol
+
 (* note that this paints *only* the pixels - the grid lines should be added later *)
 (* (otherwise we end up with a lot of tiny segments when we could have just one through-line,
    and also we can more easily do thicker lines on grid intervals when we put them all in at once) *)
@@ -177,10 +181,7 @@ let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
        we're doing a border rather than a fill; this is the constant
        by which it is inset *)
   let color_inset = (stroke_width *. 0.5) in
-  let (font_key, symbol) = match symbol with
-    | Palette.Zapf symbol -> zapf_key, symbol
-    | Symbol symbol -> symbol_key, symbol
-  in
+  let (font_key, symbol) = key_and_symbol symbol in
   let font_stroke, font_paint =
     if contrast_ratio (r, g, b) (0, 0, 0) >= 4.5 then
       Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
@@ -212,7 +213,41 @@ let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
       Op_Q;
     ])
 
-let make_page doc ~first_x ~first_y page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
+let symbol_table color_to_symbol =
+  let paint_symbol description s n =
+    let font_key, symbol = key_and_symbol s in
+    let font_size = 12. in
+    let vertical_offset = 1. *. 72. in
+    let vertical_step n = (font_size +. 4.) *. (float_of_int n) in
+    Pdfops.[
+      Op_q;
+      Op_cm
+        (Pdftransform.matrix_of_transform
+           [Pdftransform.Translate
+              (72., vertical_offset +. vertical_step n);
+           ]);
+      Op_Tf (font_key, font_size);
+      Op_BT;
+      Op_Tj symbol;
+      Op_Tf (helvetica_key, font_size);
+      Op_Tj " : ";
+      Op_Tj description;
+      Op_ET;
+      Op_Q;
+    ]
+  in
+  Stitchy.Types.SymbolMap.fold (fun (r, g, b) symbol (placement, ops) ->
+      let description =
+        match Stitchy.DMC.Thread.of_rgb (r, g, b) with
+        | None -> Printf.sprintf "an unknown thread of color (%d, %d, %d)" r g b
+        | Some thread -> Stitchy.DMC.Thread.to_string thread
+      in
+      let ops = paint_symbol description symbol placement @ ops in
+      (placement + 1, ops)
+    ) color_to_symbol (0, [])
+      
+
+let make_page doc ~first_x ~first_y symbols page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
   let xpp = x_per_page ~pixel_size:doc.pixel_size
   and ypp = y_per_page ~pixel_size:doc.pixel_size
   in
@@ -232,6 +267,7 @@ let make_page doc ~first_x ~first_y page_number ~width ~height (pixels : doc -> 
      Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
      Pdfops.stream_of_ops @@ label_top_grid doc page;
      Pdfops.stream_of_ops @@ label_left_grid doc page;
+     Pdfops.stream_of_ops @@ snd (symbol_table symbols);
      Pdfops.stream_of_ops @@ number_page page_number;
    ];
    Pdfpage.resources = Pdf.(Dictionary [
