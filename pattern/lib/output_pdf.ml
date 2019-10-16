@@ -6,27 +6,19 @@ let max_y = base_unit *. 10.5 (* same idea for y *)
 let min_x = base_unit *. 0.5
 let min_y = base_unit *. 0.5
 
-let symbol_font =
+let t1_font name =
   Pdf.(Dictionary
          [("/Type", Name "/Font");
           ("/Subtype", Name "/Type1");
-          ("/BaseFont", Name "/Symbol");])
+          ("/BaseFont", Name name);])
 
-let zapf_font = 
-  Pdf.(Dictionary
-         [("/Type", Name "/Font");
-          ("/Subtype", Name "/Type1");
-          ("/BaseFont", Name "/ZapfDingbats");])
-
-let helvetica_font = 
-  Pdf.(Dictionary
-         [("/Type", Name "/Font");
-          ("/Subtype", Name "/Type1");
-          ("/BaseFont", Name "/Helvetica");])
+let symbol_font = t1_font "/Symbol"
+and zapf_font = t1_font "/ZapfDingbats"
+and helvetica_font = t1_font "/Helvetica"
 
 let symbol_key = "/F0"
-let zapf_key = "/F1"
-let helvetica_key = "/F2"
+and zapf_key = "/F1"
+and helvetica_key = "/F2"
 
 type doc = {
   symbols : Stitchy.Symbol.t Stitchy.Types.SymbolMap.t;
@@ -267,7 +259,7 @@ let make_page doc ~first_x ~first_y symbols page_number ~width ~height (pixels :
      Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
      Pdfops.stream_of_ops @@ label_top_grid doc page;
      Pdfops.stream_of_ops @@ label_left_grid doc page;
-     Pdfops.stream_of_ops @@ snd (symbol_table symbols);
+     Pdfops.stream_of_ops @@ snd (symbol_table symbols); (* TODO: we'd like to limit this by page, but not _recalculate_ it per page *)
      Pdfops.stream_of_ops @@ number_page page_number;
    ];
    Pdfpage.resources = Pdf.(Dictionary [
