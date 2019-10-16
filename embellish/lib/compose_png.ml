@@ -1,4 +1,5 @@
 open Image
+open Compose
 
 type reflection = None
                 | Vertical
@@ -6,12 +7,6 @@ type reflection = None
                 | VH (* both vertically and horizontally, as in the bottom right-hand corner *)
                 | Diagonal
                 | DH (* both diagonally and horizontally, as on the right-hand edge *)
-
-let max3 a b c : int = max (max a b) (max b c)
-
-let border_repetitions ~center ~side = match center mod side with
-  | 0 -> center / side
-  | _ -> (center / side) + side
 
 (* blit [src] into [dst] starting at ([dst_x_off], [dst_y_off]) *)
 (* if [dst] is too small, copy what you can *)

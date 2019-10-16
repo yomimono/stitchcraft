@@ -1,6 +1,22 @@
 (executable
- (public_name embellish)
- (libraries compose cmdliner imagelib imagelib-unix))
+ (public_name embellish_png)
+ (modules embellish_png)
+ (libraries compose_png cmdliner imagelib imagelib-unix))
+
+(executable
+ (public_name embellish_stitch)
+ (modules embellish_stitch)
+ (libraries compose_stitch cmdliner stitchy))
+
+(executable
+ (public_name hcat)
+ (modules hcat)
+ (libraries compose_stitch cmdliner stitchy))
+
+(executable
+ (public_name vcat)
+ (modules vcat)
+ (libraries compose_stitch cmdliner stitchy))
 
 (data_only_dirs test)
 
@@ -9,7 +25,7 @@
  (deps test/corner.png test/side.png test/center.png)
  (action
    (progn
-   (run embellish --corner test/corner.png --side test/side.png --center test/center.png --output embellished.png)
+   (run embellish_png --corner test/corner.png --side test/side.png --center test/center.png --output embellished.png)
    (run identify embellished.png)
    (run eog embellished.png)
    )

@@ -1,3 +1,14 @@
 (library
  (name compose)
- (libraries imagelib))
+ (modules compose)
+)
+
+(library
+ (name compose_png)
+ (modules compose_png)
+ (libraries compose imagelib))
+
+(library
+ (name compose_stitch)
+ (modules compose_stitch)
+ (libraries compose stitchy))

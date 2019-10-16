@@ -4,7 +4,7 @@ module LoadPNG = struct
     ImageUtil_unix.chunk_reader_of_path file
 
   let start_composition corner side center output =
-    let out = Compose.compose (open_png corner) (open_png side) (open_png center) in
+    let out = Compose_png.compose (open_png corner) (open_png side) (open_png center) in
     ImagePNG.write_png output out
 
 end
