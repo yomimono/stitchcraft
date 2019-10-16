@@ -26,6 +26,17 @@ let info =
   let doc = "output a PDF for a cross-stitch pattern" in
   Term.info "pattern" ~doc
 
+let get_symbol blockmap symbols substrate x y =
+  match Stitchy.Types.BlockMap.find_opt (x, y) blockmap with 
+  | None -> substrate.Stitchy.Types.background, Stitchy.Symbol.default
+  | Some block ->
+    let color = Stitchy.DMC.Thread.to_rgb block.Stitchy.Types.thread in
+    let symbol = match Stitchy.Types.SymbolMap.find_opt color symbols with
+      | None -> Stitchy.Symbol.default
+      | Some symbol -> symbol
+    in
+    color, symbol
+
 let paint_pixels (blockmap : Stitchy.Types.block Stitchy.Types.BlockMap.t) substrate doc page =
   (* x and y are the relative offsets within the page. *)
   (* (so, even if this is page 3 and the grid that's painted over this will be
@@ -37,34 +48,31 @@ let paint_pixels (blockmap : Stitchy.Types.block Stitchy.Types.BlockMap.t) subst
      corner is at the same location regardless of whether it represents (100, 50) from
      the original image, or (50, 25), or (1024, 768). *)
   let rec aux x y l =
-    if x >= (snd page.x_range) then
-      aux (fst page.x_range) (y+1) l
-    else if y >= (snd page.y_range) then
-      l
+    (* if we've advanced beyond the horizontal edge, start over on the left edge of the next row *)
+    if x >= (snd page.x_range) then aux (fst page.x_range) (y+1) l
+    (* if we've advanced beyond the vertical edge, time to stop *)
+    else if y >= (snd page.y_range) then l
+    (* otherwise, let's paint the pixel *)
     else begin
       (* position is based on x and y relative to the range expressed on this page *)
       let (x_pos, y_pos) = find_upper_left doc (x - (fst page.x_range)) (y - (fst page.y_range)) in
+
       (* but color is based on the placement in the actual image, so pass those coordinates
          to the painting function *)
-      let ((r, g, b), symbol) = match Stitchy.Types.BlockMap.find_opt (x, y) blockmap with 
-        | None -> substrate.Stitchy.Types.background, Pattern.Palette.Symbol "\x20"
-        | Some block ->
-          let color = Stitchy.DMC.Thread.to_rgb block.thread in
-          let symbol = match Stitchy.Types.SymbolMap.find_opt color doc.symbols with
-            | None -> Pattern.Palette.Symbol "\x20"
-            | Some symbol -> symbol
-          in
-          color, symbol
+      let ((r, g, b), symbol) = get_symbol blockmap doc.symbols substrate x y in
+      let this_pixel =
+        paint_pixel ~x_pos ~y_pos
+          ~pixel_size:(float_of_int doc.pixel_size)
+          r g b symbol
       in
-      aux (x+1) y (paint_pixel ~x_pos ~y_pos ~pixel_size:(float_of_int doc.pixel_size)
-                     r g b symbol @ l)
+      aux (x+1) y (this_pixel @ l)
     end
   in
   aux (fst page.x_range) (fst page.y_range) []
 
 let assign_symbols (blocks : Stitchy.Types.stitches) =
   let next = function
-    | [] -> (Pattern.Palette.Symbol "\x20", [])
+    | [] -> (Stitchy.Symbol.default, [])
     | hd::tl -> (hd, tl)
   in
   let colors = Stitchy.Types.BlockMap.bindings blocks |>
@@ -74,7 +82,7 @@ let assign_symbols (blocks : Stitchy.Types.stitches) =
   List.fold_left (fun (freelist, map) color ->
       let symbol, freelist = next freelist in
       (freelist, Stitchy.Types.SymbolMap.add color symbol map))
-  (Pattern.Palette.symbols, color_map) colors
+  (Stitchy.Symbol.printable_symbols, color_map) colors
 
 let pages ~pixel_size ~fat_line_interval state =
   let open Stitchy.Types in

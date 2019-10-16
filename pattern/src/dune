@@ -1,10 +1,4 @@
 (executable
- (public_name pngpattern)
- (modules pngpattern)
- (libraries pattern cmdliner camlpdf imagelib imagelib-unix)
-)
-
-(executable
  (public_name stitchpattern)
  (modules stitchpattern)
  (libraries pattern cmdliner camlpdf stitchy)
@@ -14,10 +8,10 @@
 
 (alias
  (name runtest)
- (deps test/ocaml.png test/hecko.png)
+ (deps test/stitch.json)
  (action
   (progn
-   (run pngpattern -p20 -o ocaml.pdf test/hecko.png)
+   (run stitchpattern -p20 -o ocaml.pdf test/stitch.json)
    (run pdfinfo ocaml.pdf)
    (run evince ocaml.pdf)
 )))

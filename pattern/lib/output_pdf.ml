@@ -29,7 +29,7 @@ let zapf_key = "/F1"
 let helvetica_key = "/F2"
 
 type doc = {
-  symbols : Palette.symbol Stitchy.Types.SymbolMap.t;
+  symbols : Stitchy.Symbol.t Stitchy.Types.SymbolMap.t;
   pixel_size : int;
   fat_line_interval : int;
 }
@@ -167,9 +167,9 @@ let contrast_ratio a b =
   in
   if a_rl >= b_rl then cr a_rl b_rl else cr b_rl a_rl
 
-let key_and_symbol = function
-  | Palette.Zapf symbol -> zapf_key, symbol
-  | Symbol symbol -> symbol_key, symbol
+let key_and_symbol s = match s.Stitchy.Symbol.pdf with
+  | `Zapf symbol -> zapf_key, symbol
+  | `Symbol symbol -> symbol_key, symbol
 
 (* note that this paints *only* the pixels - the grid lines should be added later *)
 (* (otherwise we end up with a lot of tiny segments when we could have just one through-line,
