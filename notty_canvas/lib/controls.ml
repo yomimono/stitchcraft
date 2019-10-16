@@ -26,31 +26,44 @@ let switch_view v =
   | `Symbol -> {v with block_display = `Solid }
   | `Solid -> {v with block_display = `Symbol }
 
+let limit_rd_scroll ~last_page proposed =
+  max 0 @@ min proposed last_page
+
+let limit_lu_scroll proposed =
+  max proposed 0
+
 let scroll_right substrate view left_pane =
   let next_page = view.x_off + left_pane.stitch_grid.width
   and last_page = (substrate.max_x - left_pane.stitch_grid.width)
   in
-  let best_offset = max 0 @@ min next_page last_page in
+  let best_offset = limit_rd_scroll ~last_page next_page in
   { view with x_off = best_offset }
 
 let scroll_left view left_pane =
-  let prev_page = view.x_off - left_pane.stitch_grid.width
-  and first_page = 0
-  in
-  let best_offset = max prev_page first_page in
+  let prev_page = view.x_off - left_pane.stitch_grid.width in
+  let best_offset = limit_lu_scroll prev_page in
   { view with x_off = best_offset }
 
 let scroll_down substrate view left_pane =
   let next_page = view.y_off + left_pane.stitch_grid.height
   and last_page = (substrate.max_y - left_pane.stitch_grid.height)
   in
-  let best_offset = max 0 @@ min next_page last_page in
+  let best_offset = limit_rd_scroll ~last_page next_page in
   { view with y_off = best_offset }
 
 let scroll_up view left_pane =
-  let prev_page = view.y_off - left_pane.stitch_grid.height
-  and first_page = 0
-  in
-  let best_offset = max prev_page first_page in
+  let prev_page = view.y_off - left_pane.stitch_grid.height in
+  let best_offset = limit_lu_scroll prev_page in
   { view with x_off = best_offset }
 
+let scroll_one substrate view = function
+  | `Right -> { view with x_off = limit_rd_scroll ~last_page:(substrate.max_x - 1) (view.x_off + 1) }
+  | `Left -> { view with x_off = limit_lu_scroll (view.x_off - 1) }
+  | `Up -> { view with y_off = limit_lu_scroll (view.y_off - 1) }
+  | `Down -> { view with y_off = limit_rd_scroll ~last_page:(substrate.max_y - 1) (view.y_off + 1) }
+
+let scroll_page substrate view left_pane = function
+  | `Right -> scroll_right substrate view left_pane
+  | `Left -> scroll_left view left_pane
+  | `Up -> scroll_up view left_pane
+  | `Down -> scroll_down substrate view left_pane

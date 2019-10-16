@@ -55,7 +55,7 @@ let color_key substrate symbols view colors =
 let label_size n = Notty.(I.width @@ I.strf "%d" n)
 
 let label_y_axis ~width ~start_y ~max_y style =
-  let rec next_line l n = if n > (max_y + 1) then List.rev l else
+  let rec next_line l n = if n > max_y then List.rev l else
       let i = Notty.I.hsnap ~align:(`Right) width @@
         Notty.I.strf ~attr:style "%d" n in
       next_line (i::l) (n+1)
@@ -67,7 +67,7 @@ let label_x_axis ~height ~start_x ~max_x style =
     Astring.String.fold_left (fun l c -> Notty.I.char style c 1 1 :: l) [] s
     |> Notty.I.vcat
   in
-  let rec next_line l n = if n > (max_x + 1) then List.rev l else
+  let rec next_line l n = if n > max_x then List.rev l else
       let l = (Notty.I.vsnap ~align:(`Bottom) height @@
                verticalize (string_of_int n)) :: l in
       next_line l (n+1)
@@ -137,9 +137,11 @@ let key_help view =
     | `Solid -> "ymbol view"
     | `Symbol -> "olid view"
   in
-  let quit = I.string highlight "Q" <|> I.string lowlight "uit" in
-  let symbol = I.string highlight "S" <|> I.string lowlight symbol_text in
-  quit <|> I.void 1 1 <|> symbol
+  let nav_text = I.string highlight "←↑→↓" <|> I.string lowlight " to scroll"
+  and shift_text = I.string highlight "Shift + ←↑→↓" <|> I.string lowlight " to page"
+  and quit = I.string highlight "Q" <|> I.string lowlight "uit"
+  and symbol = I.string highlight "S" <|> I.string lowlight symbol_text in
+  quit <|> I.void 1 1 <|> symbol <|> I.void 1 1 <|> nav_text <|> I.void 1 1 <|> shift_text
 
 let main_view {substrate; stitches} view (width, height) =
   let open Notty.Infix in
@@ -164,10 +166,8 @@ let step state view (width, height) event =
   | `Key (key, mods) -> begin
       match key, mods with
       | (`Escape, _) | (`ASCII 'q', _) -> None
-      | (`Arrow `Left, _) -> Some (state, Controls.scroll_left view left_pane)
-      | (`Arrow `Up, _) -> Some (state, Controls.scroll_up view left_pane)
-      | (`Arrow `Down, _) -> Some (state, Controls.scroll_down state.substrate view left_pane)
-      | (`Arrow `Right, _) -> Some (state, Controls.scroll_right state.substrate view left_pane)
+      | (`Arrow dir, l) when List.mem `Shift l -> Some (state, Controls.scroll_page state.substrate view left_pane dir)
+      | (`Arrow dir, _) -> Some (state, Controls.scroll_one state.substrate view dir)
       | (`ASCII 's', _) -> Some (state, Controls.switch_view view)
       | _ -> Some (state, view)
     end
