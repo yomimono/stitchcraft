@@ -11,7 +11,7 @@
  (deps test/stitch.json)
  (action
   (progn
-   (run stitchpattern -p20 -o ocaml.pdf test/stitch.json)
+   (run stitchpattern -p20 -o ocaml.pdf -i test/stitch.json)
    (run pdfinfo ocaml.pdf)
    (run evince ocaml.pdf)
 )))
