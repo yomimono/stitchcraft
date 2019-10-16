@@ -166,8 +166,8 @@ let step state view (width, height) event =
   | `Key (key, mods) -> begin
       match key, mods with
       | (`Escape, _) | (`ASCII 'q', _) -> None
-      | (`Arrow dir, l) when List.mem `Shift l -> Some (state, Controls.scroll_page state.substrate view left_pane dir)
-      | (`Arrow dir, _) -> Some (state, Controls.scroll_one state.substrate view dir)
+      | (`Arrow dir, l) when List.mem `Shift l -> Some (state, Controls.page state.substrate view left_pane dir)
+      | (`Arrow dir, _) -> Some (state, Controls.scroll state.substrate view dir)
       | (`ASCII 's', _) -> Some (state, Controls.switch_view view)
       | _ -> Some (state, view)
     end
