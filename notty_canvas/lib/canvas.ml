@@ -1,49 +1,10 @@
 open Stitchy.Types
 
-type view = {
-  x_off : int;
-  y_off : int;
-  block_display : [ `Symbol | `Solid ];
-  zoom : int;
-}
-
-type pane = {
-  width : int;
-  height : int;
-}
-
-type left_pane = {
-  empty_corner : pane;
-  x_axis_labels : pane;
-  y_axis_labels : pane;
-  stitch_grid : pane;
-}
-
-let switch_view v =
-  match v.block_display with
-  | `Symbol -> {v with block_display = `Solid }
-  | `Solid -> {v with block_display = `Symbol }
-
-let printable_symbols = [
-  0x23; (* symbol 0x23 *)
-  0x25; (* symbol 0x25 *)
-  0x2b; (* symbol 0x2b *)
-  0x3e; (* symbol 0x3e *)
-  0x03a6; (* symbol 0x46 *)
-  0x2234; (* symbol 0x5c *)
-  0x7b; (* symbol 0x7b *)
-  0x221e; (* symbol 0xa5 *)
-  0x2666; (* symbol 0xa9 *)
-  0xb1; (* symbol 0xb1 *)
-  0x21d3; (*symbol 0xdf *)
-  0x25ca; (* symbol 0xe0 *)
-] |> List.map Uchar.of_int
-
 let symbol_map colors =
   let lookups = List.mapi (fun index thread ->
-      match List.nth_opt printable_symbols index with
+      match List.nth_opt Stitchy.Symbol.printable_symbols index with
       | None -> (thread, Uchar.of_int 0x2588)
-      | Some symbol -> (thread, symbol)
+      | Some symbol -> (thread, symbol.uchar)
     ) colors in
   List.fold_left (fun map (thread, symbol) ->
       SymbolMap.add (Stitchy.DMC.Thread.to_rgb thread) symbol map
@@ -82,7 +43,7 @@ let color_key substrate symbols view colors =
       let needle = Stitchy.DMC.Thread.to_rgb c in
       let style = Notty.A.(fg (color_map needle) ++ bg (color_map substrate.background)) in
       let symbol =
-        if view.block_display = `Solid then Uchar.of_int 0x2588 else
+        if view.Controls.block_display = `Solid then Uchar.of_int 0x2588 else
         match SymbolMap.find_opt needle symbols with
         | Some a -> a
         | None -> Uchar.of_int 0x2588
@@ -127,15 +88,9 @@ let subdivide_left_pane ~left_pane_width ~left_pane_height substrate =
   let stitch_grid_width = left_pane_width - y_axis_label_width
   and stitch_grid_height = left_pane_height - x_axis_label_height
   in
-  { empty_corner = { width = y_axis_label_width;
+  { Controls.empty_corner = { width = y_axis_label_width;
                      height = x_axis_label_height;
                    };
-    x_axis_labels = { width = stitch_grid_width;
-                      height = x_axis_label_height;
-                    };
-    y_axis_labels = { width = y_axis_label_width;
-                      height = stitch_grid_height;
-                    };
     stitch_grid = { width = stitch_grid_width;
                     height = stitch_grid_height;
                   }
@@ -149,7 +104,7 @@ let left_pane substrate (width, height) =
 let show_left_pane {substrate; stitches} symbol_map view left_pane =
   let open Notty.Infix in
   let background = Notty.A.(bg @@ color_map substrate.background) in
-  let c x y = match BlockMap.find_opt (x + view.x_off, y + view.y_off) stitches with
+  let c x y = match BlockMap.find_opt (x + view.Controls.x_off, y + view.y_off) stitches with
     | None -> (* no stitch here *)
       (* TODO: column/row display? *)
       Notty.I.char background ' ' 1 1
@@ -161,13 +116,13 @@ let show_left_pane {substrate; stitches} symbol_map view left_pane =
       let fg_color = color_map @@ Stitchy.DMC.Thread.to_rgb thread in
       Notty.(I.uchar A.(background ++ fg fg_color) symbol 1 1)
   in
-  let max_x = min substrate.max_x ((view.x_off + left_pane.stitch_grid.width) - 1)
-  and max_y = min substrate.max_y ((view.y_off + left_pane.stitch_grid.height) - 1)
+  let max_x = min substrate.max_x Controls.((view.x_off + left_pane.stitch_grid.width) - 1)
+  and max_y = min substrate.max_y Controls.((view.y_off + left_pane.stitch_grid.height) - 1)
   in
   let label_axes i =
     Notty.I.void left_pane.empty_corner.width left_pane.empty_corner.height
-    <-> label_y_axis ~width:left_pane.y_axis_labels.width ~start_y:view.y_off ~max_y Notty.A.empty
-    <|> (label_x_axis ~height:left_pane.x_axis_labels.height ~start_x:view.x_off ~max_x Notty.A.empty <-> i)
+    <-> label_y_axis ~width:left_pane.empty_corner.width ~start_y:view.y_off ~max_y Notty.A.empty
+    <|> (label_x_axis ~height:left_pane.empty_corner.height ~start_x:view.x_off ~max_x Notty.A.empty <-> i)
   in
   label_axes @@
     Notty.I.tabulate left_pane.stitch_grid.width left_pane.stitch_grid.height c
@@ -178,7 +133,7 @@ let key_help view =
   let highlight = A.(fg lightyellow ++ bg blue)
   and lowlight = A.(fg yellow ++ bg black)
   in
-  let symbol_text = match view.block_display with
+  let symbol_text = match view.Controls.block_display with
     | `Solid -> "ymbol view"
     | `Symbol -> "olid view"
   in
@@ -201,34 +156,6 @@ let main_view {substrate; stitches} view (width, height) =
   <->
   key_help view
 
-let scroll_right substrate view left_pane =
-  let next_page = view.x_off + left_pane.stitch_grid.width
-  and last_page = (substrate.max_x - left_pane.stitch_grid.width)
-  in
-  let best_offset = max 0 @@ min next_page last_page in
-  { view with x_off = best_offset }
-
-let scroll_left view left_pane =
-  let prev_page = view.x_off - left_pane.stitch_grid.width
-  and first_page = 0
-  in
-  let best_offset = max prev_page first_page in
-  { view with x_off = best_offset }
-
-let scroll_down substrate view left_pane =
-  let next_page = view.y_off + left_pane.stitch_grid.height
-  and last_page = (substrate.max_y - left_pane.stitch_grid.height)
-  in
-  let best_offset = max 0 @@ min next_page last_page in
-  { view with y_off = best_offset }
-
-let scroll_up view left_pane =
-  let prev_page = view.y_off - left_pane.stitch_grid.height
-  and first_page = 0
-  in
-  let best_offset = max prev_page first_page in
-  { view with x_off = best_offset }
-
 let step state view (width, height) event =
   (* TODO: scrolling should, by default, be one pixel; big steps should be done with modifiers *)
   let left_pane = left_pane state.substrate (width, height) in
@@ -237,10 +164,10 @@ let step state view (width, height) event =
   | `Key (key, mods) -> begin
       match key, mods with
       | (`Escape, _) | (`ASCII 'q', _) -> None
-      | (`Arrow `Left, _) -> Some (state, scroll_left view left_pane)
-      | (`Arrow `Up, _) -> Some (state, scroll_up view left_pane)
-      | (`Arrow `Down, _) -> Some (state, scroll_down state.substrate view left_pane)
-      | (`Arrow `Right, _) -> Some (state, scroll_right state.substrate view left_pane)
-      | (`ASCII 's', _) -> Some (state, switch_view view)
+      | (`Arrow `Left, _) -> Some (state, Controls.scroll_left view left_pane)
+      | (`Arrow `Up, _) -> Some (state, Controls.scroll_up view left_pane)
+      | (`Arrow `Down, _) -> Some (state, Controls.scroll_down state.substrate view left_pane)
+      | (`Arrow `Right, _) -> Some (state, Controls.scroll_right state.substrate view left_pane)
+      | (`ASCII 's', _) -> Some (state, Controls.switch_view view)
       | _ -> Some (state, view)
     end

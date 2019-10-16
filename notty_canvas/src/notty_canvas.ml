@@ -4,7 +4,7 @@ open Canvas
 let input =
   Cmdliner.Arg.(value & pos 0 file "input.json" & info [])
 
-let start_view = { x_off = 0; y_off = 0; zoom = 1; block_display = `Symbol }
+let start_view = { Canvas__Controls.x_off = 0; y_off = 0; zoom = 1; block_display = `Symbol }
 let disp input =
   let aux () =
     let start_state =
@@ -17,7 +17,7 @@ let disp input =
       let open Lwt.Infix in
       let term = Notty_lwt.Term.create () in
       Notty_lwt.Term.image term @@ main_view start_state start_view (Notty_lwt.Term.size term) >>= fun () ->
-      let rec loop (state : state) (view : view) =
+      let rec loop (state : state) (view : Canvas__Controls.view) =
         (Lwt_stream.last_new @@ Notty_lwt.Term.events term) >>= fun event ->
         let size = Notty_lwt.Term.size term in
         match step state view size event with
