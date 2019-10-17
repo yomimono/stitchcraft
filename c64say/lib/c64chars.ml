@@ -484,6 +484,8 @@ let backslash =
 
 let forward_slash = List.map (fun (x, y) -> (7 - x), y) backslash
 
+let dash = [ (1, 3); (2, 3); (3, 3); (4, 3); (5, 3); (6, 3); ]
+
 let map =
   let m = CharMap.empty in
   let m = CharMap.add 'A' upper_a m in
@@ -540,4 +542,5 @@ let map =
   let m = CharMap.add 'z' lower_z m in
   let m = CharMap.add '\\' backslash m in
   let m = CharMap.add '/' forward_slash m in
+  let m = CharMap.add '-' dash m in
   m
