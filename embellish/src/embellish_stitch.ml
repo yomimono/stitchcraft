@@ -13,12 +13,16 @@ let center =
   Arg.(value & opt file "center.png" & info ["center"] ~docv:"CENTER" ~doc)
 
 let output =
-  let doc = "Path at which to output the finished, embellished image." in
-  Arg.(value & opt string "embellished.json" & info ["o"; "output"] ~docv:"OUTPUT" ~doc)
+  let doc = "Where to output the finished, embellished image. -, the default, is stdout." in
+  Arg.(value & opt string "-" & info ["o"; "output"] ~docv:"OUTPUT" ~doc)
 
 let info =
   let doc = "embellish an image with corner and border images" in
   Term.info "embellish" ~doc ~exits:Term.default_exits
+
+let spoo output json =
+  if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
+  else Yojson.Safe.to_file output json
 
 let go corner side center output =
   let (corner, side, center) = try
@@ -31,7 +35,7 @@ let go corner side center output =
   | Ok corner, Ok side, Ok center ->
     Compose_stitch.embellish ~center ~corner ~side
     |> Stitchy.Types.state_to_yojson
-    |> Yojson.Safe.to_file output
+    |> spoo output
 
 let compose_t = Term.(const go $ corner $ side $ center $ output)
 

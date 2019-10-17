@@ -2,13 +2,18 @@ open Stitchy.Types
 open Canvas
 
 let input =
-  Cmdliner.Arg.(value & pos 0 file "input.json" & info [])
+  let doc = "file from which to read. -, the default, is stdin." in
+  Cmdliner.Arg.(value & pos 0 string "-" & info [] ~doc)
 
 let start_view = { Canvas__Controls.x_off = 0; y_off = 0; zoom = 1; block_display = `Symbol }
 let disp input =
   let aux () =
     let start_state =
-      try Yojson.Safe.from_file input
+      try
+        if 0 = String.compare input "-" then
+          Yojson.Safe.from_channel stdin
+        else
+          Yojson.Safe.from_file input
       with _ -> failwith "couldn't read input file"
     in
     match start_state |> state_of_yojson with

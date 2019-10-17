@@ -9,8 +9,12 @@ let right =
   Arg.(value & pos 1 file "right.json" & info [] ~doc)
 
 let output =
-  let doc = "output file" in
-  Arg.(value & opt string "wide.json" & info ["output"; "o"] ~doc)
+  let doc = "output file. - for stdout, the default." in
+  Arg.(value & opt string "-" & info ["output"; "o"] ~doc)
+
+let spoo output json =
+  if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
+  else Yojson.Safe.to_file output json
 
 let go left right output =
   let (left, right) = try
@@ -23,7 +27,7 @@ let go left right output =
   | Ok left, Ok right ->
     Compose_stitch.vcat left right
     |> Stitchy.Types.state_to_yojson
-    |> Yojson.Safe.to_file output
+    |> spoo output
 
 let vcat_t = Term.(const go $ left $ right $ output)
 
