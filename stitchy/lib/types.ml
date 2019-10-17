@@ -98,7 +98,6 @@ type substrate =
     grid : grid;
     max_x : int; [@generator Crowbar.range 1023](* farthest x coordinate (least is always 0) *)
     max_y : int; [@generator Crowbar.range 1023]
-    block_size : int; (* width and height of cells for display; we always want them square *)
   }
 [@@deriving crowbar, eq, yojson]
 

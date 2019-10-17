@@ -20,7 +20,6 @@ let substrate_of_phrase phrase interline =
     grid = Fourteen;
     max_x = max 0 (width - 1);
     max_y = max 0 (height - 1);
-    block_size = 1;
   }
 
 let blocks_of_phrase block phrase interline =
