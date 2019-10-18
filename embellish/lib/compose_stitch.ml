@@ -17,16 +17,18 @@ let hpadding image1 image2 =
     if difference mod 2 = 0 then (difference / 2), (difference / 2)
     else (difference / 2), (difference / 2 + 1)
   end
-
-let vpadding image1 image2 =
-  let bigger, smaller =
-    if image1.substrate.max_y > image2.substrate.max_y then image1, image2 else image2, image1
+(* TODO: the caller assumes that image1 needs the padding *)
+let vpadding left right =
+  let which_to_pad, bigger, smaller =
+    if left.substrate.max_y > right.substrate.max_y
+    then `Right, left, right
+    else `Left, right, left
   in
-  if bigger.substrate.max_y = smaller.substrate.max_y then 0, 0
+  if bigger.substrate.max_y = smaller.substrate.max_y then `None, 0, 0
   else begin
     let difference = bigger.substrate.max_y - smaller.substrate.max_y in
-    if difference mod 2 = 0 then (difference / 2), (difference / 2)
-    else (difference / 2), (difference / 2 + 1)
+    if difference mod 2 = 0 then (which_to_pad, (difference / 2), (difference / 2))
+    else which_to_pad, ((difference / 2) + 1), (difference / 2)
   end
 
 let hcat_with_substrate substrate upper lower =
@@ -53,14 +55,27 @@ let vcat_with_substrate substrate left right =
   let new_max_x = left.substrate.max_x + right.substrate.max_x + 1
   and new_max_y = max left.substrate.max_y right.substrate.max_y
   in
-  let top_pad, _ = vpadding left right in
+  let which_to_pad, top_pad, _ = vpadding left right in
   let substrate = { substrate with max_x = new_max_x; max_y = new_max_y } in
-  let stitches = BlockMap.fold (fun (x, y) v m ->
-      BlockMap.add (displace_right ~amount:(left.substrate.max_x + 1) (x, y)) v m
-    ) right.stitches BlockMap.empty in
-  let stitches = BlockMap.fold (fun (x, y) v m ->
-      BlockMap.add (displace_down ~amount:top_pad (x, y)) v m
-    ) left.stitches stitches in
+  let stitches =
+    match which_to_pad with
+    | `None ->
+      BlockMap.fold (fun (x, y) v m ->
+          BlockMap.add (displace_right ~amount:(left.substrate.max_x + 1) (x, y)) v m
+        ) right.stitches left.stitches
+    | `Left ->
+      let stitches = BlockMap.fold (fun (x, y) v m ->
+          BlockMap.add (displace_right ~amount:(left.substrate.max_x + 1) (x, y)) v m
+        ) right.stitches BlockMap.empty in
+      BlockMap.fold (fun (x, y) v m ->
+          BlockMap.add (displace_down ~amount:top_pad (x, y)) v m
+        ) left.stitches stitches
+    | `Right ->
+      BlockMap.fold (fun (x, y) v m ->
+          BlockMap.add (displace_down ~amount:top_pad @@ displace_right ~amount:(left.substrate.max_x + 1) (x, y)) v m
+        ) right.stitches left.stitches
+
+  in
   { substrate; stitches }
 
 (** [vcat left right] vertically concatenates two patterns.
@@ -114,13 +129,8 @@ let embellish ~center ~corner ~side =
   in
   let side_border = hrepeat side vert_border_reps in
   let top_border = vrepeat side horiz_border_reps in
-  let left_pad, right_pad = hpadding top_border center
-  and top_pad, bottom_pad = vpadding side_border center
-  in
-  let center = pad_horizontal center left_pad right_pad in
-  let center = pad_vertical center top_pad bottom_pad in
   (corner <|> top_border <|> corner)
   <->
-  ((side_border <|> center) <|> side_border)
+  (side_border <|> center <|> side_border)
   <->
   (corner <|> top_border <|> corner)
