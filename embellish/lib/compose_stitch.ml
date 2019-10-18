@@ -34,9 +34,13 @@ let hcat_with_substrate substrate upper lower =
   and new_max_x = max upper.substrate.max_x lower.substrate.max_x
   in
   let substrate = { substrate with max_x = new_max_x; max_y = new_max_y } in
+  let left_padding, _ = hpadding upper lower in
   let stitches = Stitchy.Types.BlockMap.fold (fun (x, y) v m ->
       BlockMap.add (displace_down ~amount:(upper.substrate.max_y + 1) (x, y)) v m
-    ) lower.stitches upper.stitches in
+    ) lower.stitches BlockMap.empty in
+  let stitches = Stitchy.Types.BlockMap.fold (fun (x, y) v m ->
+      BlockMap.add (displace_right ~amount:left_padding (x, y)) v m
+    ) upper.stitches stitches in
   { substrate; stitches }
 
 (** [hcat upper lower] horizontally concatenates two patterns.
