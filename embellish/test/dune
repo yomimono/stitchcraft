@@ -1,0 +1,10 @@
+(executable
+ (name stitch_test)
+ (public_name stitch_test)
+ (libraries alcotest compose_stitch)
+)
+
+(alias
+ (name runtest)
+ (action (run %{exe:stitch_test.exe})
+))
