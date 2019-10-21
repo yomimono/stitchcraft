@@ -8,11 +8,15 @@ let interline =
 
 let output =
   let doc = "file to output json to, or - for stdout" in
-  Cmdliner.Arg.(value & opt string "stitch.json" & info ["f"; "file"] ~doc)
+  Cmdliner.Arg.(value & opt string "stitch.json" & info ["o"; "output"] ~doc)
 
 (* TODO: background and text color ought to be choosable from the known C64 colors. *)
+let textcolor =
+  let doc = "color of text" in
+  Cmdliner.Arg.(value & opt (enum C64colors.cmdliner_enum) C64colors.Black & info ["t"; "textcolor"] ~doc)
 
 (* TODO: grid size should be choosable from the known valid values. *)
+
 
 let substrate_of_phrase phrase interline =
   let {C64chars.height; width; _ } = C64chars.get_dimensions phrase interline in
@@ -47,19 +51,17 @@ let spoo json output =
     Yojson.Safe.to_channel stdout json
   else Yojson.Safe.to_file output json
 
-let stitch phrase interline output =
-  match Stitchy.DMC.Thread.of_rgb (0, 0, 0) with
-  | None -> failwith "oh no"
-  | Some thread ->
-    let substrate = substrate_of_phrase phrase interline in
-    let block : Stitchy.Types.block = { thread;
-                                        stitch = Full; } in
-    let (_, phrase) = blocks_of_phrase block phrase interline in
-    let state = {stitches = phrase; substrate;} in
-    let json = Stitchy.Types.state_to_yojson state in
-    spoo json output
+let stitch textcolor phrase interline output =
+  let thread = C64colors.thread_of_color textcolor in
+  let substrate = substrate_of_phrase phrase interline in
+  let block : Stitchy.Types.block = { thread;
+                                      stitch = Full; } in
+  let (_, phrase) = blocks_of_phrase block phrase interline in
+  let state = {stitches = phrase; substrate;} in
+  let json = Stitchy.Types.state_to_yojson state in
+  spoo json output
 
-let stitch_t = Cmdliner.Term.(const stitch $ phrase $ interline $ output)
+let stitch_t = Cmdliner.Term.(const stitch $ textcolor $ phrase $ interline $ output)
 
 let info =
   let doc = "make a stitch file repesenting a phrase in c64 font" in

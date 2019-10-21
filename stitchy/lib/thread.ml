@@ -14,6 +14,10 @@ module type S = sig
   val to_string : t -> string
   (** human-readable string describing the thread. *)
 
+  val of_string : string -> t option
+  (** attempts to find a thread matching the description.  Pass the thread color
+      or description with no "DMC" prefix (e.g., "310", not "DMC 310". *)
+
   val to_yojson : t -> Yojson.Safe.t
   (** generate a json representation of this thread. *)
 

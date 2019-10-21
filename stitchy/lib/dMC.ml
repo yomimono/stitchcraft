@@ -11,7 +11,6 @@ end = struct
 
   let to_rgb t = t.rgb
   let to_string t = Format.sprintf "DMC %s: %s" t.identifier t.name
-
   let neighbors _ = []
 
   let compare a b = String.compare a.identifier b.identifier
@@ -496,4 +495,6 @@ end = struct
     Crowbar.choose (List.map (fun (_k, v) -> Crowbar.const v) l)
 
   let of_rgb color = RGBMap.find_opt color rgb_map
+
+  let of_string s = StringMap.find_opt s id_map
 end

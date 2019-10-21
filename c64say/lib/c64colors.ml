@@ -16,6 +16,25 @@ type color =
   | Light_blue
   | Light_gray
 
+let cmdliner_enum : (string * color) list = [
+  "black",Black;
+  "white",White;
+  "red",Red;
+  "cyan",Cyan;
+  "purple",Purple;
+  "green",Green;
+  "blue",Blue;
+  "yellow",Yellow;
+  "orange",Orange;
+  "brown",Brown;
+  "lightred",Light_red;
+  "darkgray",Dark_gray;
+  "gray2",Gray_2;
+  "lightreen",Light_green;
+  "lightblue",Light_blue;
+  "lightgray",Light_gray;
+]
+
 (* specific RGB values and names from c64-wiki.org entry on color *)
 let rgb_of_color = function
   | Black -> (0, 0, 0)
@@ -35,65 +54,35 @@ let rgb_of_color = function
   | Light_blue -> (0, 136, 255)
   | Light_gray -> (187, 187, 187)
 
+let or_die = function
+  | None -> failwith "color lookup failure - check DMC map"
+  | Some t -> t
+
+let dmc_lookup s = Stitchy.DMC.Thread.of_string s |> or_die
+
 (** colors may have multiple threads which could represent them.
     as such, return a list, with the (entirely subjective) best match
     first, and additional good matches if present. *)
 let thread_of_color = function
-  | Black -> [ "DMC 310" ]
-  | White -> [
-      "DMC B5200" (* "true white" *)
-    ; "DMC Blanc" (* more muted and also more generally avail *)
-    ]
-  | Red -> [
-      "DMC 814" (* a dark vibrant red *)
-    ; "DMC 221" (* a bit more purple *)
-    ]
-  | Cyan -> [
-    "DMC 3811" (* a better color match, but very dull looking *)
-  ; "DMC 964" (* bright enough, but too green *)
-    ]
-  | Purple -> [ "DMC 553" (* looks on the nose to me *)
-              ; "DMC 208" (* a touch more jewel-toned, maybe a worse
-                             color match but nice in intensity *)
-              ]
-  | Green -> [ "DMC 911" (* looks perfect to me *)
-             ]
-  | Blue -> [ "DMC 796" (* probably too dark, but I can't see a better
-                           match that isn't too dark to see.
-                           intensity pops nicely in person *)
-            ]
+  | Black -> dmc_lookup "310"
+  | White -> dmc_lookup "B5200"
+  | Red -> dmc_lookup "814"
+  | Cyan -> dmc_lookup "3811"
+  | Purple -> dmc_lookup "553"
+  | Green -> dmc_lookup "911"
+  | Blue -> dmc_lookup "796"
             (* yellow is tricky, because the displayed CSS color seems washed-out compared to the JPG sample on c64wiki. *)
-  | Yellow -> [
-      "DMC 727" (* one down in the color family,
+  | Yellow ->
+      dmc_lookup "727" (* one down in the color family,
                              and a better match to the source image *)
-    ; "DMC 3078" (* matching #eeee77, which is washed out *)
-    ]
-  | Orange -> [
-      "DMC 977" (* a good match, imo *)
-    ; "DMC 922" (* maybe just a touch too orange -
-                             the original color looks fairly muted,
-                             and a little browner *)
-    ]
-  | Brown -> [
-        "DMC 3781" (* looks good from the card, but might be too red IRL *)
-      ; 
-    ]
-  | Light_red -> [ "DMC 3341" (* a bit on the pinker end *);
-                   "DMC 352" (* fairly peachy *) ]
-  | Dark_gray -> [ "DMC 3799" ] (* it is indeed quite dark. *)
-  | Gray_2 -> [ "DMC 317"
-              ; "DMC 414" (* this is probably too dark and too blue *)
-              ]
-  | Light_green -> [
-        "DMC 704" (* this one is not a great match but it's the best one I could find.  it's not really light enough. *)
-      ; "DMC 907" (* too yellow, probably *)
-      ]
-  | Light_blue -> [
-        "DMC 995" (* looks too dark on the card, but I think it's the right intensity *)
-        ; "DMC 3843" (* looks right on the card *)
-    ]
-  | Light_gray -> [
-      "DMC 413" (* looks about right *)
-    ; "DMC 318" (* a shade darker than 413, in case that one isn't right *)
-    ]
-
+  | Orange -> dmc_lookup "977" (* a good match, imo *)
+  | Brown -> dmc_lookup "3781" (* looks good from the card, but might be too red IRL *)
+  | Light_red -> dmc_lookup "3341" (* a bit on the pinker end *);
+  | Dark_gray -> dmc_lookup "3799" (* it is indeed quite dark. *)
+  | Gray_2 -> dmc_lookup "317"
+  | Light_green ->
+        dmc_lookup "704" (* this one is not a great match but it's the best one I could find.  it's not really light enough. *)
+  | Light_blue ->
+        dmc_lookup "995" (* looks too dark on the card, but I think it's the right intensity *)
+  | Light_gray ->
+      dmc_lookup "413" (* looks about right *)
