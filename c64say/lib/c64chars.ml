@@ -470,6 +470,70 @@ let lower_z = [
   (1, 6); (2, 6); (3, 6); (4, 6); (5, 6); (6, 6);
 ]
 
+let one = List.map (fun (x, y) -> x + 2, y) upper_left_bar @ [
+  (2, 2);
+  (1, 6);
+  (2, 6);
+  (5, 6);
+  (6, 6);
+]
+
+let two = [
+  (2, 0); (3, 0); (4, 0); (5, 0);
+  (1, 1); (2, 1); (5, 1); (6, 1);
+  (5, 2); (6, 2);
+  (4, 3); (5, 3);
+  (2, 4); (3, 4);
+  (1, 5); (2, 5);
+  (1, 6); (2, 6); (3, 6); (4, 6); (5, 6); (6, 6);
+]
+let three =
+  let top = [
+    (2, 0); (3, 0); (4, 0); (5, 0);
+    (1, 1); (2, 1); (5, 1); (6, 1);
+    (5, 2); (6, 2);
+  ] in
+  top @
+  [(3, 3); (4, 3); (5, 3)] @ 
+  List.map (fun (x, y) -> (x, 6-y)) top
+  
+let four = List.map (fun (x, y) -> x + 4, y) upper_left_bar @
+           [(4, 1);
+            (3, 2); (4, 2);
+            (1, 3); (2, 3);
+            (1, 4); (2, 4); (3, 4); (4, 4); (7, 4);
+           ]
+let five = [
+  (1, 0); (2, 0); (3, 0); (4, 0); (5, 0); (6, 0);
+  (1, 1); (2, 1);
+  (1, 2); (2, 2); (3, 2); (4, 2); (5, 2);
+  (5, 3); (6, 3);
+  (5, 4); (6, 4);
+  (1, 5); (2, 5); (5, 5); (6, 5);
+  (2, 6); (3, 6); (4, 6); (5, 6);
+
+]
+let six =
+  let top = [
+    (2, 0); (3, 0); (4, 0); (5, 0);
+    (1, 1); (2, 1); (5, 1); (6, 1);
+    (1, 2); (2, 2);
+  ] in
+  top @ [(1, 3); (2, 3); (3, 3); (4, 3); (5, 3);] @
+  List.map (fun (x, y) -> (x, 6-y)) top
+let seven = [
+  (1, 0); (2, 0); (3, 0); (4, 0); (5, 0); (6, 0);
+  (1, 1); (2, 1); (5, 1); (6, 1);
+  (4, 2); (5, 2);
+  (3, 3); (4, 3);
+  (3, 4); (4, 4);
+  (3, 5); (4, 5);
+  (3, 6); (4, 6);
+]
+let eight = []
+let nine = []
+let zero = []
+
 let backslash =
   [
     (0, 0); (0, 1);
@@ -540,6 +604,16 @@ let map =
   let m = CharMap.add 'x' lower_x m in
   let m = CharMap.add 'y' lower_y m in
   let m = CharMap.add 'z' lower_z m in
+  let m = CharMap.add '1' one m in
+  let m = CharMap.add '2' two m in
+  let m = CharMap.add '3' three m in
+  let m = CharMap.add '4' four m in
+  let m = CharMap.add '5' five m in
+  let m = CharMap.add '6' six m in
+  let m = CharMap.add '7' seven m in
+  let m = CharMap.add '8' eight m in
+  let m = CharMap.add '9' nine m in
+  let m = CharMap.add '0' zero m in
   let m = CharMap.add '\\' backslash m in
   let m = CharMap.add '/' forward_slash m in
   let m = CharMap.add '-' dash m in
