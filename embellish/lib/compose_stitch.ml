@@ -106,23 +106,6 @@ let empty base_substrate max_x max_y =
   let stitches = BlockMap.empty in
   { substrate; stitches }
 
-let pad_horizontal center left right =
-  match left, right with
-  | 0, 0 -> center
-  | n, 0 -> (empty center.substrate n center.substrate.max_y) <|> center
-  | 0, n -> center <|> (empty center.substrate n center.substrate.max_y)
-  | l, r -> (empty center.substrate l center.substrate.max_y) <|> center <|>
-            (empty center.substrate r center.substrate.max_y)
-
-let pad_vertical center top bottom =
-  match top, bottom with
-  | 0, 0 -> center
-  | n, 0 -> (empty center.substrate center.substrate.max_x n) <-> center
-  | 0, n -> center <-> (empty center.substrate center.substrate.max_x n)
-  | l, r -> (empty center.substrate center.substrate.max_x l) <-> center <->
-            (empty center.substrate center.substrate.max_x r)
-
-
 let embellish ~center ~corner ~top ~side =
   let open Compose in
   let horiz_border_reps = border_repetitions
@@ -135,8 +118,16 @@ let embellish ~center ~corner ~top ~side =
   in
   let side_border = hrepeat side vert_border_reps in
   let top_border = vrepeat top horiz_border_reps in
+  let center =
+    if center.substrate.max_x < top_border.substrate.max_x then begin
+      let empty_corner_x = (top_border.substrate.max_x - center.substrate.max_x) / 2 in
+      let empty_corner = empty center.substrate (empty_corner_x - 1) 1 in
+      (side_border <|> empty_corner <|> center <|> empty_corner <|> side_border)
+    end else
+      (side_border <|> center <|> side_border)
+  in
   (corner <|> top_border <|> corner)
   <->
-  (side_border <|> center <|> side_border)
+  center
   <->
   (corner <|> top_border <|> corner)
