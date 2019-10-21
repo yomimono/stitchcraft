@@ -1,0 +1,42 @@
+(alias
+ (name runtest)
+ (action
+  (progn
+   (run c64stitch -o hello.json --interline=2 "hello to this whole\nbeautiful world")
+   (run c64stitch -t cyan -o border.json "\\")
+   (run embellish_stitch --top=border.json --side=border.json --center=hello.json --corner=border.json -o embellished.json)
+   (run stitchpattern -i embellished.json -o embellished.pdf)
+   (run evince embellished.pdf)
+  )
+ )
+)
+
+(alias
+ (name be_gay_do_crimes)
+ (action
+  (progn
+   (run c64stitch -o red.json -t red "\\")
+   (run c64stitch -o orange.json -t orange "\\")
+   (run c64stitch -o yellow.json -t yellow "\\")
+   (run c64stitch -o green.json -t green "\\")
+   (run c64stitch -o blue.json -t blue "\\")
+   (run c64stitch -o purple.json -t purple "\\")
+   (run c64stitch -o black.json "\\")
+
+   (run vcat -o vro.json red.json orange.json)
+   (run vcat -o vroy.json vro.json yellow.json)
+   (run vcat -o vroyg.json vroy.json green.json)
+   (run vcat -o vroygb.json vroyg.json blue.json)
+   (run vcat -o vroygbv.json vroygb.json purple.json)
+
+   (run hcat -o hro.json red.json orange.json)
+   (run hcat -o hroy.json hro.json yellow.json)
+   (run hcat -o hroyg.json hroy.json green.json)
+   (run hcat -o hroygb.json hroyg.json blue.json)
+   (run hcat -o hroygbv.json hroygb.json purple.json)
+
+   (run c64stitch -o center.json "be gay\ndo crimes")
+   (run embellish_stitch --top=vroygbv.json --side=hroygbv.json --corner=black.json --center=center.json -o be_gay_do_crimes.json)
+   (run stitchpattern -i be_gay_do_crimes.json -o be_gay_do_crimes.pdf)
+   (run evince be_gay_do_crimes.pdf)
+        )))

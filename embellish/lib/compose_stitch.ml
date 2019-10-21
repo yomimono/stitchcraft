@@ -123,18 +123,18 @@ let pad_vertical center top bottom =
             (empty center.substrate center.substrate.max_x r)
 
 
-let embellish ~center ~corner ~side =
+let embellish ~center ~corner ~top ~side =
   let open Compose in
   let horiz_border_reps = border_repetitions
       ~center:(center.substrate.max_x + 1)
-      ~side:(side.substrate.max_x + 1)
+      ~side:(top.substrate.max_x + 1)
   in
   let vert_border_reps = border_repetitions
       ~center:(center.substrate.max_y + 1)
       ~side:(side.substrate.max_y + 1)
   in
   let side_border = hrepeat side vert_border_reps in
-  let top_border = vrepeat side horiz_border_reps in
+  let top_border = vrepeat top horiz_border_reps in
   (corner <|> top_border <|> corner)
   <->
   (side_border <|> center <|> side_border)

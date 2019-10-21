@@ -4,9 +4,13 @@ let corner =
   let doc = "Corner border image (oriented to upper-left corner).  Will be flipped (not rotated) as appropriate for other corners." in
   Arg.(value & opt file "corner.png" & info ["corner"] ~docv:"CORNER" ~doc)
 
+let top =
+  let doc = "top border image (oriented horizontally).  Will be flipped (not rotated) for the bottom border." in
+  Arg.(value & opt file "top.png" & info ["top"] ~docv:"TOP" ~doc)
+
 let side =
-  let doc = "Side border image (oriented horizontally).  Will be flipped (not rotated) as appropriate for other sides." in
-  Arg.(value & opt file "side.png" & info ["side"] ~docv:"SIDE" ~doc)
+  let doc = "left side border image.  Will be flipped (not rotated) for the right border." in
+  Arg.(value & opt file "side.png" & info ["side"] ~docv:"LEFT" ~doc)
 
 let center =
   let doc = "Center image.  Corner and side will be inserted to surround this image." in
@@ -24,19 +28,22 @@ let spoo output json =
   if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
   else Yojson.Safe.to_file output json
 
-let go corner side center output =
-  let (corner, side, center) = try
-      Yojson.Safe.(from_file corner, from_file side, from_file center)
+let go corner top side center output =
+  let (corner, top, side, center) = try
+      Yojson.Safe.(from_file corner, from_file top, from_file side, from_file center)
     with
     | _ -> failwith "couldn't read an input file"
   in
-  match Stitchy.Types.(state_of_yojson corner, state_of_yojson side, state_of_yojson center) with
-  | Error e, _, _ | _, Error e, _ | _, _, Error e -> failwith (Printf.sprintf "failed to parse input json: %s" e)
-  | Ok corner, Ok side, Ok center ->
-    Compose_stitch.embellish ~center ~corner ~side
+  match Stitchy.Types.(state_of_yojson corner,
+                       state_of_yojson top,
+                       state_of_yojson side,
+                       state_of_yojson center) with
+  | Ok corner, Ok top, Ok side, Ok center ->
+    Compose_stitch.embellish ~center ~corner ~top ~side
     |> Stitchy.Types.state_to_yojson
     |> spoo output
+  | _, _, _, _ -> failwith (Printf.sprintf "failed to parse input json")
 
-let compose_t = Term.(const go $ corner $ side $ center $ output)
+let compose_t = Term.(const go $ corner $ top $ side $ center $ output)
 
 let () = Term.exit @@ Term.eval (compose_t, info)
