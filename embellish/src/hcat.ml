@@ -1,31 +1,40 @@
 open Cmdliner
 
-let top =
-  let doc = "Top image." in
-  Arg.(value & pos 0 file "top.json" & info [] ~doc)
-
-let bottom =
-  let doc = "Bottom image." in
-  Arg.(value & pos 1 file "bottom.json" & info [] ~doc)
+let files =
+  let doc = "Image(s) to concatenate, in order with topmost appearing first." in
+  Arg.(non_empty & pos_all file [] & info [] ~doc)
 
 let output =
   let doc = "output file" in
   Arg.(value & opt string "tall.json" & info ["output"; "o"] ~doc)
 
-let go top bottom output =
-  let (top, bottom) = try
-    Yojson.Safe.(from_file top, from_file bottom)
+let go files output =
+  let files = try
+    List.map Yojson.Safe.from_file files |> List.rev
     with
     | _ -> failwith "couldn't read an input file"
   in
-  match Stitchy.Types.(state_of_yojson top, state_of_yojson bottom) with
-  | Error e, _ | _, Error e -> failwith (Printf.sprintf "failed to parse input json: %s" e)
-  | Ok top, Ok bottom ->
-    Compose_stitch.hcat top bottom
-    |> Stitchy.Types.state_to_yojson
-    |> Yojson.Safe.to_file output
+  let files = List.fold_left (fun acc yojson -> match acc, Stitchy.Types.(state_of_yojson yojson) with
+      | Error e, _ | _, Error e -> Error e
+      | Ok states, Ok state -> Ok (state::states)
+    ) (Ok []) files
+  in
+  let bigpattern patterns =
+    List.fold_left (fun bigpattern next -> match bigpattern with
+        | None -> Some next
+        | Some bigpattern -> Some (Compose_stitch.hcat bigpattern next))
+      None patterns
+  in
+  match files with
+  | Error _ -> failwith "oh no!!"
+  | Ok patterns ->
+    match bigpattern patterns with
+    | None -> failwith "oh NOOOOOO!!!"
+    | Some bigpattern ->
+      Stitchy.Types.state_to_yojson bigpattern
+      |> Yojson.Safe.to_file output
 
-let hcat_t = Term.(const go $ top $ bottom $ output)
+let hcat_t = Term.(const go $ files $ output)
 
 let info = Term.info "hcat" ~doc:"horizontally concatenate patterns"
 

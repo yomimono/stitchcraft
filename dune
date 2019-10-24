@@ -12,6 +12,16 @@
 )
 
 (alias
+ (name butt)
+ (action
+  (progn
+   (run c64stitch -o butt.json "butt")
+   (run c64stitch -o dash.json -- "-")
+   (run embellish_stitch --corner=dash.json --side=dash.json --center=butt.json -o border_butt.json)
+   (run notty_canvas border_butt.json)
+)))
+
+(alias
  (name be_gay_do_crimes)
  (action
   (progn
@@ -22,29 +32,24 @@
    (run c64stitch -o hblue.json -t blue "11")
    (run c64stitch -o hpurple.json -t purple "13")
    (run c64stitch -o black.json "\\")
-
    (run c64stitch -o vblueone.json -t blue "1")
+
    (run hcat -o vblueeleven.json vblueone.json vblueone.json)
    (run c64stitch -o vpurpleone.json -t purple "1")
    (run c64stitch -o vpurplethree.json -t purple "3")
+   
    (run hcat -o vpurplethirteen.json vpurpleone.json vpurplethree.json)
 
-   (run vcat -o vro.json red.json orange.json)
-   (run vcat -o vroy.json vro.json yellow.json)
-   (run vcat -o vroyg.json vroy.json green.json)
-   (run vcat -o vroygb.json vroyg.json hblue.json)
-   (run vcat -o vroygbv.json vroygb.json hpurple.json)
+   (run vcat -o vroygbv.json red.json orange.json yellow.json green.json hblue.json hpurple.json)
 
-   (run hcat -o hro.json red.json orange.json)
-   (run hcat -o hroy.json hro.json yellow.json)
-   (run hcat -o hroyg.json hroy.json green.json)
-   (run hcat -o hroygb.json hroyg.json vblueeleven.json)
-   (run hcat -o hroygbv.json hroygb.json vpurplethirteen.json)
+   (run hcat -o hroygbv.json red.json orange.json yellow.json green.json vblueeleven.json vpurplethirteen.json)
 
-   (run c64stitch -o be_gay.json "be gay")
-   (run c64stitch -o find_primes.json "find primes")
-   (run hcat -o saying.json be_gay.json find_primes.json)
+   (run c64stitch -o be.json "be")
+   (run c64stitch -o gay.json "gay")
+   (run c64stitch -o find.json "find")
+   (run c64stitch -o primes.json "primes")
+
+   (run hcat -o saying.json be.json gay.json find.json primes.json)
    (run embellish_stitch --top=vroygbv.json --side=hroygbv.json --corner=black.json --center=saying.json -o be_gay_find_primes.json)
-   (run stitchpattern -i be_gay_find_primes.json -o be_gay_find_primes.pdf)
-   (run evince be_gay_find_primes.pdf)
+   (run notty_canvas be_gay_find_primes.json)
         )))

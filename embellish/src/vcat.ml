@@ -1,12 +1,8 @@
 open Cmdliner
 
-let left =
-  let doc = "left image." in
-  Arg.(value & pos 0 file "left.json" & info [] ~doc)
-
-let right =
-  let doc = "right image." in
-  Arg.(value & pos 1 file "right.json" & info [] ~doc)
+let files =
+  let doc = "Images to concatenate together, leftmost first." in
+  Arg.(non_empty & pos_all file [] & info [] ~doc)
 
 let output =
   let doc = "output file. - for stdout, the default." in
@@ -16,20 +12,32 @@ let spoo output json =
   if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
   else Yojson.Safe.to_file output json
 
-let go left right output =
-  let (left, right) = try
-    Yojson.Safe.(from_file left, from_file right)
+let go files output =
+  let files = try
+    List.map Yojson.Safe.from_file files |> List.rev
     with
     | _ -> failwith "couldn't read an input file"
   in
-  match Stitchy.Types.(state_of_yojson left, state_of_yojson right) with
-  | Error e, _ | _, Error e -> failwith (Printf.sprintf "failed to parse input json: %s" e)
-  | Ok left, Ok right ->
-    Compose_stitch.vcat left right
-    |> Stitchy.Types.state_to_yojson
-    |> spoo output
-
-let vcat_t = Term.(const go $ left $ right $ output)
+  let files = List.fold_left (fun acc yojson -> match acc, Stitchy.Types.(state_of_yojson yojson) with
+      | Error e, _ | _, Error e -> Error e
+      | Ok states, Ok state -> Ok (state::states)
+    ) (Ok []) files
+  in
+  let bigpattern patterns =
+    List.fold_left (fun bigpattern next -> match bigpattern with
+        | None -> Some next
+        | Some bigpattern -> Some (Compose_stitch.vcat bigpattern next))
+      None patterns
+  in
+  match files with
+  | Error _ -> failwith "oh no!!"
+  | Ok patterns ->
+    match bigpattern patterns with
+    | None -> failwith "oh NOOOOOO!!!"
+    | Some bigpattern ->
+      Stitchy.Types.state_to_yojson bigpattern
+      |> Yojson.Safe.to_file output
+let vcat_t = Term.(const go $ files $ output)
 
 let info = Term.info "vcat" ~doc:"vertically concatenate patterns"
 
