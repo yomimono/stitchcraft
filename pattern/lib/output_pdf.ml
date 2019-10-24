@@ -2,7 +2,7 @@
 (* half-inch margins *)
 let base_unit = 72.
 let max_x = base_unit *. 8. (* default user scale is 1/72nd of an inch; us_letter is 8.5 inches wide *)
-let max_y = base_unit *. 10.5 (* same idea for y *)
+let max_y = base_unit *. 11.5 (* same idea for y *)
 let min_x = base_unit *. 0.5
 let min_y = base_unit *. 0.5
 
