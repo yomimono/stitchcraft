@@ -1,5 +1,6 @@
 (library
  (name compose)
+ (public_name embellish.compose)
  (modules compose)
 )
 
@@ -10,5 +11,7 @@
 
 (library
  (name compose_stitch)
+ (public_name embellish.compose_stitch)
  (modules compose_stitch)
- (libraries compose stitchy))
+ (libraries compose stitchy)
+)
