@@ -9,7 +9,7 @@ let output_png =
   Cmdliner.Arg.(value & opt string "isaid.png" & info ["o"; "output"] ~doc)
 
 (* this defaults to all pixels being transparent *)
-let make_background () = Image.create_grey ~alpha:true C64chars.h C64chars.w
+let make_background () = Image.create_grey ~alpha:true C64say.Chars.h C64say.Chars.w
 
 let paint_pixels i ~x_off ~y_off l =
   let alpha = 255 in
@@ -21,20 +21,20 @@ let make_char l : Image.image =
   i
 
 let translate phrase interline =
-  let {C64chars.lines; height; width} = C64chars.get_dimensions phrase interline in
+  let {C64say.Chars.lines; height; width} = C64say.Chars.get_dimensions phrase interline in
   let image =
     Image.create_grey ~alpha:true width height 
   in
   (* try looking up individual chars of the string *)
   List.iteri (fun y line ->
       Astring.String.iteri (fun x c ->
-          let pix_list = match C64chars.CharMap.find_opt c C64chars.map with
+          let pix_list = match C64say.Chars.CharMap.find_opt c C64say.Chars.map with
             | Some l -> l
             | None -> []
           in
           paint_pixels image
-            ~x_off:(x * C64chars.w)
-            ~y_off:((y * C64chars.h) + (y * interline)) pix_list
+            ~x_off:(x * C64say.Chars.w)
+            ~y_off:((y * C64say.Chars.h) + (y * interline)) pix_list
         ) line) lines;
   image
 

@@ -1,6 +1,4 @@
 (library
  (public_name c64say)
- (modules c64chars c64colors)
  (libraries astring stitchy)
- (wrapped false)
 )

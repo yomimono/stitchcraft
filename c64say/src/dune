@@ -1,7 +1,7 @@
 (executable
- (public_name c64say)
+ (public_name c64png)
  (libraries c64say astring cmdliner imagelib imagelib-unix)
- (modules c64say)
+ (modules c64png)
 )
 (executable
  (public_name c64stitch)
@@ -13,8 +13,9 @@
  (name runtest)
   (action
    (progn
-    (run c64say "A/B/O is weird\njust sayin'")
+    (run c64png "A/B/O is weird\njust sayin'")
     (run display isaid.png)
-    (run c64say -o pangram.png "THE QUICK BROWN FOX\njumps over the lazy dog\n\nsphinx of black quartz\nJUDGE MY VOW!")
+    (run c64png -o pangram.png "THE QUICK BROWN FOX\njumps over the lazy dog\n\nsphinx of black quartz\nJUDGE MY VOW!")
     (run display pangram.png)
+    (run c64stitch -o rc.json "never graduate!!")
 )))
