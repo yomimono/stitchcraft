@@ -1,5 +1,0 @@
-(executable
-  (name pngimport)
-  (public_name pngimport)
-  (libraries cmdliner imagelib imagelib-unix stitchy)
-)
