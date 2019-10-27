@@ -109,14 +109,14 @@ let stitches_of_yojson = BlockMap.of_yojson
 let stitches_to_crowbar = BlockMap.to_crowbar
 let equal_stitches = BlockMap.equal equal_block
 
-type tool =
-  | Block of thread * stitch
-  | Eraser
-
-type editor_state =
-  { tool : tool; }
-
 type state = {
   substrate : substrate;
   stitches : stitches;
 } [@@deriving crowbar, eq, yojson]
+
+type layer = {
+  color : RGB.t;
+  stitches : (int * int) list;
+  height : int;
+  width : int;
+} [@@deriving yojson]

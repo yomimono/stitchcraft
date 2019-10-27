@@ -48,15 +48,8 @@ let count_colors image =
   in
   aux 0 0 color_map
 
-type layer = {
-  color : Stitchy.RGB.t;
-  stitches : (int * int) list;
-  height : int;
-  width : int;
-} [@@deriving yojson]
-
 let output layer name =
-  let json = layer_to_yojson layer in
+  let json = Stitchy.Types.layer_to_yojson layer in
   Yojson.Safe.to_file name json
 
 let go background file prefix =

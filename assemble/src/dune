@@ -1,0 +1,5 @@
+(executable
+ (public_name assemble)
+ (name assembler)
+ (libraries assemble cmdliner stitchy stitchy.files)
+)
