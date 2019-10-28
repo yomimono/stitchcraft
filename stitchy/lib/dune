@@ -7,6 +7,14 @@
 )
 
 (library
+ (name transformers)
+ (public_name stitchy.transformers)
+ (modules transformers)
+ (libraries imagelib imagelib-unix stitchy)
+ (preprocess (pps ppx_deriving.eq ppx_deriving_yojson ppx_deriving_crowbar))
+)
+
+(library
  (name files)
  (public_name stitchy.files)
  (modules files)
