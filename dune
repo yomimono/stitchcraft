@@ -53,15 +53,3 @@
    (run embellish_stitch --top=vroygbv.json --side=hroygbv.json --corner=black.json --center=saying.json -o be_gay_find_primes.json)
    (run stitchpattern -i be_gay_find_primes.json -o be_gay_find_primes.pdf)
         )))
-
-(alias
- (name holy_shit)
- (action
-  (progn
-   (run c64stitch -o holy.json     "holy        ")
-   (run c64stitch -o rav.json      "  ravioli   ")
-   (run c64stitch -o batman.json   "    veronica")
-   (run hcat -o for_veronica.json holy.json rav.json batman.json)
-   (run stitchpattern -i for_veronica.json -o for_veronica.pdf)
-   (run evince for_veronica.pdf)
-   )))

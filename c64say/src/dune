@@ -1,9 +1,4 @@
 (executable
- (public_name c64png)
- (libraries c64say astring cmdliner imagelib imagelib-unix)
- (modules c64png)
-)
-(executable
  (public_name c64stitch)
  (libraries c64say astring cmdliner stitchy)
  (modules c64stitch)
@@ -13,9 +8,6 @@
  (name runtest)
   (action
    (progn
-    (run c64png "A/B/O is weird\njust sayin'")
-    (run display isaid.png)
-    (run c64png -o pangram.png "THE QUICK BROWN FOX\njumps over the lazy dog\n\nsphinx of black quartz\nJUDGE MY VOW!")
-    (run display pangram.png)
     (run c64stitch -o rc.json "never graduate!!")
+    (run stitchpattern -i rc.json)
 )))

@@ -11,10 +11,10 @@ let make_substrate grid phrase interline =
 let blocks_of_phrase block phrase interline =
   let add_blocks_for_letter ~x_off ~y_off letter blockmap =
     match Chars.CharMap.find_opt letter Chars.map with
-    | None -> blockmap
-    | Some pixels -> List.fold_left (fun m (x, y) ->
+    | None -> Printf.eprintf "couldn't draw letter %x\n%!" (int_of_char letter); blockmap
+    | Some layer -> List.fold_left (fun m (x, y) ->
         BlockMap.add (x_off + x, y_off + y) block m
-      ) blockmap pixels
+      ) blockmap layer.Stitchy.Types.stitches
   in
   let add_line ~y_off line blockmap =
     Astring.String.fold_left (fun (x_off, map) c ->
