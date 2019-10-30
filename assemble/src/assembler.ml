@@ -14,6 +14,10 @@ let thread =
   let doc = "Thread color to use for this layer (overriding any available color data in the layer itself)." in
   Cmdliner.Arg.(value & opt (some thread_conv) None & info ["t"; "thread"] ~doc)
 
+let background =
+  let doc = "color of background cloth" in
+  Cmdliner.Arg.(value & opt (t3 int int int) (255, 255, 255) & info ["b";"bg";"background"] ~doc)
+
 let input =
   let doc = "file to read layer data from. - for stdin (the default)." in
   Cmdliner.Arg.(value & opt string "-" & info ["i"; "input"] ~doc)
@@ -22,7 +26,7 @@ let output =
   let doc = "output the assembled pattern here. - for stdout (the default)." in
   Cmdliner.Arg.(value & opt string "-" & info ["o"; "output"] ~doc)
 
-let go input user_supplied_thread output =
+let go input user_supplied_thread background output =
   match Files.stdin_or_file input with
   | Error s -> failwith s
   | Ok json ->
@@ -36,13 +40,13 @@ let go input user_supplied_thread output =
           | None -> failwith "color embedded in this layer didn't match a known thread - try specifying a different thread"
           | Some layer_supplied_thread -> layer_supplied_thread
       in
-      let pattern = Assemble.stitch thread Fourteen layer in
+      let pattern = Assemble.stitch thread background Fourteen layer in
       Files.stdout_or_file (Stitchy.Types.state_to_yojson pattern) output
 
 let info =
   let doc = "Assemble layer information and thread specification into a pattern." in
   Cmdliner.Term.info doc
 
-let go_t = Cmdliner.Term.(const go $ input $ thread $ output)
+let go_t = Cmdliner.Term.(const go $ input $ thread $ background $ output)
 
 let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (go_t, info)

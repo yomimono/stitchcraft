@@ -22,17 +22,17 @@
 )))
 
 (alias
- (name be_gay_do_crimes)
+ (name be_gay_find_primes)
+ (deps (source_tree c64chars))
  (action
   (progn
-   (run c64stitch -o red.json -t red "2")
-   (run c64stitch -o orange.json -t orange "3")
-   (run c64stitch -o yellow.json -t yellow "5")
-   (run c64stitch -o green.json -t green "7")
-   (run c64stitch -o hblue.json -t blue "11")
-   (run c64stitch -o hpurple.json -t purple "13")
-   (run c64stitch -o black.json "\\")
-   (run c64stitch -o vblueone.json -t blue "1")
+   (run c64stitch --background=0,0,0 -o red.json -t red "2")
+   (run c64stitch --background=0,0,0 -o orange.json -t orange "3")
+   (run c64stitch --background=0,0,0 -o yellow.json -t yellow "5")
+   (run c64stitch --background=0,0,0 -o green.json -t green "7")
+   (run c64stitch --background=0,0,0 -o hblue.json -t blue "11")
+   (run c64stitch --background=0,0,0 -o hpurple.json -t purple "13")
+   (run c64stitch --background=0,0,0 -o vblueone.json -t blue "1")
 
    (run hcat -o vblueeleven.json vblueone.json vblueone.json)
    (run c64stitch -o vpurpleone.json -t purple "1")
@@ -40,16 +40,19 @@
    
    (run hcat -o vpurplethirteen.json vpurpleone.json vpurplethree.json)
 
-   (run vcat -o vroygbv.json red.json orange.json yellow.json green.json hblue.json hpurple.json)
+   (run vcat -o top.json red.json orange.json yellow.json green.json hblue.json hpurple.json)
 
-   (run hcat -o hroygbv.json red.json orange.json yellow.json green.json vblueeleven.json vpurplethirteen.json)
+   (run hcat -o side.json red.json orange.json yellow.json green.json vblueeleven.json vpurplethirteen.json)
 
-   (run c64stitch -o be.json "be")
-   (run c64stitch -o gay.json "gay")
-   (run c64stitch -o find.json "find")
-   (run c64stitch -o primes.json "primes")
+   (run assemble --bg=0,0,0 -t B5200 -o corner.json -i c64chars/d3.png.layer0)
+
+   (run c64stitch -t white --background=0,0,0 -o be.json "be")
+   (run c64stitch -t white --background=0,0,0 -o gay.json "gay")
+   (run c64stitch -t white --background=0,0,0 -o find.json "find")
+   (run c64stitch -t white --background=0,0,0 -o primes.json "primes")
 
    (run hcat -o saying.json be.json gay.json find.json primes.json)
-   (run embellish_stitch --top=vroygbv.json --side=hroygbv.json --corner=black.json --center=saying.json -o be_gay_find_primes.json)
+   (run embellish_stitch --top=top.json --side=side.json --corner=corner.json --center=saying.json -o be_gay_find_primes.json)
    (run stitchpattern -i be_gay_find_primes.json -o be_gay_find_primes.pdf)
+   (run notty_canvas be_gay_find_primes.json)
         )))

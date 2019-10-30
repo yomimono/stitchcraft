@@ -15,6 +15,10 @@ let textcolor =
   let doc = "color of text" in
   Cmdliner.Arg.(value & opt (enum C64say.Colors.cmdliner_enum) C64say.Colors.Black & info ["t"; "textcolor"] ~doc)
 
+let bgcolor =
+  let doc = "color of background" in
+  Cmdliner.Arg.(value & opt (t3 int int int) (255, 255, 255) & info ["b";"bg";"background"] ~doc)
+
 (* TODO: grid size should be choosable from the known valid values. *)
 let grid_converter : (string * Stitchy.Types.grid) list = [
   "14", Fourteen;
@@ -31,12 +35,12 @@ let spoo json output =
     Yojson.Safe.to_channel stdout json
   else Yojson.Safe.to_file output json
 
-let stitch textcolor gridsize phrase interline output =
-  let state = C64say.Assemble.stitch textcolor gridsize phrase interline in
+let stitch textcolor background gridsize phrase interline output =
+  let state = C64say.Assemble.stitch textcolor background gridsize phrase interline in
   let json = Stitchy.Types.state_to_yojson state in
   spoo json output
 
-let stitch_t = Cmdliner.Term.(const stitch $ textcolor $ gridsize $ phrase $ interline $ output)
+let stitch_t = Cmdliner.Term.(const stitch $ textcolor $ bgcolor $ gridsize $ phrase $ interline $ output)
 
 let info =
   let doc = "make a stitch file repesenting a phrase in c64 font" in

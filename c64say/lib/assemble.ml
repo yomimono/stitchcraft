@@ -1,8 +1,8 @@
 open Stitchy.Types
 
-let make_substrate grid phrase interline =
+let make_substrate background grid phrase interline =
   let {Chars.height; width; _ } = Chars.get_dimensions phrase interline in
-  { background = (255, 255, 255);
+  { background;
     grid;
     max_x = max 0 (width - 1);
     max_y = max 0 (height - 1);
@@ -28,9 +28,9 @@ let blocks_of_phrase block phrase interline =
       (next_y_off, (snd @@ add_line ~y_off line map))
     ) (0, blockmap) (Chars.get_dimensions phrase interline).lines
 
-let stitch textcolor gridsize phrase interline =
+let stitch textcolor background gridsize phrase interline =
   let thread = Colors.thread_of_color textcolor in
-  let substrate = make_substrate gridsize phrase interline in
+  let substrate = make_substrate background gridsize phrase interline in
   let block : block = { thread; stitch = Full; } in
   let (_, phrase) = blocks_of_phrase block phrase interline in
   {stitches = phrase; substrate;}
