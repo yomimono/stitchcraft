@@ -1,10 +1,10 @@
 (* quite a bit of this logic will be similar to the notty concatenation logic *)
 open Stitchy.Types
 
-let displace_down ~amount ((x, y) : Block.t) =
+let displace_down ~amount (x, y) =
   x, (y + amount)
 
-let displace_right ~amount ((x, y) : Block.t) =
+let displace_right ~amount (x, y) =
   (x + amount), y
 
 

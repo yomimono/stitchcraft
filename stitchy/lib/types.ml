@@ -1,5 +1,5 @@
 (* some PPX-generated code results in warning 39; turn that off *)
-[@@@ocaml.warning "-39"]
+[@@@ocaml.warning "-32-39"]
 
 (* a "block" is a region which may contain a stitch. *)
 (* the piece is composed of a whole bunch of blocks of constant size
@@ -11,6 +11,7 @@ module Block = struct
     match Pervasives.compare x1 x2 with
     | 0 -> Pervasives.compare y1 y2
     | n -> n
+  let pp = Fmt.(pair int int) [@@toplevel_printer]
 end
 
 
@@ -31,14 +32,43 @@ type stitch = cross_stitch (* previously, this could be a backstitch;
                               pulled the backstitch representation for now
                               (since it's not yet clear how to represent it) *)
 
+let pp_stitch fmt = function
+  | Full -> Format.fprintf fmt "X"
+  | Backslash -> Format.fprintf fmt "\\"
+  | Foreslash -> Format.fprintf fmt "/"
+  | Backtick -> Format.fprintf fmt "`"
+  | Comma -> Format.fprintf fmt ","
+  | Reverse_backtick -> Format.fprintf fmt "'"
+  | Reverse_comma -> Format.fprintf fmt "."
+
 type thread = DMC.Thread.t
 [@@deriving crowbar, eq, yojson]
+
+let pp_thread = Fmt.of_to_string DMC.Thread.to_string
 
 type block = {
   thread : thread;
   stitch : cross_stitch;
 }
 [@@deriving crowbar, eq, yojson]
+
+let pp_block (fmt : Format.formatter) (block : block) =
+  let classify_color (r, g, b) =
+    (* TODO: get a better heuristic for this. *)
+    if r >= g + b then `Red
+    else if b >= r + g then `Blue
+    else if g >= r + b then `Green
+    else if r > 200 && g > 200 && b > 200 then `White
+    else if r <= 50 && g <= 50 && b <= 50 then `Black
+    else if r == g && b < 50 then `Yellow
+    else if g == b && r < 50 then `Cyan
+    else if r == b && g < 50 then `Magenta
+    else `White
+  in
+  let style thread = `Fg (classify_color @@ DMC.Thread.to_rgb thread) in
+  let unstyled = Fmt.using (fun b -> b.stitch) pp_stitch in
+  let pp = Fmt.styled (style block.thread) unstyled in
+  Format.fprintf fmt "%a" pp block
 
 module BlockMap = struct
   include Map.Make(Block)
@@ -93,6 +123,12 @@ module SymbolMap = Map.Make(RGB)
 type grid = | Fourteen | Sixteen | Eighteen
 [@@deriving crowbar, eq, yojson]
 
+let pp_grid fmt g =
+  Format.fprintf fmt "%s" (match g with
+  | Fourteen -> "14-count"
+  | Sixteen -> "16-count"
+  | Eighteen -> "18-count")
+
 type substrate =
   { background : RGB.t;
     grid : grid;
@@ -100,6 +136,9 @@ type substrate =
     max_y : int; [@generator Crowbar.range 1023]
   }
 [@@deriving crowbar, eq, yojson]
+
+let pp_substrate fmt {grid; background; _} =
+  Format.fprintf fmt "%a aida cloth, color %a" pp_grid grid RGB.pp background
 
 (* TODO: This is a bit ugly; we only define this type to help the ppx_deriving plugins,
    which probably won't need our help if we structure things differently *)
@@ -113,6 +152,25 @@ type state = {
   substrate : substrate;
   stitches : stitches;
 } [@@deriving crowbar, eq, yojson]
+
+let pp_state = fun fmt {substrate; stitches} ->
+  Format.fprintf fmt "@[background: %a; full size %d x %d@]@." pp_substrate substrate (substrate.max_x + 1) (substrate.max_y + 1);
+  (* we'd really like for stitches to be a list of lists, but alas *)
+  if substrate.max_x > 80 || substrate.max_y > 100 then
+    (* too wide for utop, probably *)
+    Format.fprintf fmt "pattern with %d stitches" (BlockMap.cardinal stitches)
+  else begin
+    (* poky, but we only do it for small substrates, so hopefully not too awful *)
+    for y = 0 to substrate.max_y do
+      Format.fprintf fmt "@[";
+      for x = 0 to substrate.max_x do
+        match BlockMap.find_opt (x, y) stitches with
+        | Some block -> Format.fprintf fmt "%a" pp_block block
+        | None -> Format.fprintf fmt " "
+      done;
+      Format.fprintf fmt "@]@."
+    done
+  end
 
 type layer = {
   color : RGB.t;
