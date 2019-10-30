@@ -42,9 +42,7 @@ let load_layer file =
 
 let maybe_add c m =
   match load_layer (filename c) with
-  | Error _ | Ok (Error _) ->
-    Printf.eprintf "no layer loaded for character %x\n%!" (int_of_char c);
-    m
+  | Error _ | Ok (Error _) -> m
   | Ok (Ok layer) -> CharMap.add c layer m
 
 let map =
@@ -52,5 +50,4 @@ let map =
   for c = 20 to 255 do
     m := maybe_add (Char.chr c) !m 
   done;
-  Printf.printf "map has %d characters in it\n%!" @@ CharMap.cardinal !m;
   !m
