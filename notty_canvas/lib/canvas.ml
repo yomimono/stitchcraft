@@ -125,7 +125,7 @@ let show_left_pane {substrate; stitches} symbol_map view left_pane =
     <|> (label_x_axis ~height:left_pane.empty_corner.height ~start_x:view.x_off ~max_x Notty.A.empty <-> i)
   in
   label_axes @@
-    Notty.I.tabulate left_pane.stitch_grid.width left_pane.stitch_grid.height c
+  Notty.I.tabulate left_pane.stitch_grid.width left_pane.stitch_grid.height c
 
 let key_help view =
   let open Notty in
@@ -143,7 +143,13 @@ let key_help view =
   and symbol = I.string highlight "S" <|> I.string lowlight symbol_text in
   quit <|> I.void 1 1 <|> symbol <|> I.void 1 1 <|> nav_text <|> I.void 1 1 <|> shift_text
 
-let main_view {substrate; stitches} view (width, height) =
+let totals_pane (total_cost, total_seconds) =
+  let open Notty.Infix in
+  Notty.I.strf "$: %.02G " total_cost
+  <->
+  Notty.I.strf "time: %.02G hours" ((float_of_int total_seconds) /. 3600.)
+
+let main_view {substrate; stitches} view totals (width, height) =
   let open Notty.Infix in
   let just_stitches = Stitchy.Types.BlockMap.bindings stitches |> List.map snd |> List.sort_uniq (fun block1 block2 -> Stitchy.DMC.Thread.compare block1.thread block2.thread) in
   let symbol_map = symbol_map (List.map (fun b -> b.thread) just_stitches) in
@@ -154,7 +160,7 @@ let main_view {substrate; stitches} view (width, height) =
       stitches
   in
   let color_key = color_key substrate symbol_map view colors in
-  (stitch_grid <|> color_key)
+  (stitch_grid <|> (color_key <-> (totals_pane totals)))
   <->
   key_help view
 

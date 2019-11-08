@@ -21,14 +21,15 @@ let disp input =
     | Ok start_state ->
       let open Lwt.Infix in
       let term = Notty_lwt.Term.create () in
-      Notty_lwt.Term.image term @@ main_view start_state start_view (Notty_lwt.Term.size term) >>= fun () ->
+      let totals = Estimator.((materials start_state).threads |> totals) in
+      Notty_lwt.Term.image term @@ main_view start_state start_view totals (Notty_lwt.Term.size term) >>= fun () ->
       let rec loop (state : state) (view : Canvas__Controls.view) =
         (Lwt_stream.last_new @@ Notty_lwt.Term.events term) >>= fun event ->
         let size = Notty_lwt.Term.size term in
         match step state view size event with
         | None -> Notty_lwt.Term.release term
         | Some (state, view) ->
-          Notty_lwt.Term.image term (main_view state view size) >>= fun () ->
+          Notty_lwt.Term.image term (main_view state view totals size) >>= fun () ->
           loop state view
       in
       loop start_state start_view

@@ -1,4 +1,4 @@
 (library
  (public_name c64say)
- (libraries astring stitchy)
+ (libraries astring stitchy uutf)
 )

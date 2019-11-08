@@ -2,5 +2,5 @@
  (name notty_canvas)
  (public_name notty_canvas)
  (package notty_canvas)
- (libraries cmdliner notty notty.lwt canvas stitchy)
+ (libraries cmdliner notty notty.lwt canvas stitchy estimator)
 )
