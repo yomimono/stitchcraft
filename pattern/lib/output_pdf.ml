@@ -151,7 +151,6 @@ let relative_luminance (r, g, b) : float =
   0.2126 *. (adjust r_srgb) +. 0.7152 *. (adjust g_srgb) +. 0.0722 *. (adjust b_srgb)
 
 (* to get a contrast ratio, calculate (RL of the lighter color + 0.05) / (RL of the darker color + 0.05). W3C wants that ratio to be at least 4.5:1. *)
-
 let contrast_ratio a b =
   let cr lighter darker = (lighter +. 0.05) /. (darker +. 0.05) in
   let a_rl = relative_luminance a
@@ -172,22 +171,23 @@ let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
   (* the color now needs to come in a bit from the grid sides, since
        we're doing a border rather than a fill; this is the constant
        by which it is inset *)
-  let color_inset = (stroke_width *. 0.5) in
+  (* let color_inset = (stroke_width *. 0.5) in *)
   let (font_key, symbol) = key_and_symbol symbol in
   let font_stroke, font_paint =
-    if contrast_ratio (r, g, b) (0, 0, 0) >= 4.5 then
-      Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
+    if contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
+      Pdfops.Op_RG (scale r, scale g, scale b), Pdfops.Op_rg (scale r, scale g, scale b)
     else
       (* TODO: check the background as well and make sure this won't fade in there *)
-      Pdfops.Op_RG (0.75, 0.75, 0.75), Pdfops.Op_rg (0.75, 0.75, 0.75)
+      Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
   in
   Pdfops.([
       Op_q;
       Op_w stroke_width;
       Op_RG (scale r, scale g, scale b);
+      (* 
       Op_re (x_pos +. color_inset, (y_pos -. pixel_size +. color_inset),
              (pixel_size -. (color_inset *. 2.)),
-             (pixel_size -. (color_inset *. 2.)));
+             (pixel_size -. (color_inset *. 2.))); *)
       Op_s;
       Op_cm
         (* TODO: find a better way to center this *)
