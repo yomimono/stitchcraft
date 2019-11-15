@@ -64,3 +64,20 @@
    (run stitchpattern -i be_gay_find_primes.json -o be_gay_find_primes.pdf)
    (run notty_canvas be_gay_find_primes.json)
         )))
+(alias
+  (name verbs)
+  (deps (source_tree c64chars))
+  (action
+   (progn
+    (run c64stitch --background=0,0,0 -t purple -o action.json "Pick up Zoey                       ")
+    (run c64stitch --background=0,0,0 -t green -o verbs1.json  "Cuddle Pet    Play    Wear   Date  ")
+    (run c64stitch --background=0,0,0 -t green -o verbs2.json  "Hug    Dither Pick up Judge  Visit ")
+    (run c64stitch --background=0,0,0 -t green -o verbs3.json  "Watch  Read   Fuss    Listen Flirt ")
+    (run c64stitch --background=0,0,0 -t purple -o items1.json "wallet            cute earrings    ")
+    (run c64stitch --background=0,0,0 -t purple -o items2.json "phone                              ")
+    (run hcat -o verbs.json action.json verbs1.json verbs2.json verbs3.json items1.json items2.json) 
+    (run estimate verbs.json)
+    (run stitchpattern -i verbs.json -o verbs.pdf)
+    (run notty_canvas verbs.json)
+    )))
+
