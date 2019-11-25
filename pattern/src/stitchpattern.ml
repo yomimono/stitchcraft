@@ -22,6 +22,10 @@ let dst =
   let doc = "Filename for output PDF." in
   Arg.(value & opt string "pattern.pdf" & info ["o"; "output"] ~docv:"OUTPUT" ~doc)
 
+let watermark =
+  let doc = "Additional text for footer." in
+  Arg.(value & opt string "" & info ["w"; "watermark"] ~docv:"WATERMARK" ~doc)
+
 let info =
   let doc = "output a PDF for a cross-stitch pattern" in
   Term.info "pattern" ~doc
@@ -84,7 +88,7 @@ let assign_symbols (blocks : Stitchy.Types.stitches) =
       (freelist, Stitchy.Types.SymbolMap.add color symbol map))
   (Stitchy.Symbol.printable_symbols, color_map) colors
 
-let pages ~pixel_size ~fat_line_interval state =
+let pages watermark ~pixel_size ~fat_line_interval state =
   let open Stitchy.Types in
   let xpp = x_per_page ~pixel_size
   and ypp = y_per_page ~pixel_size
@@ -94,14 +98,14 @@ let pages ~pixel_size ~fat_line_interval state =
   let doc = { pixel_size; fat_line_interval; symbols; } in
   let pixels = paint_pixels state.Stitchy.Types.stitches state.Stitchy.Types.substrate in
   let rec page x y n l =
-    let l = make_page doc ~first_x:x ~first_y:y symbols ~width ~height n pixels :: l in
+    let l = make_page doc ~watermark ~first_x:x ~first_y:y symbols ~width ~height n pixels :: l in
     if (x + xpp) >= width && (y + ypp) >= height then l    
     else if (y + ypp) >= height then page (x+xpp) 0 (n+1) l
     else page x (y + ypp) (n+1) l
   in
   List.rev @@ page 0 0 1 []
 
-let write_pattern pixel_size fat_line_interval src dst =
+let write_pattern watermark pixel_size fat_line_interval src dst =
   let json = function
     | s when 0 = String.compare s "-" -> begin
         try Yojson.Safe.from_channel stdin with _exn -> failwith "couldn't understand input"
@@ -112,11 +116,11 @@ let write_pattern pixel_size fat_line_interval src dst =
   match Stitchy.Types.state_of_yojson (json src) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
-    let pages = pages ~pixel_size ~fat_line_interval pattern in
+    let pages = pages watermark ~pixel_size ~fat_line_interval pattern in
     let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in
     let pdf = Pdfpage.add_root pageroot [] pdf in
     Pdfwrite.pdf_to_file pdf dst
 
-let embed_t = Term.(const write_pattern $ grid_size $ fat_line_interval $ src $ dst)
+let embed_t = Term.(const write_pattern $ watermark $ grid_size $ fat_line_interval $ src $ dst)
 
 let () = Term.exit @@ Term.eval (embed_t, info)

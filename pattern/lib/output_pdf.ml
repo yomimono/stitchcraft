@@ -126,6 +126,18 @@ let label_left_grid doc page =
   | 0 -> label (fst page.y_range) []
   | _ -> label (((fst page.y_range / doc.fat_line_interval) + 1) * doc.fat_line_interval) []
 
+let add_watermark watermark =
+  Pdfops.([
+      Op_q;
+      Op_cm (Pdftransform.matrix_of_transform [Pdftransform.Translate ((72. *. 0.5), 36.)]);
+      Op_Tf (helvetica_key, 12.);
+      Op_BT;
+      Op_Tj watermark;
+      Op_ET;
+      Op_Q;
+    ])
+
+
 let number_page number =
   Pdfops.([
       Op_q;
@@ -239,7 +251,7 @@ let symbol_table color_to_symbol =
     ) color_to_symbol (0, [])
       
 
-let make_page doc ~first_x ~first_y symbols page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
+let make_page doc ~watermark ~first_x ~first_y symbols page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
   let xpp = x_per_page ~pixel_size:doc.pixel_size
   and ypp = y_per_page ~pixel_size:doc.pixel_size
   in
@@ -260,6 +272,7 @@ let make_page doc ~first_x ~first_y symbols page_number ~width ~height (pixels :
      Pdfops.stream_of_ops @@ label_top_grid doc page;
      Pdfops.stream_of_ops @@ label_left_grid doc page;
      Pdfops.stream_of_ops @@ snd (symbol_table symbols); (* TODO: we'd like to limit this by page, but not _recalculate_ it per page *)
+     Pdfops.stream_of_ops @@ add_watermark watermark;
      Pdfops.stream_of_ops @@ number_page page_number;
    ];
    Pdfpage.resources = Pdf.(Dictionary [

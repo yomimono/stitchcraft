@@ -5,20 +5,41 @@
    (run c64stitch -o hello.json --interline=2 "hello to this whole\nbeautiful world")
    (run c64stitch -t cyan -o border.json "\\")
    (run embellish_stitch --top=border.json --side=border.json --center=hello.json --corner=border.json -o embellished.json)
-   (run stitchpattern -i embellished.json -o embellished.pdf)
+   (run stitchpattern -w "made with love by yomimono" -i embellished.json -o embellished.pdf)
    (run evince embellished.pdf)
   )
  )
 )
 
 (alias
+ (name brainfuck)
+ (action
+  (progn
+   (run c64stitch -o program.json
+"++++++++
+[>++++[>
+++>+++>+
+++>+<<<<
+-]>+>+>-
+>>+[<]<-
+]>>.>---
+.+++++++
+..+++.>>
+.<-.<.++
++.------
+.-------
+-.>>+.>+
++.")
+ (run stitchpattern -w "for more fun patterns, visit stitch.website" -i program.json -o brainfuck.pdf)
+)))
+
+
+(alias
  (name butt)
  (action
   (progn
-   (run c64stitch -o butt.json " butt ")
-   (run c64stitch -o border.json -- "+")
-   (run embellish_stitch --top=border.json --corner=border.json --side=border.json --center=butt.json -o border_butt.json)
-   (run notty_canvas border_butt.json)
+   (run c64stitch -o butt.json "butt")
+   (run stitchpattern -w "for more fun patterns, visit stitch.website" -i butt.json -o butt.pdf)
 )))
 
 (alias
@@ -61,7 +82,7 @@
 
    (run hcat -o saying.json be.json gay.json find.json primes.json)
    (run embellish_stitch --top=top.json --side=side.json --corner=corner.json --center=saying.json -o be_gay_find_primes.json)
-   (run stitchpattern -i be_gay_find_primes.json -o be_gay_find_primes.pdf)
+   (run stitchpattern -w "for more fun patterns, visit stitch.website" -i be_gay_find_primes.json -o be_gay_find_primes.pdf)
    (run notty_canvas be_gay_find_primes.json)
         )))
 (alias
@@ -70,7 +91,7 @@
   (action
    (progn
     (run c64stitch --background=0,0,0 -t purple -o action.json "Pick up Zoey                       ")
-    (run c64stitch --background=0,0,0 -t green -o verbs1.json  "Cuddle Pet    Play    Wear   Date  ")
+    (run c64stitch --background=0,0,0 -t green -o verbs1.json  "Cuddle Pet    Play    Wear   Nap   ")
     (run c64stitch --background=0,0,0 -t green -o verbs2.json  "Hug    Dither Pick up Judge  Visit ")
     (run c64stitch --background=0,0,0 -t green -o verbs3.json  "Watch  Read   Fuss    Listen Flirt ")
     (run c64stitch --background=0,0,0 -t purple -o items1.json "wallet            cute earrings    ")
