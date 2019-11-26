@@ -116,7 +116,8 @@ let write_pattern watermark pixel_size fat_line_interval src dst =
   match Stitchy.Types.state_of_yojson (json src) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
-    let pages = pages watermark ~pixel_size ~fat_line_interval pattern in
+    let cover = coverpage pattern in
+    let pages = cover :: (pages watermark ~pixel_size ~fat_line_interval pattern) in
     let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in
     let pdf = Pdfpage.add_root pageroot [] pdf in
     Pdfwrite.pdf_to_file pdf dst

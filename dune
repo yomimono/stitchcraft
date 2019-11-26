@@ -46,8 +46,9 @@
  (name cards)
  (action
   (progn
-   (run c64stitch -o suits.json "♠️♣️♦️♥️")
-   (run notty_canvas suits.json)
+   (run c64stitch --background=0,0,0 -t red -o suits.json "♠️♣️♦️♥️")
+   (run stitchpattern -i suits.json -o suits.pdf)
+   (run evince suits.pdf)
    )))
 
 (alias
@@ -99,6 +100,7 @@
     (run hcat -o verbs.json action.json verbs1.json verbs2.json verbs3.json items1.json items2.json) 
     (run estimate verbs.json)
     (run stitchpattern -i verbs.json -o verbs.pdf)
+    (run evince verbs.pdf)
     (run notty_canvas verbs.json)
     )))
 

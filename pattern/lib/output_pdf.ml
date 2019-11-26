@@ -2,9 +2,11 @@
 (* half-inch margins *)
 let base_unit = 72.
 let max_x = base_unit *. 8. (* default user scale is 1/72nd of an inch; us_letter is 8.5 inches wide *)
-let max_y = base_unit *. 11.5 (* same idea for y *)
+let max_y = base_unit *. 10.5  (* same idea for y *)
 let min_x = base_unit *. 0.5
 let min_y = base_unit *. 0.5
+
+let paper = Pdfpaper.usletter
 
 let t1_font name =
   Pdf.(Dictionary
@@ -249,7 +251,56 @@ let symbol_table color_to_symbol =
       let ops = paint_symbol description symbol placement @ ops in
       (placement + 1, ops)
     ) color_to_symbol (0, [])
-      
+
+(* generate a preview image *)
+let coverpage ({substrate; stitches} : Stitchy.Types.state) =
+  let width = float_of_int (substrate.max_x + 1)
+  and height = float_of_int (substrate.max_y + 1)
+  in
+  let px =
+    if substrate.max_x > substrate.max_y
+    then (max_x -. min_x) /. width
+    else (max_y -. min_y) /. height
+  in
+  let fill_color =
+    let (r, g, b) = substrate.background in
+    Pdfops.Op_rg (scale r, scale g, scale b)
+  in
+  (* draw the background image *)
+  (* TODO: really need some centering logic here *)
+  let background = Pdfops.([
+      Op_q;
+      Op_w 0.;
+      fill_color;
+      Op_re (min_x, (max_y -. (px *. height)), (px *. width), (px *. height));
+      Op_f ; (* fill path *)
+      Op_Q;
+    ]) in
+  let paint_pixel (x, y) ({thread; _} : Stitchy.Types.block) =
+    let r, g, b = Stitchy.DMC.Thread.to_rgb thread in
+    (* x and y have their origin in the upper left, but pdf wants to address from the lower left *)
+    (* x coordinates need no transposition, but y do *)
+    let pdf_x = min_x +. ((float_of_int x) *. px)
+    and pdf_y = max_y -. ((float_of_int (y + 1)) *. px)
+    in
+    Pdfops.([
+        Op_q;
+        Op_m (0., 0.);
+        Op_rg (scale r, scale g, scale b);
+        Op_re (pdf_x, pdf_y, px, px);
+        Op_f;
+        Op_Q;
+      ])
+  in
+  let pixels = Stitchy.Types.BlockMap.fold (fun k v acc -> acc @ paint_pixel k v) stitches [] in
+  let page =
+    let open Pdfpage in
+    {(blankpage paper) with
+     content = [
+       Pdfops.stream_of_ops background;
+       Pdfops.stream_of_ops pixels;
+     ]} in
+  page
 
 let make_page doc ~watermark ~first_x ~first_y symbols page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
   let xpp = x_per_page ~pixel_size:doc.pixel_size
@@ -265,7 +316,7 @@ let make_page doc ~watermark ~first_x ~first_y symbols page_number ~width ~heigh
     x_range = (first_x, last_x);
     y_range = (first_y, last_y);
     } in
-  {(Pdfpage.blankpage Pdfpaper.uslegal) with
+  {(Pdfpage.blankpage paper) with
    Pdfpage.content = [
      Pdfops.stream_of_ops @@ (pixels doc page);
      Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
