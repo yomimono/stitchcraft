@@ -1,8 +1,3 @@
-(* known issues:
-   grid labels can easily be made not to align or display properly with large pixel sizes
-   large images produce inordinately large PDFs (possibly only solvable with region detection/drawing, or another library which knows how to coalesce regions)
-   *)
-
 open Cmdliner
 open Pattern.Output_pdf
 
@@ -29,6 +24,18 @@ let watermark =
 let info =
   let doc = "output a PDF for a cross-stitch pattern" in
   Term.info "pattern" ~doc
+
+let paper_size =
+  let sizes = [ (*
+    "a0", Pdfpaper.a0; "a1", Pdfpaper.a1; "a2", Pdfpaper.a2; "a3", Pdfpaper.a3;
+    "a4", Pdfpaper.a4; "a5", Pdfpaper.a5; "a6", Pdfpaper.a6; "a7", Pdfpaper.a7;
+    "a8", Pdfpaper.a8; "a9", Pdfpaper.a9; "a10", Pdfpaper.a10; *)
+    (* a4 seems not to work, so TODO commenting it out *)
+    "letter", Pdfpaper.usletter;
+    "legal", Pdfpaper.uslegal;
+  ] in
+  let doc = "size of paper to use" in
+  Arg.(value & opt (enum sizes) Pdfpaper.usletter & info ["paper"] ~docv:"PAPER" ~doc)
 
 let get_symbol blockmap symbols substrate x y =
   match Stitchy.Types.BlockMap.find_opt (x, y) blockmap with 
@@ -88,14 +95,14 @@ let assign_symbols (blocks : Stitchy.Types.stitches) =
       (freelist, Stitchy.Types.SymbolMap.add color symbol map))
   (Stitchy.Symbol.printable_symbols, color_map) colors
 
-let pages watermark ~pixel_size ~fat_line_interval state =
+let pages paper_size watermark ~pixel_size ~fat_line_interval state =
   let open Stitchy.Types in
   let xpp = x_per_page ~pixel_size
   and ypp = y_per_page ~pixel_size
   in
   let width = state.substrate.max_x + 1 and height = state.substrate.max_y + 1 in
   let symbols = snd @@ assign_symbols state.Stitchy.Types.stitches in
-  let doc = { pixel_size; fat_line_interval; symbols; } in
+  let doc = { paper_size; pixel_size; fat_line_interval; symbols; } in
   let pixels = paint_pixels state.Stitchy.Types.stitches state.Stitchy.Types.substrate in
   let rec page x y n l =
     let l = make_page doc ~watermark ~first_x:x ~first_y:y symbols ~width ~height n pixels :: l in
@@ -105,7 +112,7 @@ let pages watermark ~pixel_size ~fat_line_interval state =
   in
   List.rev @@ page 0 0 1 []
 
-let write_pattern watermark pixel_size fat_line_interval src dst =
+let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
   let json = function
     | s when 0 = String.compare s "-" -> begin
         try Yojson.Safe.from_channel stdin with _exn -> failwith "couldn't understand input"
@@ -116,12 +123,13 @@ let write_pattern watermark pixel_size fat_line_interval src dst =
   match Stitchy.Types.state_of_yojson (json src) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
-    let cover = coverpage pattern in
-    let pages = cover :: (pages watermark ~pixel_size ~fat_line_interval pattern) in
+    let cover = coverpage paper_size pattern in
+    let pages = cover :: (pages paper_size watermark ~pixel_size ~fat_line_interval pattern) in
     let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in
     let pdf = Pdfpage.add_root pageroot [] pdf in
     Pdfwrite.pdf_to_file pdf dst
 
-let embed_t = Term.(const write_pattern $ watermark $ grid_size $ fat_line_interval $ src $ dst)
+let embed_t = Term.(const write_pattern $ paper_size $ watermark $ grid_size
+                    $ fat_line_interval $ src $ dst)
 
 let () = Term.exit @@ Term.eval (embed_t, info)

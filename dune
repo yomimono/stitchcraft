@@ -39,7 +39,8 @@
  (action
   (progn
    (run c64stitch -o butt.json "butt")
-   (run stitchpattern -w "for more fun patterns, visit stitch.website" -i butt.json -o butt.pdf)
+   (run stitchpattern --paper a4 -w "for more fun patterns, visit stitch.website" -i butt.json -o butt.pdf)
+   (run evince butt.pdf)
 )))
 
 (alias

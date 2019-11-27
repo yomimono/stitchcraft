@@ -1,14 +1,26 @@
-(* at toplevel since used by both pixel-painter and gridline-painter *)
-let paper = Pdfpaper.uslegal
+type borders = {
+  max_x : float;
+  max_y : float;
+  min_x : float;
+  min_y : float;
+}
 
-(* half-inch margins *)
-let base_unit = 72.
-let margin = base_unit *. 0.5
+let dimensions paper =
+  (* half-unit margins *)
+  let base_unit = 72. in
+  let margin = base_unit *. 0.5 in
 
-let max_x = base_unit *. Pdfpaper.(width paper) -. margin
-let max_y = base_unit *. Pdfpaper.(height paper) -. margin
-let min_x = margin
-let min_y = margin
+  let max_x = base_unit *. Pdfpaper.(width paper) -. margin
+  and max_y = base_unit *. Pdfpaper.(height paper) -. margin
+  and min_x = margin
+  and min_y = margin
+  in
+  { max_y;
+    max_x;
+    min_y;
+    min_x;
+  }
+
 
 let t1_font name =
   Pdf.(Dictionary
@@ -27,6 +39,7 @@ and helvetica_key = "/F2"
 type doc = {
   symbols : Stitchy.Symbol.t Stitchy.Types.SymbolMap.t;
   pixel_size : int;
+  paper_size : Pdfpaper.t;
   fat_line_interval : int;
 }
 
@@ -45,6 +58,7 @@ let y_per_page ~pixel_size =
   (72 * 9) / pixel_size
 
 let find_upper_left doc x y =
+  let {min_x; max_y; _} = dimensions doc.paper_size in
   (* on the page, find the right upper-left-hand corner for this pixel
      given the x and y coordinates and `t` representing this page *)
   let left_adjust = x * doc.pixel_size
@@ -255,7 +269,8 @@ let symbol_table color_to_symbol =
     ) color_to_symbol (0, [])
 
 (* generate a preview image *)
-let coverpage ({substrate; stitches} : Stitchy.Types.state) =
+let coverpage paper ({substrate; stitches} : Stitchy.Types.state) =
+  let {min_x; min_y; max_x; max_y} = dimensions paper in
   let width = float_of_int (substrate.max_x + 1)
   and height = float_of_int (substrate.max_y + 1)
   in
@@ -294,7 +309,9 @@ let coverpage ({substrate; stitches} : Stitchy.Types.state) =
         Op_Q;
       ])
   in
-  let pixels = Stitchy.Types.BlockMap.fold (fun k v acc -> acc @ paint_pixel k v) stitches [] in
+  let pixels = Stitchy.Types.BlockMap.fold
+      (fun k v acc -> acc @ paint_pixel k v) stitches []
+  in
   let page =
     let open Pdfpage in
     {(blankpage paper) with
@@ -318,7 +335,7 @@ let make_page doc ~watermark ~first_x ~first_y symbols page_number ~width ~heigh
     x_range = (first_x, last_x);
     y_range = (first_y, last_y);
     } in
-  {(Pdfpage.blankpage paper) with
+  {(Pdfpage.blankpage doc.paper_size) with
    Pdfpage.content = [
      Pdfops.stream_of_ops @@ (pixels doc page);
      Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
