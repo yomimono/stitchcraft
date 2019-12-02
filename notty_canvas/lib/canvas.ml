@@ -165,7 +165,6 @@ let main_view {substrate; stitches} view totals (width, height) =
   key_help view
 
 let step state view (width, height) event =
-  (* TODO: scrolling should, by default, be one pixel; big steps should be done with modifiers *)
   let left_pane = left_pane state.substrate (width, height) in
   match event with
   | `Resize _ | `Mouse _ | `Paste _ -> Some (state, view)
