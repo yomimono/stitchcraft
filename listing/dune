@@ -1,0 +1,5 @@
+(executable
+ (name listing)
+ (public_name listing)
+ (libraries cmdliner imagelib imagelib-unix rresult stitchy stitchy.files)
+)
