@@ -7,6 +7,8 @@
    (run embellish_stitch --top=border.json --side=border.json --center=hello.json --corner=border.json -o embellished.json)
    (run stitchpattern -w "made with love by yomimono" -i embellished.json -o embellished.pdf)
    (run evince embellished.pdf)
+   (run listing -i embellished.json -o embellished_preview.png)
+   (run eog embellished_preview.png)
   )
  )
 )
