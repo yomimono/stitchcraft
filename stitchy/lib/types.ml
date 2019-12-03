@@ -78,6 +78,8 @@ module BlockMap = struct
                       block_to_yojson value])::acc
            ) m [])
 
+(* TODO: we should have some logic somewhere that disallows max_x/max_y
+   <=0 . *)
   let of_yojson j =
     let convert = function
       | (`Tuple (l : Yojson.Safe.t list)) -> begin
