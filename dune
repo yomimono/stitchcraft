@@ -33,6 +33,7 @@
 -.>>+.>+
 +.")
  (run stitchpattern -w "for more fun patterns, visit stitch.website" -i program.json -o brainfuck.pdf)
+ (run listing -i program.json -o brainfuck.png)
 )))
 
 
