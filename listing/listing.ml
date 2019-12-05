@@ -24,14 +24,15 @@ let make_background ?(extra_width=0) ?(extra_height=0) substrate =
   image
 
 let solve_for_four_to_three substrate =
+  let open Annotate in
   let width = substrate.max_x + 1 and height = substrate.max_y + 1 in
   let ratio = (float_of_int width) /. (float_of_int height) in
   let better_height = int_of_float @@ 0.75 *. (float_of_int width)
   and better_width = int_of_float @@ 1.25 *. (float_of_int height )
   in
-  if ratio <= 1.1 && (better_width - 2) > width then
+  if ratio <= 1.1 && (better_width - (fst pdf_glyph_dims)) > width then
     `Widen (better_width - width)
-  else if ratio >= 1.5 && (better_height - 2) > height then
+  else if ratio >= 1.5 && (better_height - (snd pdf_glyph_dims)) > height then
     `Heighten (better_height - height)
   else
     `Just_right ((better_width - width), (better_height - height))
@@ -55,8 +56,20 @@ let go input output =
   let image = match adjustment with
     | `Widen extra_width -> make_background ~extra_width substrate
     | `Heighten extra_height -> make_background ~extra_height substrate
-    | `Just_right _ -> make_background substrate
+    | `Just_right _ ->
+      let extra_width = (fst Annotate.pdf_glyph_dims) * 2
+      and extra_height = (snd Annotate.pdf_glyph_dims) * 2
+      in
+      make_background ~extra_width ~extra_height substrate
   in
+  let text_color = 0, 0, 0 in
+  let orientation = match adjustment with
+    | `Widen margin -> `Vertical margin
+    | `Heighten margin -> `Horizontal margin
+    | `Just_right _ -> (* arbitrarily, horizontal *)
+      `Horizontal (snd Annotate.pdf_glyph_dims)
+  in
+  Annotate.add_pdf image ~orientation text_color;
   Stitchy.Types.BlockMap.iter (paint_pixel image adjustment) stitches;
   ImageLib_unix.writefile output image;
   Ok ()
