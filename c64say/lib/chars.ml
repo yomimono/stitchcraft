@@ -36,6 +36,9 @@ let get_dimensions phrase interline =
   { height = height + interline;
     width }
 
+(* TODO: this does the wrong thing for '-' and probably other chars
+   which are at a different address than they are in ASCII,
+   despite the best attempts of is_upper/is_lower *)
 let filename c =
   (* TODO: big hack here, this needs to work differently *)
   let base = "c64chars" in
