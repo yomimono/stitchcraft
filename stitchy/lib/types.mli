@@ -77,6 +77,16 @@ type state = {
 
 val pp_state : Format.formatter -> state -> unit [@@ocaml.toplevel_printer]
 
+type glyph = {
+  stitches : (int * int) list;
+  height : int;
+  width : int;
+}
+
+module UcharMap : Map.S
+
+type font = glyph UcharMap.t
+
 type layer = {
   color : RGB.t;
   stitches : (int * int) list;

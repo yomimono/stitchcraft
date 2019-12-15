@@ -174,6 +174,16 @@ let pp_state = fun fmt {substrate; stitches} ->
     done
   end
 
+type glyph = {
+  stitches : (int * int) list;
+  height : int;
+  width : int;
+}
+
+module UcharMap = Map.Make(Uchar)
+
+type font = glyph UcharMap.t
+
 type layer = {
   color : RGB.t;
   stitches : (int * int) list;

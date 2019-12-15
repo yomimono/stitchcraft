@@ -8,9 +8,9 @@ let make_substrate background grid phrase interline =
     max_y = max 0 (height - 1);
   }
 
-let blocks_of_phrase block phrase interline =
+let blocks_of_phrase lookup block phrase interline =
   let add_blocks_for_glyph ~x_off ~y_off letter blockmap =
-    match Chars.CharMap.find_opt letter Chars.map with
+    match lookup letter with
     | None -> blockmap
     | Some layer -> List.fold_left (fun m (x, y) ->
         BlockMap.add (x_off + x, y_off + y) block m
@@ -48,5 +48,8 @@ let stitch textcolor background gridsize (phrase : string) interline =
   let substrate = make_substrate background gridsize phrase interline in
   let thread = Colors.thread_of_color textcolor in
   let block : block = { thread; stitch = Full; } in
-  let phrase = blocks_of_phrase block phrase interline in
+  let lookup letter = 
+    Chars.CharMap.find_opt letter Chars.map
+  in
+  let phrase = blocks_of_phrase lookup block phrase interline in
   {stitches = phrase; substrate;}
