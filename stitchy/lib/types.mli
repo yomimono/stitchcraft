@@ -83,7 +83,7 @@ type glyph = {
   width : int;
 } [@@deriving yojson]
 
-module UcharMap : Map.S
+module UcharMap : Map.S with type key = Uchar.t
 
 type font = glyph UcharMap.t
 

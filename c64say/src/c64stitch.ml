@@ -31,7 +31,7 @@ let gridsize =
   Cmdliner.Arg.(value & opt (enum grid_converter) Stitchy.Types.Fourteen & info ["g"; "gridsize"] ~doc)
 
 let stitch textcolor background gridsize phrase interline output =
-  let lookup letter = C64say.(Chars.CharMap.find_opt letter Chars.map) in
+  let lookup letter = Stitchy.Types.UcharMap.find_opt letter C64say.Chars.map in
   let state = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in
   let json = Stitchy.Types.state_to_yojson state in
   Files.stdout_or_file json output

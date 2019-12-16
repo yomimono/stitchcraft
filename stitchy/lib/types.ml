@@ -174,6 +174,7 @@ let pp_state = fun fmt {substrate; stitches} ->
     done
   end
 
+(* lack of dependent types makes us Zalgo-compatible by default *)
 type glyph = {
   stitches : (int * int) list;
   height : int;

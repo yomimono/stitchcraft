@@ -1,5 +1,3 @@
-module CharMap = Map.Make(Uchar)
-
 (* some useful dimensions to have access to from a phrase *)
 type dimensions = {
   height : int;
@@ -106,10 +104,10 @@ let load_layer file =
 let maybe_add c m =
   match load_layer (filename c) with
   | Error _ | Ok (Error _) -> m
-  | Ok (Ok layer) -> CharMap.add c layer m
+  | Ok (Ok layer) -> Stitchy.Types.UcharMap.add c layer m
 
 let map =
-  let m = ref CharMap.empty in
+  let m = ref Stitchy.Types.UcharMap.empty in
   for c = 20 to 255 do
     m := maybe_add (Uchar.of_int c) !m 
   done;
