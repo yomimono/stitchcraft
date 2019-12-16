@@ -8,13 +8,13 @@ let make_substrate background grid phrase interline =
     max_y = max 0 (height - 1);
   }
 
-let blocks_of_phrase lookup block phrase interline =
+let blocks_of_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) block phrase interline =
   let add_blocks_for_glyph ~x_off ~y_off letter blockmap =
     match lookup letter with
     | None -> blockmap
-    | Some layer -> List.fold_left (fun m (x, y) ->
+    | Some glyph -> List.fold_left (fun m (x, y) ->
         BlockMap.add (x_off + x, y_off + y) block m
-      ) blockmap layer.Stitchy.Types.stitches
+      ) blockmap glyph.Stitchy.Types.stitches
   in
   let rec advance decoder x_off y_off map =
     match Uutf.decode decoder with
@@ -43,13 +43,10 @@ let blocks_of_phrase lookup block phrase interline =
 let normalize phrase =
   Uunf_string.normalize_utf_8 `NFC phrase
 
-let stitch textcolor background gridsize (phrase : string) interline =
+let stitch lookup textcolor background gridsize (phrase : string) interline =
   let phrase = normalize phrase in
   let substrate = make_substrate background gridsize phrase interline in
   let thread = Colors.thread_of_color textcolor in
   let block : block = { thread; stitch = Full; } in
-  let lookup letter = 
-    Chars.CharMap.find_opt letter Chars.map
-  in
   let phrase = blocks_of_phrase lookup block phrase interline in
   {stitches = phrase; substrate;}

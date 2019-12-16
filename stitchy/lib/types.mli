@@ -81,7 +81,7 @@ type glyph = {
   stitches : (int * int) list;
   height : int;
   width : int;
-}
+} [@@deriving yojson]
 
 module UcharMap : Map.S
 

@@ -100,7 +100,7 @@ let filename c =
     Printf.sprintf "%s/%s.png.layer0" base byte
 
 let load_layer file =
-  try Ok (Yojson.Safe.from_file file |> Stitchy.Types.layer_of_yojson)
+  try Ok (Yojson.Safe.from_file file |> Stitchy.Types.glyph_of_yojson)
   with s -> Error s
 
 let maybe_add c m =

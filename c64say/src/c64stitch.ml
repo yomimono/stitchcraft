@@ -7,8 +7,8 @@ let interline =
   Cmdliner.Arg.(value & opt int 0 & info ["interline"] ~doc)
 
 let output =
-  let doc = "file to output json to, or - for stdout" in
-  Cmdliner.Arg.(value & opt string "stitch.json" & info ["o"; "output"] ~doc)
+  let doc = "file to output json to. -, the default, is stdout" in
+  Cmdliner.Arg.(value & opt string "-" & info ["o"; "output"] ~doc)
 
 (* TODO: background and text color ought to be choosable from the known C64 colors. *)
 let textcolor =
@@ -30,15 +30,11 @@ let gridsize =
   let doc = "size of aida cloth grid" in
   Cmdliner.Arg.(value & opt (enum grid_converter) Stitchy.Types.Fourteen & info ["g"; "gridsize"] ~doc)
 
-let spoo json output =
-  if 0 = String.compare output "-" then
-    Yojson.Safe.to_channel stdout json
-  else Yojson.Safe.to_file output json
-
 let stitch textcolor background gridsize phrase interline output =
-  let state = C64say.Assemble.stitch textcolor background gridsize phrase interline in
+  let lookup letter = C64say.(Chars.CharMap.find_opt letter Chars.map) in
+  let state = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in
   let json = Stitchy.Types.state_to_yojson state in
-  spoo json output
+  Files.stdout_or_file json output
 
 let stitch_t = Cmdliner.Term.(const stitch $ textcolor $ bgcolor $ gridsize $ phrase $ interline $ output)
 

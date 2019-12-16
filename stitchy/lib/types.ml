@@ -178,7 +178,7 @@ type glyph = {
   stitches : (int * int) list;
   height : int;
   width : int;
-}
+} [@@deriving yojson {strict=false}]
 
 module UcharMap = Map.Make(Uchar)
 

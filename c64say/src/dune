@@ -1,6 +1,6 @@
 (executable
  (public_name c64stitch)
- (libraries c64say astring cmdliner stitchy uutf)
+ (libraries c64say astring cmdliner stitchy stitchy.files uutf)
  (modules c64stitch)
 )
 
