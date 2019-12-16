@@ -1,0 +1,5 @@
+(executable
+  (public_name fontify)
+  (name fontify)
+  (libraries cmdliner caqti caqti-driver-sqlite3 caqti-lwt stitchy)
+)
