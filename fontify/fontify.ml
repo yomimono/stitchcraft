@@ -19,7 +19,7 @@ let make_db =
 
 let write_db db font_name _map : (unit, string) result Lwt.t =
   let open Lwt.Infix in
-  Caqti_lwt.connect (Uri.of_string @@ "sqlite://file:" ^ db) >>= function
+  Caqti_lwt.connect (Uri.of_string @@ "sqlite3://" ^ db) >>= function
   | Error e -> Lwt.return @@ Error (Format.asprintf "%a" Caqti_error.pp e)
   | Ok m ->
     let module Db = (val m) in
