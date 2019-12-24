@@ -9,6 +9,8 @@
   (name font_test)
   (action
    (progn
+    (run rm -f /home/user/.stitchy/fonts.sqlite3)
+    (run touch /home/user/.stitchy/fonts.sqlite3)
     (run %{exe:fontify.exe} --src=/home/user/stitch.website/c64chars /home/user/.stitchy/fonts.sqlite3)
    )
   )
