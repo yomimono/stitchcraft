@@ -130,5 +130,4 @@ let map db_module =
       m := new_map;
       Lwt.return_unit
     ) known_uchars >>= fun () ->
-  Printf.eprintf "font map has %d elements\n%!" (Stitchy.Types.UcharMap.cardinal !m);
   Lwt.return !m
