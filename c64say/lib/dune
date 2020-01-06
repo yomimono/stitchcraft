@@ -1,4 +1,4 @@
 (library
  (public_name c64say)
- (libraries astring stitchy uucp uunf uunf.string uutf)
+ (libraries astring caqti caqti-driver-sqlite3 caqti-lwt lwt stitchy uucp uunf uunf.string uutf)
 )

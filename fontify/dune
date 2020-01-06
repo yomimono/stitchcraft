@@ -2,7 +2,7 @@
   (public_name fontify)
   (name fontify)
   (modules chars fontify)
-  (libraries astring cmdliner caqti  caqti-dynload caqti-lwt lwt sqlite3 stitchy uucp uutf)
+  (libraries astring cmdliner caqti caqti-driver-sqlite3 caqti-lwt lwt sqlite3 stitchy uucp uutf)
 )
 
 (alias

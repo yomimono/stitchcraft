@@ -5,6 +5,7 @@ type dimensions = {
 }
 
 let h, w = 8, 8 (* c64 chars are 8x8 *)
+let font = "c64"
 
 (* TODO: this is silly; we should do one pass to write the text and base
    the size of the substrate on that information, rather than
@@ -34,83 +35,36 @@ let get_dimensions phrase interline =
   { height = height + interline;
     width }
 
-(* TODO: this does the wrong thing for '-' and probably other chars
-   which are at a different address than they are in ASCII,
-   despite the best attempts of is_upper/is_lower *)
-let filename c =
-  (* TODO: big hack here, this needs to work differently *)
-  let base = "c64chars" in
-  (* some special logic for PETSCII *)
-  match Uchar.is_char c with
-  | true when Astring.Char.Ascii.is_lower @@ Uchar.to_char c ->
-    Printf.sprintf "%s/%xl.png.layer0" base (int_of_char (Uchar.to_char c) - 0x20)
-  | true when Astring.Char.Ascii.is_upper @@ Uchar.to_char c ->
-    Printf.sprintf "%s/%xu.png.layer0" base (int_of_char (Uchar.to_char c))
-  | true ->
-    Printf.sprintf "%s/%x.png.layer0" base (int_of_char (Uchar.to_char c))
-  | false ->
-    let byte =
-      (* mappings taken from https://style64.org/petscii *)
-      match Uchar.to_int c with
-      | 0x2500 | 0x2501 -> "a0"
-      | 0x2660 -> "c1"
-      | 0x2502 | 0x007c | 0x2503 -> "c2"
-      | 0x256e -> "c9"
-      | 0x2570 -> "ca"
-      | 0x256f -> "cb"
-      | 0x2572 -> "cd"
-      | 0x2571 -> "ce"
-      | 0x2022 | 0x00b7 | 0x0025cf | 0x2219 -> "d1"
-      | 0x2665 -> "d3"
-      | 0x256d -> "d5"
-      | 0x2573 -> "d6"
-      | 0x25cb | 0x2218 | 0x25e6 | 0x25ef -> "d7"
-      | 0x2663 -> "d8"
-      | 0x2666 | 0x25c6 -> "da"
-      | 0x253c | 0x254b -> "db"
-      | 0x03c0 -> "de"
-      | 0x25e5 -> "df"
-      | 0x258c -> "a1"
-      | 0x2584 -> "a2"
-      | 0x2594 -> "a3"
-      | 0x005f | 0x2581 -> "a4"
-      | 0x258e -> "a5"
-      | 0x2595 -> "a6"
-      | 0x258a -> "a7"
-      | 0x251c | 0x2523 -> "ab"
-      | 0x259b -> "ac"
-      | 0x2514 | 0x2517 -> "ad"
-      | 0x2510 | 0x2513 -> "ae"
-      | 0x2582 -> "af"
-      | 0x250c | 0x250f -> "b0"
-      | 0x2534 | 0x253b -> "b1"
-      | 0x252c | 0x2533 -> "b2"
-      | 0x2524 | 0x252b -> "b3"
-      | 0x258d -> "b5"
-      | 0x2583 -> "b9"
-      | 0x2596 -> "bb"
-      | 0x259d -> "bc"
-      | 0x251b | 0x2518 -> "bd"
-      | 0x2598 | 0x259f -> "be"
-      | 0x259e -> "bf"
-      | _ -> ""
-    in
-    Printf.sprintf "%s/%s.png.layer0" base byte
+(* TODO: don't hardcore c64, and figure out how to compartmentalize
+   special logic about maps of Unicode characters? *)
+let find_char =
+  Caqti_request.find_opt Caqti_type.int Caqti_type.string
+    "SELECT glyph FROM c64 WHERE uchar = ?"
 
-let load_layer file =
-  try Ok (Yojson.Safe.from_file file |> Stitchy.Types.glyph_of_yojson)
-  with s -> Error s
+let load_layer db c =
+  let open Lwt.Infix in
+  Caqti_lwt.connect (Uri.of_string @@ "sqlite3://" ^ db) >>= function
+  | Error e -> Lwt.return @@ Error (Format.asprintf "%a" Caqti_error.pp e)
+  | Ok m ->
+    let module Db = (val m) in
+    Db.find_opt find_char (Uchar.to_int c) >|= function
+    | Error e -> Error (Format.asprintf "Error looking up %x: %a" (Uchar.to_int c) Caqti_error.pp e)
+    | Ok None -> Error (Format.asprintf "No result for %x" (Uchar.to_int c))
+    | Ok (Some s) ->
+      try (Yojson.Safe.from_string s |> Stitchy.Types.glyph_of_yojson)
+      with _ -> Error "JSON deserialization error or glyph reconstruction error"
 
-let maybe_add c m =
-  match load_layer (filename c) with
-  | Error _ | Ok (Error _) -> m
-  | Ok (Ok layer) -> Stitchy.Types.UcharMap.add c layer m
+let maybe_add db c m =
+  let open Lwt.Infix in
+  load_layer db c >|= function
+  | Error _ -> m
+  | Ok layer -> Stitchy.Types.UcharMap.add c layer m
 
-let map =
+let map db =
+  let open Lwt.Infix in
   let m = ref Stitchy.Types.UcharMap.empty in
-  for c = 20 to 255 do
-    m := maybe_add (Uchar.of_int c) !m 
-  done;
+  let fetch_char c = maybe_add db (Uchar.of_int c) !m in
+  let chars = List.init (255-20) (fun c -> 20 + c) in
   let known_uchars = [
         0x2500 ; 0x2501
       ; 0x2660
@@ -165,7 +119,15 @@ let map =
       ; 0x259f
       ; 0x259e
     ] in
-  List.iter (fun c ->
-      m := maybe_add (Uchar.of_int c) !m
-    ) known_uchars;
-  !m
+  Lwt_list.iter_p
+    (fun c ->
+       fetch_char c >>= fun new_map ->
+       m := new_map;
+       Lwt.return_unit
+    ) chars >>= fun () ->
+  Lwt_list.iter_p (fun c ->
+      maybe_add db (Uchar.of_int c) !m >>= fun new_map ->
+      m := new_map;
+      Lwt.return_unit
+    ) known_uchars >>= fun () ->
+  Lwt.return !m

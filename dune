@@ -90,6 +90,19 @@
    (run stitchpattern -w "for more fun patterns, visit stitch.website" -i be_gay_find_primes.json -o be_gay_find_primes.pdf)
    (run notty_canvas be_gay_find_primes.json)
         )))
+
+(alias
+  (name spiders)
+  (deps (source_tree c64chars))
+  (action
+   (progn
+    (run c64stitch --background=0,0,0 -t white -o drawers.json "Your drawers are filled")
+    (run c64stitch --background=0,0,0 -t white -o with_spiders.json "WITH SPIDERS")
+    (run hcat -o with_spiders.json drawers.json with_spiders.json)
+    (run stitchpattern -i with_spiders.json -o with_spiders.pdf)
+    (run notty_canvas with_spiders.json)
+    )))
+
 (alias
   (name verbs)
   (deps (source_tree c64chars))

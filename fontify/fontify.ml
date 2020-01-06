@@ -42,7 +42,7 @@ let write_db db font_name map : (unit, string) result Lwt.t =
           | Error e -> Format.eprintf "Couldn't insert uchar %x: %a" key Caqti_error.pp e
           | Ok _ -> ()
         ) (Stitchy.Types.UcharMap.bindings map) >>= fun () ->
-        Lwt.return (Ok ())
+        Lwt.return @@ Ok ()
 
 let populate db src font =
   let map = Chars.map src in

@@ -30,16 +30,26 @@ let gridsize =
   let doc = "size of aida cloth grid" in
   Cmdliner.Arg.(value & opt (enum grid_converter) Stitchy.Types.Fourteen & info ["g"; "gridsize"] ~doc)
 
-let stitch textcolor background gridsize phrase interline output =
-  let lookup letter = Stitchy.Types.UcharMap.find_opt letter C64say.Chars.map in
+let font_name =
+  let doc = "font to use (should match a database name)" in
+  Cmdliner.Arg.(value & opt string "c64" & info ["f"; "font"] ~doc)
+
+let db =
+  let doc = "filename containing a sqlite database of font information" in
+  Cmdliner.Arg.(value & opt file "/home/user/.stitchy/fonts.sqlite3" & info ["d"; "db"] ~doc)
+
+let stitch _font db textcolor background gridsize phrase interline output =
+  let open Lwt.Infix in
+  C64say.Chars.map db >>= fun map ->
+  let lookup letter = Stitchy.Types.UcharMap.find_opt letter map in
   let state = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in
   let json = Stitchy.Types.state_to_yojson state in
-  Files.stdout_or_file json output
+  Lwt.return @@ Files.stdout_or_file json output
 
-let stitch_t = Cmdliner.Term.(const stitch $ textcolor $ bgcolor $ gridsize $ phrase $ interline $ output)
+let stitch_t = Cmdliner.Term.(const stitch $ font_name $ db $ textcolor $ bgcolor $ gridsize $ phrase $ interline $ output)
 
 let info =
-  let doc = "make a stitch file repesenting a phrase in c64 font" in
+  let doc = "make a stitch file repesenting a phrase in a known font" in
   Cmdliner.Term.info "c64stitch" ~doc
 
 let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (stitch_t, info)
