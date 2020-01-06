@@ -1,5 +1,6 @@
 (alias
  (name runtest)
+ (deps fonts.sqlite3)
  (action
   (progn
    (run c64stitch -o hello.json --interline=2 "hello to this whole\nbeautiful world")
@@ -15,6 +16,7 @@
 
 (alias
  (name brainfuck)
+ (deps fonts.sqlite3)
  (action
   (progn
    (run c64stitch -o program.json
@@ -39,15 +41,17 @@
 
 (alias
  (name butt)
+ (deps fonts.sqlite3)
  (action
   (progn
    (run c64stitch -o butt.json "butt")
-   (run stitchpattern --paper a4 -w "for more fun patterns, visit stitch.website" -i butt.json -o butt.pdf)
+   (run stitchpattern --paper letter -w "for more fun patterns, visit stitch.website" -i butt.json -o butt.pdf)
    (run evince butt.pdf)
 )))
 
 (alias
  (name cards)
+ (deps fonts.sqlite3)
  (action
   (progn
    (run c64stitch --background=0,0,0 -t red -o suits.json "♠️♣️♦️♥️")
@@ -57,7 +61,7 @@
 
 (alias
  (name be_gay_find_primes)
- (deps (source_tree c64chars))
+ (deps (source_tree c64chars) fonts.sqlite3)
  (action
   (progn
    (run c64stitch --background=0,0,0 -o red.json -t red "2")
@@ -93,7 +97,7 @@
 
 (alias
   (name spiders)
-  (deps (source_tree c64chars))
+  (deps (source_tree c64chars) fonts.sqlite3)
   (action
    (progn
     (run c64stitch --background=0,0,0 -t white -o drawers.json "Your drawers are filled")
@@ -105,7 +109,7 @@
 
 (alias
   (name verbs)
-  (deps (source_tree c64chars))
+  (deps (source_tree c64chars) fonts.sqlite3)
   (action
    (progn
     (run c64stitch --background=0,0,0 -t purple -o action.json "Pick up Zoey                       ")

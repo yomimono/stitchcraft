@@ -35,16 +35,14 @@ let get_dimensions phrase interline =
   { height = height + interline;
     width }
 
-(* TODO: don't hardcode c64, and figure out how to compartmentalize
-   special logic about maps of Unicode characters? *)
-let find_char =
-  Caqti_request.find_opt Caqti_type.int Caqti_type.string
-    "SELECT glyph FROM c64 WHERE uchar = ?"
+let find_char font_name =
+  Caqti_request.find_opt Caqti_type.int Caqti_type.string @@
+    "SELECT glyph FROM " ^ font_name ^ " WHERE uchar = ?"
 
 let load_layer db_module c =
   let open Lwt.Infix in
   let module Db = (val db_module : Caqti_lwt.CONNECTION) in
-  Db.find_opt find_char (Uchar.to_int c) >|= function
+  Db.find_opt (find_char font) (Uchar.to_int c) >|= function
   | Error e -> Error (Format.asprintf "Error looking up %x: %a" (Uchar.to_int c) Caqti_error.pp e)
   | Ok None -> Error (Format.asprintf "No result for %x" (Uchar.to_int c))
   | Ok (Some s) ->

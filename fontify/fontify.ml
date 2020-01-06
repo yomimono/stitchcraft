@@ -2,7 +2,7 @@ open Lwt.Infix
 
 let db =
   let doc = "sqlite database location on the filesystem" in
-  Cmdliner.Arg.(value & pos 0 file "fonts.sqlite" & info [] ~doc ~docv:"DB")
+  Cmdliner.Arg.(value & pos 0 file "fonts.sqlite3" & info [] ~doc ~docv:"DB")
 
 let src_dir =
   let doc = "source layer information directory" in
