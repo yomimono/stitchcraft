@@ -35,36 +35,32 @@ let get_dimensions phrase interline =
   { height = height + interline;
     width }
 
-(* TODO: don't hardcore c64, and figure out how to compartmentalize
+(* TODO: don't hardcode c64, and figure out how to compartmentalize
    special logic about maps of Unicode characters? *)
 let find_char =
   Caqti_request.find_opt Caqti_type.int Caqti_type.string
     "SELECT glyph FROM c64 WHERE uchar = ?"
 
-let load_layer db c =
+let load_layer db_module c =
   let open Lwt.Infix in
-  Caqti_lwt.connect (Uri.of_string @@ "sqlite3://" ^ db) >>= function
-  | Error e -> Lwt.return @@ Error (Format.asprintf "%a" Caqti_error.pp e)
-  | Ok m ->
-    let module Db = (val m) in
-    Db.find_opt find_char (Uchar.to_int c) >|= function
-    | Error e -> Error (Format.asprintf "Error looking up %x: %a" (Uchar.to_int c) Caqti_error.pp e)
-    | Ok None -> Error (Format.asprintf "No result for %x" (Uchar.to_int c))
-    | Ok (Some s) ->
-      try (Yojson.Safe.from_string s |> Stitchy.Types.glyph_of_yojson)
-      with _ -> Error "JSON deserialization error or glyph reconstruction error"
+  let module Db = (val db_module : Caqti_lwt.CONNECTION) in
+  Db.find_opt find_char (Uchar.to_int c) >|= function
+  | Error e -> Error (Format.asprintf "Error looking up %x: %a" (Uchar.to_int c) Caqti_error.pp e)
+  | Ok None -> Error (Format.asprintf "No result for %x" (Uchar.to_int c))
+  | Ok (Some s) ->
+    try (Yojson.Safe.from_string s |> Stitchy.Types.glyph_of_yojson)
+    with _ -> Error "JSON deserialization error or glyph reconstruction error"
 
-let maybe_add db c m =
+let maybe_add db_module c m =
   let open Lwt.Infix in
-  load_layer db c >|= function
-  | Error _ -> m
+  load_layer db_module c >|= function
   | Ok layer -> Stitchy.Types.UcharMap.add c layer m
+  | Error e ->
+    Printf.eprintf "%s\n%!" e;
+    m
 
-let map db =
+let map db_module =
   let open Lwt.Infix in
-  let m = ref Stitchy.Types.UcharMap.empty in
-  let fetch_char c = maybe_add db (Uchar.of_int c) !m in
-  let chars = List.init (255-20) (fun c -> 20 + c) in
   let known_uchars = [
         0x2500 ; 0x2501
       ; 0x2660
@@ -119,15 +115,22 @@ let map db =
       ; 0x259f
       ; 0x259e
     ] in
-  Lwt_list.iter_p
+  let m = ref Stitchy.Types.UcharMap.empty in
+  let fetch_char c = maybe_add db_module (Uchar.of_int c) !m in
+  let minimum_printable = 0x20 in
+  let chars = List.init (255-minimum_printable) (fun c -> minimum_printable + c) in
+  (* get the characters in base ASCII *)
+  Lwt_list.iter_s
     (fun c ->
        fetch_char c >>= fun new_map ->
        m := new_map;
        Lwt.return_unit
     ) chars >>= fun () ->
-  Lwt_list.iter_p (fun c ->
-      maybe_add db (Uchar.of_int c) !m >>= fun new_map ->
+  (* add the known PETSCII special cases *)
+  Lwt_list.iter_s (fun c ->
+      maybe_add db_module (Uchar.of_int c) !m >>= fun new_map ->
       m := new_map;
       Lwt.return_unit
     ) known_uchars >>= fun () ->
+  Printf.eprintf "font map has %d elements\n%!" (Stitchy.Types.UcharMap.cardinal !m);
   Lwt.return !m

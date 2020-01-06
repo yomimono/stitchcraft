@@ -36,15 +36,23 @@ let font_name =
 
 let db =
   let doc = "filename containing a sqlite database of font information" in
-  Cmdliner.Arg.(value & opt file "/home/user/.stitchy/fonts.sqlite3" & info ["d"; "db"] ~doc)
+  Cmdliner.Arg.(value & opt file "/home/user/stitch.website/fonts.sqlite3" & info ["d"; "db"] ~doc)
 
-let stitch _font db textcolor background gridsize phrase interline output =
+let make_pattern _font db textcolor background gridsize phrase interline output =
   let open Lwt.Infix in
-  C64say.Chars.map db >>= fun map ->
-  let lookup letter = Stitchy.Types.UcharMap.find_opt letter map in
-  let state = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in
-  let json = Stitchy.Types.state_to_yojson state in
-  Lwt.return @@ Files.stdout_or_file json output
+  Caqti_lwt.connect (Uri.of_string @@ "sqlite3://" ^ db) >>= function
+  | Error e -> Lwt.return @@ Error (Format.asprintf "%a" Caqti_error.pp e)
+  | Ok db ->
+    C64say.Chars.map db >>= fun map ->
+    let lookup letter = Stitchy.Types.UcharMap.find_opt letter map in
+    let state = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in
+    let json = Stitchy.Types.state_to_yojson state in
+    Lwt.return @@ Files.stdout_or_file json output
+
+let stitch font db textcolor background gridsize phrase interline output =
+  match Lwt_main.run @@ make_pattern font db textcolor background gridsize phrase interline output with
+  | Error e -> Printf.eprintf "%s\n%!" e; exit 1
+  | Ok () -> exit 0
 
 let stitch_t = Cmdliner.Term.(const stitch $ font_name $ db $ textcolor $ bgcolor $ gridsize $ phrase $ interline $ output)
 
