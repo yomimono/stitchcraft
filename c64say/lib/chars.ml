@@ -1,39 +1,5 @@
-(* some useful dimensions to have access to from a phrase *)
-type dimensions = {
-  height : int;
-  width : int;
-}
-
 let h, w = 8, 8 (* c64 chars are 8x8 *)
 let font = "c64"
-
-(* TODO: this is silly; we should do one pass to write the text and base
-   the size of the substrate on that information, rather than
-   trying to duplicate the logic correctly *)
-let get_dimensions phrase interline =
-  let decoder = Uutf.decoder (`String phrase) in
-  let figure_height_and_width decoder =
-    let rec line_geometry decoder (completed_lengths, line_length_so_far) =
-      match Uutf.decode decoder with
-      | `Malformed _ | `Await -> line_geometry decoder (completed_lengths, line_length_so_far)
-      | `End -> (line_length_so_far :: completed_lengths, 0)
-      | `Uchar u ->
-        match Uucp.Gc.general_category u with
-        | `Zl | `Cc when Uchar.to_char u = '\n' ->
-          line_geometry decoder (line_length_so_far :: completed_lengths, 0)
-        | _ -> match Uucp.Break.tty_width_hint u with
-          | n when n <= 0 -> line_geometry decoder (completed_lengths, line_length_so_far)
-          | n -> line_geometry decoder (completed_lengths, (line_length_so_far + n))
-    in
-    fst @@ line_geometry decoder ([], 0)
-  in
-  let lines = figure_height_and_width decoder in
-  let height = (List.length lines) * h in
-  let interline = (max 0 (List.length lines - 1)) * interline in
-  let longest_line = List.fold_left (fun longest length -> max longest length) 0 lines in
-  let width = longest_line * w in
-  { height = height + interline;
-    width }
 
 let find_char font_name =
   Caqti_request.find_opt Caqti_type.int Caqti_type.string @@
