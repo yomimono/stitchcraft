@@ -43,6 +43,9 @@ let make_pattern _font db textcolor background gridsize phrase interline output 
   Caqti_lwt.connect (Uri.of_string @@ "sqlite3://" ^ db) >>= function
   | Error e -> Lwt.return @@ Error (Format.asprintf "%a" Caqti_error.pp e)
   | Ok db ->
+    (* Since `stitch` is expecting a lookup function
+       that's not in the Lwt monad, we need to populate the map first *)
+    (* TODO this could use a redesign *)
     C64say.Chars.map db >>= fun map ->
     let lookup letter = Stitchy.Types.UcharMap.find_opt letter map in
     let state = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in

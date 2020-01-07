@@ -53,7 +53,7 @@ let maybe_add db_module c m =
   let open Lwt.Infix in
   load_layer db_module c >|= function
   | Ok layer -> Stitchy.Types.UcharMap.add c layer m
-  | Error e -> m
+  | Error _ -> m
 
 let map db_module =
   let open Lwt.Infix in

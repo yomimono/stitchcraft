@@ -45,8 +45,8 @@ let normalize phrase =
 
 let stitch lookup textcolor background gridsize (phrase : string) interline =
   let phrase = normalize phrase in
-  let substrate = make_substrate background gridsize phrase interline in
   let thread = Colors.thread_of_color textcolor in
   let block : block = { thread; stitch = Full; } in
+  let substrate = make_substrate background gridsize phrase interline in
   let phrase = blocks_of_phrase lookup block phrase interline in
   {stitches = phrase; substrate;}
