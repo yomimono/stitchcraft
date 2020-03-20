@@ -124,4 +124,3 @@
     (run evince verbs.pdf)
     (run notty_canvas verbs.json)
     )))
-

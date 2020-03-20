@@ -1,0 +1,12 @@
+(executable
+ (public_name readpsf)
+ (libraries cmdliner bos fmt psf2stitchfont)
+)
+
+(alias
+ (name runtest)
+ (deps (file fonts/Bm437_ATI_8x8_6.fnt.psf))
+ (action
+  (progn
+   (run readpsf fonts/Bm437_ATI_8x8_6.fnt.psf)
+)))
