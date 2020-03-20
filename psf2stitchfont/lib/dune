@@ -1,5 +1,5 @@
 (library
  (public_name psf2stitchfont)
- (libraries cstruct ppx_cstruct stitchy)
+ (libraries cstruct ppx_cstruct stitchy uutf uunf)
  (preprocess (pps ppx_cstruct))
 )

@@ -27,7 +27,6 @@ let pad_to_8 n =
 let high_bit_set byte = byte land 0x80 = 0x80
 
 let to_bit_list byte =
-  Printf.printf "getting bits set in %x\n%!" (int_of_char byte);
   let rec aux l index byte = match (int_of_char byte) land 0xff with
     | 0 -> l
     | nonzero when high_bit_set nonzero ->
@@ -40,7 +39,6 @@ let to_bit_list byte =
   aux [] 0 byte
 
 let read_row ~y row ~width =
-  Printf.printf "reading row of width %d, at y-index %d\n%!" width y;
   let rec aux bits row index =
     if index >= width || Cstruct.len row = 0 then bits
     else begin
@@ -50,7 +48,6 @@ let read_row ~y row ~width =
     end
   in
   let stitches = aux [] row 0 in
-  Printf.printf "got %d stitches\n%!" @@ List.length stitches;
   stitches
 
 let rec read_rows buffer ~bytes_in_row ~height ~width rows index =
@@ -76,6 +73,41 @@ let parse_glyph_table ~width ~height table =
   in
   next_glyph [] table
 
+(* the strategy seems to be to read utf-8 unicode strings until we can't anymore,
+   then look to see whether the next byte is `fe` (start of sequence)
+   or `ff` (end of this unicode table entry) *)
+(* returns the uchars in question and the place to look for a next one *)
+let next_unicode_entry table =
+  let s = Cstruct.to_string table in
+  let decoder = Uutf.decoder ~encoding:(`UTF_8) (`String s) in
+  let rec try_chunk l =
+    match Uutf.decode decoder with
+    | `Uchar u -> Format.printf "ok got a char %a yay\n%!" Fmt.Dump.uchar u; try_chunk (u::l)
+    | `Malformed e -> Format.printf "malformed string: %s\n%!" e; l
+    | `Await -> Format.printf "await, wtf?\n%!"; l
+    | `End -> Format.printf "normal end to utf-8 string, found %d uchars\n%!" (List.length l); l
+  in
+  let chars = try_chunk [] in
+  (* tell us how far you got! *)
+  let cursor = Uutf.decoder_byte_count decoder in
+  Format.printf "%d (0x%x) bytes decoded out of %d (%x)\n%!" cursor cursor (Cstruct.len table) (Cstruct.len table);
+  if cursor >= Cstruct.len table then (chars, `End)
+  else begin
+    match String.get s cursor |> int_of_char with
+    | 0xfe -> (* for now let's punt *)
+      let end_of_sequence = String.index_from s cursor (char_of_int 0xff) in
+      (chars, `More_at (end_of_sequence + 1))
+    | 0xff -> (* end of thing, no sequence *) (chars, `More_at (cursor + 1))
+    | _ -> (chars, `More_at cursor)
+  end
+
+let keep_getting_glyphs table =
+  let rec aux t so_far =
+    match next_unicode_entry t with
+    | l, `End -> List.rev (l :: so_far)
+    | l, `More_at n -> aux (Cstruct.shift t n) (l::so_far)
+  in
+  aux table []
 
 let glyphmap_of_psf_header buffer =
   if Cstruct.len buffer < 0x20 then Error `Too_short
@@ -86,11 +118,13 @@ let glyphmap_of_psf_header buffer =
     let unicode_start = Int32.add (get_psf2header_start_of_glyphs buffer) glyphs_size in
     let unicode_length = (Cstruct.len buffer) - (Int32.to_int unicode_start) in
     let glyph_table = Cstruct.sub buffer (Int32.to_int (get_psf2header_start_of_glyphs buffer)) (Int32.to_int glyphs_size) in
+    let unicode_table = Cstruct.shift buffer (Int32.to_int unicode_start) in
     if unicode_length < 0 then Error `No_unicode_info
     else begin
       let glyphs = parse_glyph_table
           ~width:(get_psf2header_width buffer |> Int32.to_int)
           ~height:(get_psf2header_height buffer |> Int32.to_int) glyph_table in
-      Ok (`Glyphmap (glyphs, unicode_length))
+      let unicode_map = keep_getting_glyphs unicode_table in
+      Ok (`Glyphmap (glyphs, unicode_map))
     end
   end

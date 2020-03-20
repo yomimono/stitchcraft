@@ -27,8 +27,7 @@ let print_glyph fmt (glyph : Stitchy.Types.glyph) =
     max_y = glyph.height - 1;
   } in
   let state : Stitchy.Types.state = { stitches = blockmap; substrate; } in
-  Format.fprintf fmt "%a\n%!" Stitchy.Types.pp_state state;
-  Format.fprintf fmt "stitches: %a" Fmt.(list @@ pair int int) glyph.stitches
+  Format.fprintf fmt "%a\n%!" Stitchy.Types.pp_state state
 
 let read input =
   match Bos.OS.File.read (Fpath.v input) with
@@ -39,8 +38,9 @@ let read input =
     | Error e ->
       Format.eprintf "%a\n%!" Psf2stitchfont.pp_error e;
       Error (`Msg "parsing failed")
-    | Ok (`Glyphmap (glyphs, _unicode)) ->
-      Format.printf "%a\n%!" (Fmt.list print_glyph) glyphs;
+    | Ok (`Glyphmap (_glyphs, unicode)) ->
+      (* List.iteri (fun n glyph -> Format.printf "glyph %d: %a\n%!" n print_glyph glyph) glyphs; *)
+      Format.printf "unicode chars %a\n%!" Fmt.(list (list Dump.uchar)) unicode;
       Ok ()
 
 let read_t = Cmdliner.Term.(const read $ input)
