@@ -82,24 +82,21 @@ let next_unicode_entry table =
   let decoder = Uutf.decoder ~encoding:(`UTF_8) (`String s) in
   let rec try_chunk l =
     match Uutf.decode decoder with
-    | `Uchar u -> Format.printf "ok got a char %a yay\n%!" Fmt.Dump.uchar u; try_chunk (u::l)
-    | `Malformed e -> Format.printf "malformed string: %s\n%!" e; l
-    | `Await -> Format.printf "await, wtf?\n%!"; l
-    | `End -> Format.printf "normal end to utf-8 string, found %d uchars\n%!" (List.length l); l
+    | `Uchar u -> try_chunk (u::l)
+    | `Await | `End -> l
+    | `Malformed e when (String.get e 0 |> int_of_char) = 0xff ->
+      Format.printf "normal end to utf-8 string, found %d uchars\n%!" (List.length l); l
+    | `Malformed e when (String.get e 0 |> int_of_char) = 0xfe ->
+      Format.printf "end of uchars, beginning of sequence. %d plain uchars found\n%!" (List.length l); l
+    | `Malformed e ->
+      Format.printf "unexpected char %x; punting" (String.get e 0 |> int_of_char); l
   in
   let chars = try_chunk [] in
   (* tell us how far you got! *)
   let cursor = Uutf.decoder_byte_count decoder in
   Format.printf "%d (0x%x) bytes decoded out of %d (%x)\n%!" cursor cursor (Cstruct.len table) (Cstruct.len table);
   if cursor >= Cstruct.len table then (chars, `End)
-  else begin
-    match String.get s cursor |> int_of_char with
-    | 0xfe -> (* for now let's punt *)
-      let end_of_sequence = String.index_from s cursor (char_of_int 0xff) in
-      (chars, `More_at (end_of_sequence + 1))
-    | 0xff -> (* end of thing, no sequence *) (chars, `More_at (cursor + 1))
-    | _ -> (chars, `More_at cursor)
-  end
+  else (chars, `More_at cursor)
 
 let keep_getting_glyphs table =
   let rec aux t so_far =
@@ -121,7 +118,7 @@ let glyphmap_of_psf_header buffer =
     let unicode_table = Cstruct.shift buffer (Int32.to_int unicode_start) in
     if unicode_length < 0 then Error `No_unicode_info
     else begin
-      let glyphs = parse_glyph_table
+      let glyphs = List.rev @@ parse_glyph_table
           ~width:(get_psf2header_width buffer |> Int32.to_int)
           ~height:(get_psf2header_height buffer |> Int32.to_int) glyph_table in
       let unicode_map = keep_getting_glyphs unicode_table in

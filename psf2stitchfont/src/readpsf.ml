@@ -38,9 +38,17 @@ let read input =
     | Error e ->
       Format.eprintf "%a\n%!" Psf2stitchfont.pp_error e;
       Error (`Msg "parsing failed")
-    | Ok (`Glyphmap (_glyphs, unicode)) ->
-      (* List.iteri (fun n glyph -> Format.printf "glyph %d: %a\n%!" n print_glyph glyph) glyphs; *)
-      Format.printf "unicode chars %a\n%!" Fmt.(list (list Dump.uchar)) unicode;
+    | Ok (`Glyphmap (glyphs, unicode)) ->
+      let spoo glyph uchars =
+        List.iter (fun uchar ->
+            match Uutf.(encode (encoder `UTF_8 (`Channel stdout)) (`Uchar uchar)) with
+            | `Ok -> Format.printf "%a\n%!" Fmt.Dump.uchar uchar; ()
+            | `Partial -> assert false
+          ) uchars;
+        Pervasives.flush_all ();
+        Format.printf "\nglyph: %a\n%!" print_glyph glyph
+      in
+      List.iter2 spoo glyphs unicode;
       Ok ()
 
 let read_t = Cmdliner.Term.(const read $ input)
