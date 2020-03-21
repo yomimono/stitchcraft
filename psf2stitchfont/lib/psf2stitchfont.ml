@@ -84,17 +84,11 @@ let next_unicode_entry table =
     match Uutf.decode decoder with
     | `Uchar u -> try_chunk (u::l)
     | `Await | `End -> l
-    | `Malformed e when (String.get e 0 |> int_of_char) = 0xff ->
-      Format.printf "normal end to utf-8 string, found %d uchars\n%!" (List.length l); l
-    | `Malformed e when (String.get e 0 |> int_of_char) = 0xfe ->
-      Format.printf "end of uchars, beginning of sequence. %d plain uchars found\n%!" (List.length l); l
-    | `Malformed e ->
-      Format.printf "unexpected char %x; punting" (String.get e 0 |> int_of_char); l
+    | `Malformed _ -> l (* this looks scary, but is the normal case :) *)
   in
   let chars = try_chunk [] in
   (* tell us how far you got! *)
   let cursor = Uutf.decoder_byte_count decoder in
-  Format.printf "%d (0x%x) bytes decoded out of %d (%x)\n%!" cursor cursor (Cstruct.len table) (Cstruct.len table);
   if cursor >= Cstruct.len table then (chars, `End)
   else (chars, `More_at cursor)
 

@@ -1,6 +1,13 @@
 (executable
  (public_name readpsf)
+ (modules readpsf)
  (libraries cmdliner bos fmt psf2stitchfont)
+)
+
+(executable
+ (public_name psf2sqlite)
+ (modules psf2sqlite)
+ (libraries bos caqti caqti-driver-sqlite3 caqti-lwt cmdliner lwt psf2stitchfont sqlite stitchy)
 )
 
 (alias
@@ -10,3 +17,10 @@
   (progn
    (run readpsf fonts/Bm437_ATI_8x8_6.fnt.psf)
 )))
+
+(alias
+ (name sqltest)
+ (deps (source_tree fonts))
+ (action
+  (progn
+  )))

@@ -96,16 +96,18 @@
         )))
 
 (alias
-  (name spiders)
+  (name tops)
   (deps (source_tree c64chars) fonts.sqlite3)
   (action
    (progn
-    (run c64stitch --background=0,0,0 -t white -o drawers.json "Your drawers are filled")
-    (run c64stitch --background=0,0,0 -t white -o with_spiders.json "WITH SPIDERS")
-    (run hcat -o with_spiders.json drawers.json with_spiders.json)
-    (run stitchpattern -i with_spiders.json -o with_spiders.pdf)
-    (run notty_canvas with_spiders.json)
-    )))
+    (run c64stitch --background=255,255,255 -t black -o tops.json "We must, we must,
+we must decrease our bust.
+The smaller the better,
+even without a letter,
+the lesser the bounce and fuss."
+    )
+    (run notty_canvas tops.json)
+  )))
 
 (alias
   (name verbs)
