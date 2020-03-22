@@ -4,12 +4,12 @@ let db =
   let doc = "sqlite database location on the filesystem" in
   Cmdliner.Arg.(value & pos 0 file "fonts.sqlite3" & info [] ~doc ~docv:"DB")
 
-let src_dir =
-  let doc = "source layer information directory" in
+let src =
+  let doc = "source PSF version 2 file (with unicode table)" in
   Cmdliner.Arg.(value & opt dir "fonts" & info ["s"; "src"] ~doc ~docv:"SRC_DIR")
 
 let font_name =
-  let doc = "font name for glyphs in this dir" in
+  let doc = "name by which to refer to this font" in
   Cmdliner.Arg.(value & opt string "c64" & info ["n"; "name"] ~doc ~docv:"FONT_NAME")
 
 let make_db font_name =

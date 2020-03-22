@@ -23,4 +23,5 @@
  (deps (source_tree fonts))
  (action
   (progn
+   (run psf2sqlite --name ibm_vga --db tmpfonts.sqlite3 fonts/Bm437_IBM_VGA9-2x_12.fnt.psf)
   )))

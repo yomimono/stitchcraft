@@ -1,11 +1,10 @@
 let h, w = 8, 8 (* c64 chars are 8x8 *)
-let font = "c64"
 
 let find_char font_name =
   Caqti_request.find_opt Caqti_type.int Caqti_type.string @@
     "SELECT glyph FROM " ^ font_name ^ " WHERE uchar = ?"
 
-let load_layer db_module c =
+let load_layer db_module font c =
   let open Lwt.Infix in
   let module Db = (val db_module : Caqti_lwt.CONNECTION) in
   Db.find_opt (find_char font) (Uchar.to_int c) >|= function
@@ -15,70 +14,16 @@ let load_layer db_module c =
     try (Yojson.Safe.from_string s |> Stitchy.Types.glyph_of_yojson)
     with _ -> Error "JSON deserialization error or glyph reconstruction error"
 
-let maybe_add db_module c m =
+let maybe_add db_module font c m =
   let open Lwt.Infix in
-  load_layer db_module c >|= function
+  load_layer db_module font c >|= function
   | Ok layer -> Stitchy.Types.UcharMap.add c layer m
   | Error _ -> m
 
-let map db_module =
+let map db_module font =
   let open Lwt.Infix in
-  let known_uchars = [
-        0x2500 ; 0x2501
-      ; 0x2660
-      ; 0x2502 ; 0x007c ; 0x2503
-      ; 0x256e
-      ; 0x2570
-      ; 0x256f
-      ; 0x2572
-      ; 0x2571
-      ; 0x2022 ; 0x00b7 ; 0x0025cf ; 0x2219
-      ; 0x2665
-      ; 0x256d
-      ; 0x2573
-      ; 0x25cb ; 0x2218 ; 0x25e6 ; 0x25ef
-      ; 0x2663
-      ; 0x2666 ; 0x25c6
-      ; 0x253c ; 0x254b
-      ; 0x03c0
-      ; 0x25e5
-      ; 0x258c
-      ; 0x2580
-      ; 0x2587
-      ; 0x005f
-      ; 0x2581
-      ; 0x258e
-      ; 0x2595
-      ; 0x258a
-      ; 0x251c
-      ; 0x2523
-      ; 0x259b
-      ; 0x2514
-      ; 0x2517
-      ; 0x2510
-      ; 0x2513
-      ; 0x2582
-      ; 0x250c
-      ; 0x250f
-      ; 0x2534
-      ; 0x253b
-      ; 0x252c
-      ; 0x2533
-      ; 0x2524
-      ; 0x252b
-      ; 0x258b
-      ; 0x2586
-      ; 0x2585
-      ; 0x2596
-      ; 0x259d
-      ; 0x251b
-      ; 0x2518
-      ; 0x2598
-      ; 0x259f
-      ; 0x259e
-    ] in
   let m = ref Stitchy.Types.UcharMap.empty in
-  let fetch_char c = maybe_add db_module (Uchar.of_int c) !m in
+  let fetch_char c = maybe_add db_module font (Uchar.of_int c) !m in
   let minimum_printable = 0x20 in
   let chars = List.init (255-minimum_printable) (fun c -> minimum_printable + c) in
   (* get the characters in base ASCII *)
@@ -88,10 +33,4 @@ let map db_module =
        m := new_map;
        Lwt.return_unit
     ) chars >>= fun () ->
-  (* add the known PETSCII special cases *)
-  Lwt_list.iter_s (fun c ->
-      maybe_add db_module (Uchar.of_int c) !m >>= fun new_map ->
-      m := new_map;
-      Lwt.return_unit
-    ) known_uchars >>= fun () ->
   Lwt.return !m

@@ -10,7 +10,6 @@ let output =
   let doc = "file to output json to. -, the default, is stdout" in
   Cmdliner.Arg.(value & opt string "-" & info ["o"; "output"] ~doc)
 
-(* TODO: background and text color ought to be choosable from the known C64 colors. *)
 let textcolor =
   let doc = "color of text" in
   Cmdliner.Arg.(value & opt (enum C64say.Colors.cmdliner_enum) C64say.Colors.Black & info ["t"; "textcolor"] ~doc)
@@ -19,7 +18,6 @@ let bgcolor =
   let doc = "color of background" in
   Cmdliner.Arg.(value & opt (t3 int int int) (255, 255, 255) & info ["b";"bg";"background"] ~doc)
 
-(* TODO: grid size should be choosable from the known valid values. *)
 let grid_converter : (string * Stitchy.Types.grid) list = [
   "14", Fourteen;
   "16", Sixteen;
@@ -38,7 +36,7 @@ let db =
   let doc = "filename containing a sqlite database of font information" in
   Cmdliner.Arg.(value & opt file "/home/user/stitch.website/fonts.sqlite3" & info ["d"; "db"] ~doc)
 
-let make_pattern _font db textcolor background gridsize phrase interline output =
+let make_pattern font db textcolor background gridsize phrase interline output =
   let open Lwt.Infix in
   Caqti_lwt.connect (Uri.of_string @@ "sqlite3://" ^ db) >>= function
   | Error e -> Lwt.return @@ Error (Format.asprintf "%a" Caqti_error.pp e)
@@ -46,7 +44,7 @@ let make_pattern _font db textcolor background gridsize phrase interline output 
     (* Since `stitch` is expecting a lookup function
        that's not in the Lwt monad, we need to populate the map first *)
     (* TODO this could use a redesign *)
-    C64say.Chars.map db >>= fun map ->
+    C64say.Chars.map db font >>= fun map ->
     let lookup letter = Stitchy.Types.UcharMap.find_opt letter map in
     let state = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in
     let json = Stitchy.Types.state_to_yojson state in
