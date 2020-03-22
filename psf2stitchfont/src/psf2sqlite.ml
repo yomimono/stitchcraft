@@ -2,11 +2,11 @@ open Lwt.Infix
 
 let db =
   let doc = "sqlite database location on the filesystem" in
-  Cmdliner.Arg.(value & pos 0 file "fonts.sqlite3" & info [] ~doc ~docv:"DB")
+  Cmdliner.Arg.(value & opt string "fonts.sqlite3" & info ["db"] ~doc ~docv:"DB")
 
 let src =
   let doc = "source PSF version 2 file (with unicode table)" in
-  Cmdliner.Arg.(value & opt dir "fonts" & info ["s"; "src"] ~doc ~docv:"SRC_DIR")
+  Cmdliner.Arg.(value & pos 0 file "fonts" & info [] ~doc ~docv:"SRC")
 
 let font_name =
   let doc = "name by which to refer to this font" in
@@ -45,14 +45,35 @@ let write_db db font_name map : (unit, string) result Lwt.t =
         Lwt.return @@ Ok ()
 
 let populate db src font =
-  let map = Chars.map src in
-  match Lwt_main.run @@ write_db db font map with
-  | Error s -> Printf.eprintf "%s\n%!" s; 1
-  | Ok () -> 0
+  match Bos.OS.File.read (Fpath.v src) with
+  | Error e -> Error e
+  | Ok s ->
+    match Psf2stitchfont.glyphmap_of_psf_header (Cstruct.of_string s) with
+    | Error e -> Error (`Msg (Format.asprintf "%a" Psf2stitchfont.pp_error e))
+    | Ok (`Glyphmap (glyphs, uchars_list)) ->
+      Format.printf "glyphs: %d, uchars_list: %d\n%!" (List.length glyphs) (List.length uchars_list);
+      let map =
+        List.fold_left (fun (k, map) uchars ->
+            match List.nth_opt glyphs k with
+            | None -> (k+1, map)
+            | Some glyph ->
+              let map = List.fold_left (fun map uchar -> Stitchy.Types.UcharMap.add uchar glyph map) map uchars in
+              (k+1, map)
+          ) (0, Stitchy.Types.UcharMap.empty) uchars_list
+      in
+      match Lwt_main.run @@ write_db db font (snd map) with
+      | Error s -> Error (`Msg s)
+      | Ok () -> Ok ()
 
-let populate_t = Cmdliner.Term.(const populate $ db $ src_dir $ font_name)
+let populate_t = Cmdliner.Term.(const populate $ db $ src $ font_name)
 
 let info = Cmdliner.Term.info "populate a sqlite database with font information"
 
 let () =
-  Cmdliner.Term.exit @@ Cmdliner.Term.eval (populate_t, info)
+  Cmdliner.Term.eval (populate_t, info) |> function
+  | `Ok (Error (`Msg s)) -> 
+    Format.eprintf "%s\n%!" s; exit 1
+  | `Ok (Ok ()) ->
+    exit 0 
+  | `Error _ -> exit 1
+  | e -> Cmdliner.Term.exit e
