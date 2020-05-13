@@ -7,9 +7,10 @@ This is "stitchcraft", a collection of interoperable tools for generating cross-
 ### If you are familiar with building OCaml packages with opam:
 
 You will need to pin:
-* imagelib and imagelib-unix: `opam pin add https://github.com/cfcs/ocaml-imagelib.git#gif_prelim`.
+* `decompress` to version 0.9.0: `opam pin add decompress.0.9.0`
+* `imagelib` and `imagelib-unix` to an unmerged branch: `opam pin add https://github.com/cfcs/ocaml-imagelib.git#gif_prelim`.
 
-Then `dune build` in the top-level directory.
+Then `dune build` in the top-level directory of your clone of this repository.
 
 Soon, you will be able to `opam install` stitchcraft.  For the moment, installation is not tested and you should just run everything with `dune exec`.
 
@@ -21,7 +22,7 @@ A better user experience for such folks is coming soon.
 
 # How can I use it?
 
-Stitchcraft bundles several executables for command-line use:
+Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in the current directory, which stores raster font information; if this file is missing, you're gonna have a bad time.
 
 ## Pattern Generation and Manipulation
 
@@ -30,7 +31,7 @@ Stitchcraft bundles several executables for command-line use:
 * embellish , for composing cross-stitch patterns in various ways
 * estimator , which gives very loose time and materials estimates for cross-stitch patterns
 * listing , which makes supplementary files useful in listing cross-stitch patterns on Etsy
-* psf2stitchfont , for importing raster fonts
+* psf2stitchfont , for importing psfv2 raster fonts to the font database
 
 ## Pattern Viewing
 
@@ -45,10 +46,20 @@ The `dune` file contains several test cases.  Have a look at the `brainfuck`, `b
 
 All tools are built around the central `stitchy` library and a simple JSON-based interchange format.  As a tool of last resort, it is possible to hand-build patterns understandable by Stitchcraft, but I hope it's easier to use the libraries to build tools instead.
 
-# Features
+# Current Features
 
 * tries its best to not fuck up when confronted with unicode
+* looks cool on your terminal
+
+# Future Features
+
+* pattern import from a raster-image-to-pattern program (likely one of those recommended below)
+* nicer `listing` preview graphics
+* Etsy API integration in `listing` (blocked on nice OAuth2 library :( )
+* Zoom in `notty_canvas`
+* sensible names or possibly subcommands
+* prettier PDFs, including an optional "how to cross-stitch" page
 
 # Anti-features / out-of-scope stuff
 
-* taking raster images and converting them to patterns (there are 9327530758375329753 programs that already do this. I recommend [kxstitch](https://kde.org/applications/graphics/kxstitch/) or [cstitch](https://github.com/kleintom/cstitch) but I'm sure there are other good ones as well.
+* taking raster images and converting them to patterns. There are many, many programs that already do this well. I recommend [kxstitch](https://kde.org/applications/graphics/kxstitch/) or [cstitch](https://github.com/kleintom/cstitch) but I'm sure there are other good ones out there that will fit well into your workflow.
