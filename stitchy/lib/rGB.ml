@@ -1,8 +1,6 @@
 type t = (int * int * int)
 [@@deriving yojson, eq]
 
-let to_crowbar = Crowbar.(map [int; int; int] (fun a b c -> a, b, c))
-
 let pp fmt (r, g, b) = Format.fprintf fmt "%d, %d, %d" r g b
 
 let compare (a, b, c) (x, y, z) =

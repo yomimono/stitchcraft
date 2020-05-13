@@ -490,10 +490,6 @@ end = struct
     StringMap.find "166" id_map; (* green *)
   ]
 
-  let to_crowbar =
-    let l = RGBMap.bindings rgb_map in
-    Crowbar.choose (List.map (fun (_k, v) -> Crowbar.const v) l)
-
   let of_rgb color = RGBMap.find_opt color rgb_map
 
   let of_string s = StringMap.find_opt s id_map

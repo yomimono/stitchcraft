@@ -43,8 +43,6 @@ module BlockMap : sig
 
   val of_yojson : Yojson.Safe.t -> (block t, string) result
 
-  val to_crowbar : block t Crowbar.gen
-
   val submap : x_off:int -> y_off:int -> width:int -> height:int -> 'a t -> 'a t
 
 end
@@ -67,7 +65,6 @@ type substrate =
 type stitches = block BlockMap.t
 val stitches_to_yojson : block BlockMap.t -> Yojson.Safe.t
 val stitches_of_yojson : Yojson.Safe.t -> (block BlockMap.t, string) result
-val stitches_to_crowbar : block BlockMap.t Crowbar.gen
 val equal_stitches : block BlockMap.t -> block BlockMap.t -> bool
 
 type state = {

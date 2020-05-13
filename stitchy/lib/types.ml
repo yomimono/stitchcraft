@@ -6,7 +6,7 @@
    in a 2d plane. *)
 
 module Block = struct
-  type t = int * int (* x, y *) [@@deriving crowbar, eq, yojson]
+  type t = int * int (* x, y *) [@@deriving eq, yojson]
   let compare (x1, y1) (x2, y2) =
     match Pervasives.compare x1 x2 with
     | 0 -> Pervasives.compare y1 y2
@@ -25,7 +25,7 @@ type cross_stitch =
   | Comma (* , (lower left quadrant) *)
   | Reverse_backtick (* mirrored ` (upper right quadrant) *)
   | Reverse_comma (* mirrored , (lower right quadrant) *)
-[@@deriving crowbar, eq, yojson]
+[@@deriving eq, yojson]
 
 type stitch = cross_stitch (* previously, this could be a backstitch;
                               preserve the name, even though we've
@@ -42,7 +42,7 @@ let pp_stitch fmt = function
   | Reverse_comma -> Format.fprintf fmt "."
 
 type thread = DMC.Thread.t
-[@@deriving crowbar, eq, yojson]
+[@@deriving eq, yojson]
 
 let pp_thread = Fmt.of_to_string DMC.Thread.to_string
 
@@ -50,7 +50,7 @@ type block = {
   thread : thread;
   stitch : cross_stitch;
 }
-[@@deriving crowbar, eq, yojson]
+[@@deriving eq, yojson]
 
 let pp_block (fmt : Format.formatter) (block : block) =
   let classify_color (r, g, b) =
@@ -104,14 +104,6 @@ module BlockMap = struct
         | Ok m, Ok (key, value) -> Ok (add key value m)
       ) (Ok empty) l
 
-  let to_crowbar =
-    let key = Crowbar.(map [range 640; range 480] (* not even I would cross-stitch a screenshot bigger than this *) (fun x y -> (x, y))) in
-    let value = block_to_crowbar in
-    let pair = Crowbar.map [key; value] (fun k v -> k, v) in
-    Crowbar.(map [list pair] (fun l ->
-        List.fold_left (fun m (k, v) -> add k v m) empty l
-      ))
-
   let submap ~x_off ~y_off ~width ~height map =
     filter (fun (x, y) _ ->
         x >= x_off && x < (x_off + width) &&
@@ -123,7 +115,7 @@ end
 module SymbolMap = Map.Make(RGB)
 
 type grid = | Fourteen | Sixteen | Eighteen
-[@@deriving crowbar, eq, yojson]
+[@@deriving eq, yojson]
 
 let pp_grid fmt g =
   Format.fprintf fmt "%s" (match g with
@@ -134,10 +126,10 @@ let pp_grid fmt g =
 type substrate =
   { background : RGB.t;
     grid : grid;
-    max_x : int; [@generator Crowbar.range 1023](* farthest x coordinate (least is always 0) *)
-    max_y : int; [@generator Crowbar.range 1023]
+    max_x : int;
+    max_y : int;
   }
-[@@deriving crowbar, eq, yojson]
+[@@deriving eq, yojson]
 
 let pp_substrate fmt {grid; background; _} =
   Format.fprintf fmt "%a aida cloth, color %a" pp_grid grid RGB.pp background
@@ -147,13 +139,12 @@ let pp_substrate fmt {grid; background; _} =
 type stitches = block BlockMap.t
 let stitches_to_yojson = BlockMap.to_yojson
 let stitches_of_yojson = BlockMap.of_yojson
-let stitches_to_crowbar = BlockMap.to_crowbar
 let equal_stitches = BlockMap.equal equal_block
 
 type state = {
   substrate : substrate;
   stitches : stitches;
-} [@@deriving crowbar, eq, yojson]
+} [@@deriving eq, yojson]
 
 let pp_state = fun fmt {substrate; stitches} ->
   Format.fprintf fmt "@[background: %a; full size %d x %d@]@." pp_substrate substrate (substrate.max_x + 1) (substrate.max_y + 1);

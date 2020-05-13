@@ -24,9 +24,6 @@ module type S = sig
   val of_yojson : Yojson.Safe.t -> (t, string) result
   (** get a t from some json, maybe. *)
 
-  val to_crowbar : t Crowbar.gen
-  (** most embroidery floss is mercerized cotton and therefore not very fuzzy, so we need to fuzz it ourselves. *)
-
   val equal : t -> t -> bool
   (** hold up two threads to the light.  look carefully. *)
 

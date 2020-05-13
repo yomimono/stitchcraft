@@ -10,9 +10,9 @@ You will need to pin:
 * `decompress` to version 0.9.0: `opam pin add decompress.0.9.0`
 * `imagelib` and `imagelib-unix` to an unmerged branch: `opam pin add https://github.com/cfcs/ocaml-imagelib.git#gif_prelim`.
 
-Then `dune build` in the top-level directory of your cloned repository.  You should also be able to `dune exec` any of the programs.
+Then `dune build` in the top-level directory of your cloned repository and follow any directions given in the `Error` lines until the build succeeds.  Once that happens, you should be able to `dune exec` the individual programs from the project's top-level directory.
 
-Installation is not currently supported for version treadmill reasons; watch this space.
+Installation via `opam` is not currently supported for version treadmill reasons; watch this space.
 
 ### If you are not familiar with this toolstack:
 
