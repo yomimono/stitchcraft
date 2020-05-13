@@ -45,7 +45,7 @@ let read input =
             | `Ok -> Format.printf "%a\n%!" Fmt.Dump.uchar uchar; ()
             | `Partial -> assert false
           ) uchars;
-        Pervasives.flush_all ();
+        Stdlib.flush_all ();
         Format.printf "\nglyph: %a\n%!" print_glyph glyph
       in
       List.iter2 spoo glyphs unicode;

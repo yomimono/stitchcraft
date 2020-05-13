@@ -8,8 +8,8 @@
 module Block = struct
   type t = int * int (* x, y *) [@@deriving eq, yojson]
   let compare (x1, y1) (x2, y2) =
-    match Pervasives.compare x1 x2 with
-    | 0 -> Pervasives.compare y1 y2
+    match Stdlib.compare x1 x2 with
+    | 0 -> Stdlib.compare y1 y2
     | n -> n
   let pp = Fmt.(pair int int) [@@toplevel_printer]
 end
