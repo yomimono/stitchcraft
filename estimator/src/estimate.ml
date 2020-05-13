@@ -7,7 +7,7 @@ let pattern =
 
 let estimate file =
   match Files.stdin_or_file file with
-  | Error _ -> failwith "input"
+  | Error e -> failwith @@ Format.asprintf "input error: %s" e
   | Ok json ->
     match state_of_yojson json with
     | Error _ -> failwith "json parsing"

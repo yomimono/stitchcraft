@@ -15,6 +15,15 @@
 )
 
 (alias
+ (name fortune)
+ (deps fonts.sqlite3)
+ (action
+  (progn
+   (run c64stitch -o fortune.json fortune)
+   (run notty_canvas fortune.json)
+   )))
+
+(alias
  (name brainfuck)
  (deps fonts.sqlite3)
  (action
@@ -97,16 +106,23 @@
 
 (alias
   (name tops)
-  (deps (source_tree c64chars) fonts.sqlite3)
+  (deps (source_tree psf2stitchfont/src/fonts) )
   (action
    (progn
-    (run c64stitch --background=255,255,255 -t black -o tops.json "We must, we must,
-we must decrease our bust.
+    (run psf2sqlite --db /tmp/fonts.sqlite3 --name topfont psf2stitchfont/src/fonts/Bm437_ATI_8x8_6.fnt.psf)
+    (run psf2sqlite --db /tmp/fonts.sqlite3 --name skinnyfont psf2stitchfont/src/fonts/Bm437_Kaypro2K_6.fnt.psf)
+    (run c64stitch --db /tmp/fonts.sqlite3 --font topfont --background=255,255,255 -t black -o center.json "
+We must, we must,
+we must decrease our bust!
 The smaller the better,
-even without a letter,
-the lesser the bounce and fuss."
+we don't need a letter,
+we'll ditch all the bounce and fuss!
+"
     )
-    (run notty_canvas tops.json)
+    (run c64stitch --db /tmp/fonts.sqlite3 --font skinnyfont --background=255,255,255 -t black -o xform.json "(o )( o) => |o    o|")
+    (run hcat -o tops.json xform.json center.json xform.json)
+    (run stitchpattern -w "for more fun patterns, visit stitch.website" -i tops.json -o tops.pdf)
+    (run evince tops.pdf)
   )))
 
 (alias
