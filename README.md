@@ -10,9 +10,9 @@ You will need to pin:
 * `decompress` to version 0.9.0: `opam pin add decompress.0.9.0`
 * `imagelib` and `imagelib-unix` to an unmerged branch: `opam pin add https://github.com/cfcs/ocaml-imagelib.git#gif_prelim`.
 
-Then `dune build` in the top-level directory of your clone of this repository.
+Then `dune build` in the top-level directory of your cloned repository.  You should also be able to `dune exec` any of the programs.
 
-Soon, you will be able to `opam install` stitchcraft.  For the moment, installation is not tested and you should just run everything with `dune exec`.
+Installation is not currently supported for version treadmill reasons; watch this space.
 
 ### If you are not familiar with this toolstack:
 
@@ -59,6 +59,8 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 * Zoom in `notty_canvas`
 * sensible names or possibly subcommands
 * prettier PDFs, including an optional "how to cross-stitch" page
+* nicer installation and versioning story
+* run a mile or two on the version treadmill
 
 # Anti-features / out-of-scope stuff
 
