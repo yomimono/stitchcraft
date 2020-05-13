@@ -1,5 +1,5 @@
-(alias
- (name runtest)
+(rule (alias
+ runtest)
  (deps fonts.sqlite3)
  (action
   (progn
@@ -14,8 +14,8 @@
  )
 )
 
-(alias
- (name fortune)
+(rule (alias
+ fortune)
  (deps fonts.sqlite3)
  (action
   (progn
@@ -23,8 +23,8 @@
    (run notty_canvas fortune.json)
    )))
 
-(alias
- (name brainfuck)
+(rule (alias
+ brainfuck)
  (deps fonts.sqlite3)
  (action
   (progn
@@ -48,8 +48,8 @@
 )))
 
 
-(alias
- (name butt)
+(rule (alias
+ butt)
  (deps fonts.sqlite3)
  (action
   (progn
@@ -58,8 +58,8 @@
    (run evince butt.pdf)
 )))
 
-(alias
- (name cards)
+(rule (alias
+ cards)
  (deps fonts.sqlite3)
  (action
   (progn
@@ -68,8 +68,8 @@
    (run evince suits.pdf)
    )))
 
-(alias
- (name be_gay_find_primes)
+(rule (alias
+ be_gay_find_primes)
  (deps (source_tree c64chars) fonts.sqlite3)
  (action
   (progn
@@ -104,8 +104,8 @@
    (run notty_canvas be_gay_find_primes.json)
         )))
 
-(alias
-  (name tops)
+(rule (alias
+  tops)
   (deps (source_tree psf2stitchfont/src/fonts) )
   (action
    (progn
@@ -125,8 +125,7 @@ we'll ditch all the bounce and fuss!
     (run evince tops.pdf)
   )))
 
-(alias
-  (name verbs)
+(rule (alias verbs)
   (deps (source_tree c64chars) fonts.sqlite3)
   (action
    (progn
