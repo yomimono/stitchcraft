@@ -1,5 +1,9 @@
 open Lwt.Infix
 
+let debug =
+  let doc = "print debug output on stdout" in
+  Cmdliner.Arg.(value & flag & info ["debug"; "d"] ~doc ~docv:"VERBOSE")
+
 let db =
   let doc = "sqlite database location on the filesystem" in
   Cmdliner.Arg.(value & opt string "fonts.sqlite3" & info ["db"] ~doc ~docv:"DB")
@@ -44,14 +48,15 @@ let write_db db font_name map : (unit, string) result Lwt.t =
         ) (Stitchy.Types.UcharMap.bindings map) >>= fun () ->
         Lwt.return @@ Ok ()
 
-let populate db src font =
+let populate db src font debug =
   match Bos.OS.File.read (Fpath.v src) with
   | Error e -> Error e
   | Ok s ->
     match Psf2stitchfont.glyphmap_of_psf_header (Cstruct.of_string s) with
     | Error e -> Error (`Msg (Format.asprintf "%a" Psf2stitchfont.pp_error e))
     | Ok (`Glyphmap (glyphs, uchars_list)) ->
-      Format.printf "glyphs: %d, uchars_list: %d\n%!" (List.length glyphs) (List.length uchars_list);
+      if debug then
+        Format.printf "glyphs: %d, uchars_list: %d\n%!" (List.length glyphs) (List.length uchars_list);
       let map =
         List.fold_left (fun (k, map) uchars ->
             match List.nth_opt glyphs k with
@@ -65,7 +70,7 @@ let populate db src font =
       | Error s -> Error (`Msg s)
       | Ok () -> Ok ()
 
-let populate_t = Cmdliner.Term.(const populate $ db $ src $ font_name)
+let populate_t = Cmdliner.Term.(const populate $ db $ src $ font_name $ debug)
 
 let info = Cmdliner.Term.info "populate a sqlite database with font information"
 
