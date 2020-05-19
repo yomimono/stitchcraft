@@ -40,13 +40,15 @@ let read input =
       Error (`Msg "parsing failed")
     | Ok (`Glyphmap (glyphs, unicode)) ->
       let spoo glyph uchars =
+        let scratch = Buffer.create 16 in
         List.iter (fun uchar ->
-            match Uutf.(encode (encoder `UTF_8 (`Channel stdout)) (`Uchar uchar)) with
-            | `Ok -> Format.printf "%a\n%!" Fmt.Dump.uchar uchar; ()
-            | `Partial -> assert false
+            Buffer.reset scratch;
+            Uutf.Buffer.add_utf_8 scratch uchar;
+            Buffer.output_buffer stdout scratch;
+            Stdlib.flush_all ();
           ) uchars;
-        Stdlib.flush_all ();
-        Format.printf "\nglyph: %a\n%!" print_glyph glyph
+        Format.printf
+            " is/are represented by this glyph: %a\n%!" print_glyph glyph;
       in
       List.iter2 spoo glyphs unicode;
       Ok ()
