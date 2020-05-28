@@ -57,8 +57,12 @@ let rec read_rows buffer ~bytes_in_row ~height ~width rows index =
     read_rows (Cstruct.shift buffer bytes_in_row) ~bytes_in_row ~height ~width (row @ rows) (index + 1)
   end
 
+let bytes_in_row raw_width =
+  if raw_width mod 8 <> 0 then raw_width / 8 + 1
+  else raw_width / 8
+
 let parse_glyph_table ~width ~height table =
-  let bytes_in_row = width / 8 in
+  let bytes_in_row = bytes_in_row width in
   let rec next_glyph glyphs table =
     if Cstruct.len table < bytes_in_row * height then glyphs
     else begin
