@@ -48,7 +48,7 @@ let read input =
             Stdlib.flush_all ();
           ) uchars;
         Format.printf
-            " is/are represented by this glyph: %a\n%!" print_glyph glyph;
+            " glyph: %a\n%!" print_glyph glyph;
       in
       List.iter2 spoo glyphs unicode;
       Ok ()
