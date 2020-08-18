@@ -6,8 +6,7 @@
 
 (data_only_dirs test)
 
-(alias
- (name runtest)
+(rule (alias runtest)
  (deps test/stitch.json)
  (action
   (progn

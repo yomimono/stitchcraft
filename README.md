@@ -7,8 +7,7 @@ This is "stitchcraft", a collection of interoperable tools for generating cross-
 ### If you are familiar with building OCaml packages with opam:
 
 You will need to pin:
-* `decompress` to version 0.9.0: `opam pin add decompress.0.9.0`
-* `imagelib` and `imagelib-unix` to an unmerged branch: `opam pin add https://github.com/cfcs/ocaml-imagelib.git#gif_prelim`.
+* `imagelib` and `imagelib-unix` to an unmerged branch: `opam pin add https://github.com/cfcs/ocaml-imagelib.git#alcotest-add`.
 
 Then `dune build` in the top-level directory of your cloned repository and follow any directions given in the `Error` lines until the build succeeds.  Once that happens, you should be able to `dune exec` the individual programs from the project's top-level directory.
 
@@ -60,7 +59,6 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 * sensible names or possibly subcommands
 * prettier PDFs, including an optional "how to cross-stitch" page
 * nicer installation and versioning story
-* run a mile or two on the version treadmill
 
 # Anti-features / out-of-scope stuff
 
