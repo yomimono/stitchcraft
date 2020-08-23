@@ -21,12 +21,12 @@ A better user experience for such folks is coming soon.
 
 # How can I use it?
 
-Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in the current directory, which stores raster font information; if this file is missing, you're gonna have a bad time.
+Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in the current directory, which stores raster font information; if this file is missing, you're gonna have a bad time.  You can create entries for it with `psf2stitchfont`.
 
 ## Pattern Generation and Manipulation
 
 * assemble , for assembling color- and placement-free components into a full cross-stitch pattern
-* c64say , for taking text input and making a cross-stitch pattern from it
+* c64stitch , for taking text input and making a cross-stitch pattern from it
 * embellish , for composing cross-stitch patterns in various ways
 * estimator , which gives very loose time and materials estimates for cross-stitch patterns
 * listing , which makes supplementary files useful in listing cross-stitch patterns on Etsy
@@ -59,7 +59,16 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 * sensible names or possibly subcommands
 * prettier PDFs, including an optional "how to cross-stitch" page
 * nicer installation and versioning story
+* autorefresh in notty_canvas
 
 # Anti-features / out-of-scope stuff
 
 * taking raster images and converting them to patterns. There are many, many programs that already do this well. I recommend [kxstitch](https://kde.org/applications/graphics/kxstitch/) or [cstitch](https://github.com/kleintom/cstitch) but I'm sure there are other good ones out there that will fit well into your workflow.
+
+# Acknowledgements
+
+Most work on this software was done at the [Recurse Center](https://recurse.com), and supported financially by a fellowship from that organization. I am deeply grateful to RC for all its support in the past, present, and future.
+
+The fonts included with this software were originally packaged by VileR and are available in their entirety at [https://int10h.org](https://int10h.org). VileR has kindly packaged these fonts and provided them under a [CC-BY-SA](http://creativecommons.org/licenses/by-sa/4.0/) license.
+
+This software depends heavily on [notty](https://github.com/pqwy/notty), [camlpdf](https://github.com/johnwhitington/camlpdf), and various small and useful libraries from [erratique.ch](https://erratique.ch/software).
