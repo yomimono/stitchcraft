@@ -91,11 +91,14 @@
 (rule (alias watts)
   (action
    (progn
+    (run c64stitch --db /tmp/fonts.sqlite3 -o empty.json "")
+    (run c64stitch --db /tmp/fonts.sqlite3 --font ATI_8x14 -t black --background=255,255,255 -o top.json ".·○°○·.")
     (run c64stitch --db /tmp/fonts.sqlite3 --font ATI_8x14 -t black --background=255,255,255 -o watts.json 
 "If you can't make your own Watts
        store-bought will do")
-    (run stitchpattern -w "for more fun patterns, visit stitch.website" -i watts.json -o watts.pdf)
-    (run notty_canvas watts.json)
+    (run embellish_stitch --top=top.json --side=empty.json --corner=empty.json --center=watts.json -o embellished_watts.json)
+    (run stitchpattern -w "for more fun patterns, visit stitch.website" -i embellished_watts.json -o watts.pdf)
+    (run notty_canvas embellished_watts.json)
 )))
 
 (rule (alias runtest)
