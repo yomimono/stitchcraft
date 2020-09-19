@@ -95,7 +95,7 @@
 "If you can't make your own Watts
        store-bought will do")
     (run stitchpattern -w "for more fun patterns, visit stitch.website" -i watts.json -o watts.pdf)
-    (run evince watts.pdf)
+    (run notty_canvas watts.json)
 )))
 
 (rule (alias runtest)

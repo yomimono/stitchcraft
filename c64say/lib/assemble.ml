@@ -53,7 +53,8 @@ let blocks_of_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) block phra
         advance decoder x_off y_off (map, max_x, max_y)
   in
   let decoder = Uutf.(decoder (`String phrase)) in
-  advance decoder 0 0 (BlockMap.empty, 0, 0)
+  let _, starting_height = get_dims lookup default_char in
+  advance decoder 0 0 (BlockMap.empty, 0, starting_height)
 
 let normalize phrase =
   Uunf_string.normalize_utf_8 `NFC phrase
