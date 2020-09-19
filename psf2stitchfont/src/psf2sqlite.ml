@@ -16,18 +16,19 @@ let font_name =
   let doc = "name by which to refer to this font" in
   Cmdliner.Arg.(value & opt string "c64" & info ["n"; "name"] ~doc ~docv:"FONT_NAME")
 
+(* TODO: yikes, this is a horrible way to escape this *)
 let make_db font_name =
   Caqti_request.exec
     Caqti_type.unit
-    ("CREATE TABLE " ^ font_name ^
-     " (uchar INTEGER NOT NULL PRIMARY KEY,
+    ("CREATE TABLE '" ^ font_name ^
+     "' (uchar INTEGER NOT NULL PRIMARY KEY,
       glyph BLOB)")
 
 
 let insert_item font_name =
   Caqti_request.exec
     (Caqti_type.tup2 Caqti_type.int Caqti_type.string) @@
-    "INSERT INTO " ^ font_name ^ " (uchar, glyph) VALUES (?, ?)"
+    "INSERT INTO '" ^ font_name ^ "' (uchar, glyph) VALUES (?, ?)"
 
 let write_db db font_name map : (unit, string) result Lwt.t =
   Caqti_lwt.connect (Uri.of_string @@ "sqlite3://" ^ db) >>= function

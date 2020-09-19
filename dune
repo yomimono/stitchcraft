@@ -91,7 +91,7 @@
 (rule (alias watts)
   (action
    (progn
-    (run c64stitch --db /tmp/fonts.sqlite3 --font skinnyfont -t black --background=255,255,255 -o watts.json 
+    (run c64stitch --db /tmp/fonts.sqlite3 --font ATI_8x14 -t black --background=255,255,255 -o watts.json 
 "If you can't make your own Watts
        store-bought will do")
     (run stitchpattern -w "for more fun patterns, visit stitch.website" -i watts.json -o watts.pdf)

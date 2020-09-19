@@ -1,5 +1,3 @@
-let h, w = 8, 8 (* c64 chars are 8x8 *)
-
 let find_char font_name =
   Caqti_request.find_opt Caqti_type.int Caqti_type.string @@
     "SELECT glyph FROM " ^ font_name ^ " WHERE uchar = ?"

@@ -30,11 +30,11 @@ let gridsize =
 
 let font_name =
   let doc = "font to use (should match a database name)" in
-  Cmdliner.Arg.(value & opt string "c64" & info ["f"; "font"] ~doc)
+  Cmdliner.Arg.(value & opt string "PhoenixEGA_8x8" & info ["f"; "font"] ~doc)
 
 let db =
   let doc = "filename containing a sqlite database of font information" in
-  Cmdliner.Arg.(value & opt file "/home/user/stitch.website/fonts.sqlite3" & info ["d"; "db"] ~doc)
+  Cmdliner.Arg.(value & opt file "/tmp/fonts.sqlite3" & info ["d"; "db"] ~doc)
 
 let make_pattern font db textcolor background gridsize phrase interline output =
   let open Lwt.Infix in
