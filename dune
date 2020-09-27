@@ -82,11 +82,13 @@
    )
    ))
 
-(rule (alias bicycle)
-  (action
-   (progn
-   )
-))
+(rule (alias smolfont)
+ (deps (source_tree psf2stitchfont/src/fonts) )
+ (action
+  (progn
+  (run readpsf psf2stitchfont/src/fonts/smolfont.psfu)
+(run psf2sqlite --db /tmp/fonts.sqlite3 --name smolfont psf2stitchfont/src/fonts/smolfont.psfu)
+)))
 
 (rule (alias watts)
   (action
