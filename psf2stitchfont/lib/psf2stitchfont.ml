@@ -126,7 +126,7 @@ let read_nonunicode_glyphmap buffer =
   let width = get_psf2header_width buffer |> Int32.to_int
   and height = get_psf2header_height buffer |> Int32.to_int
   in
-  let glyphs = parse_glyph_table ~width ~height glyph_table in
+  let glyphs = parse_glyph_table ~width ~height glyph_table |> List.rev in
   let unicode_map = List.init (Int32.to_int number_of_glyphs) (fun n -> [Uchar.of_int n]) in
   Ok (`Glyphmap (glyphs, unicode_map))
 
