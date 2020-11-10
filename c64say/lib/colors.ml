@@ -30,7 +30,7 @@ let cmdliner_enum : (string * color) list = [
   "lightred",Light_red;
   "darkgray",Dark_gray;
   "gray2",Gray_2;
-  "lightreen",Light_green;
+  "lightgreen",Light_green;
   "lightblue",Light_blue;
   "lightgray",Light_gray;
 ]
