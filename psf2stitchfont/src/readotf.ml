@@ -3,13 +3,13 @@ let input =
   Cmdliner.Arg.(value & pos 0 string "-" & info [] ~doc)  
 
 let info =
-  let doc = "ingest psf (pc screen font) version 2 files" in
-  Cmdliner.Term.info "readpsf" ~doc
+  let doc = "ingest otf files" in
+  Cmdliner.Term.info "readotf" ~doc
 
-(* you can tell somebody writes Java in her day job these days *)
-module Psfreader = Psf2stitchfont__Readfiles.Reader(Psf2stitchfont)
+(* TODO: YIKES that is a horrible line *)
+module Otfreader = Psf2stitchfont__Readfiles.Reader(Psf2stitchfont__Otf2stitchfont)
 
-let read_t = Cmdliner.Term.(const Psfreader.read $ input)
+let read_t = Cmdliner.Term.(const Otfreader.read $ input)
 
 let () =
   Cmdliner.Term.eval (read_t, info) |> function

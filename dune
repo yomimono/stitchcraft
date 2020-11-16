@@ -1,177 +1,287 @@
-(rule (alias viler_fonts)
-  (deps (source_tree psf2stitchfont/src/fonts) )
-  (action
-   (progn
-  (run psf2sqlite --db /tmp/fonts.sqlite3 --name AMI_BIOS-2y psf2stitchfont/src/fonts/Bm437_AMI_BIOS-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name AMI_BIOS psf2stitchfont/src/fonts/Bm437_AMI_BIOS_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name AmstradPC1512-2y_12.fnt.psf psf2stitchfont/src/fonts/Bm437_AmstradPC1512-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name AmstradPC1512_6.fnt.psf psf2stitchfont/src/fonts/Bm437_AmstradPC1512_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_8x14 psf2stitchfont/src/fonts/Bm437_ATI_8x14_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_8x16 psf2stitchfont/src/fonts/Bm437_ATI_8x16_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_8x8-2y psf2stitchfont/src/fonts/Bm437_ATI_8x8-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_8x8 psf2stitchfont/src/fonts/Bm437_ATI_8x8_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_9x14 psf2stitchfont/src/fonts/Bm437_ATI_9x14_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_9x16 psf2stitchfont/src/fonts/Bm437_ATI_9x16_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_SmallW psf2stitchfont/src/fonts/Bm437_ATI_SmallW_6x8_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name AT&T_PC63_12 psf2stitchfont/src/fonts/Bm437_AT&T_PC63___12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name AT&T_PC63_24 psf2stitchfont/src/fonts/Bm437_AT&T_PC63__-2x_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name CompaqThin_8x14 psf2stitchfont/src/fonts/Bm437_CompaqThin_8x14_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name CompaqThin_8x16 psf2stitchfont/src/fonts/Bm437_CompaqThin_8x16_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name CompaqThin_8x8 psf2stitchfont/src/fonts/Bm437_CompaqThin_8x8_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name DTK_BIOS-2y psf2stitchfont/src/fonts/Bm437_DTK_BIOS-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name DTK_BIOS psf2stitchfont/src/fonts/Bm437_DTK_BIOS_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_327 psf2stitchfont/src/fonts/Bm437_IBM_327_pc_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_BIOS-2x psf2stitchfont/src/fonts/Bm437_IBM_BIOS-2x_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_BIOS-2y psf2stitchfont/src/fonts/Bm437_IBM_BIOS-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_BIOS psf2stitchfont/src/fonts/Bm437_IBM_BIOS_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_CGA-2y psf2stitchfont/src/fonts/Bm437_IBM_CGA-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_CGA psf2stitchfont/src/fonts/Bm437_IBM_CGA_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_CGAthin-2y psf2stitchfont/src/fonts/Bm437_IBM_CGAthin-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_CGAthin psf2stitchfont/src/fonts/Bm437_IBM_CGAthin_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_Conv-2x psf2stitchfont/src/fonts/Bm437_IBM_Conv-2x_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_Conv-2y psf2stitchfont/src/fonts/Bm437_IBM_Conv-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_Conv psf2stitchfont/src/fonts/Bm437_IBM_Conv_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_EGA8 psf2stitchfont/src/fonts/Bm437_IBM_EGA8_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_EGA8-2x psf2stitchfont/src/fonts/Bm437_IBM_EGA8-2x_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_EGA9 psf2stitchfont/src/fonts/Bm437_IBM_EGA9_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_EGA9-2x psf2stitchfont/src/fonts/Bm437_IBM_EGA9-2x_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_ISO8 psf2stitchfont/src/fonts/Bm437_IBM_ISO8_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_ISO9 psf2stitchfont/src/fonts/Bm437_IBM_ISO9_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_MDA psf2stitchfont/src/fonts/Bm437_IBM_MDA_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_PGC psf2stitchfont/src/fonts/Bm437_IBM_PGC_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_PGC-2x psf2stitchfont/src/fonts/Bm437_IBM_PGC-2x_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_VGA8 psf2stitchfont/src/fonts/Bm437_IBM_VGA8_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_VGA8-2x psf2stitchfont/src/fonts/Bm437_IBM_VGA8-2x_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_VGA9 psf2stitchfont/src/fonts/Bm437_IBM_VGA9_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_VGA9-2x psf2stitchfont/src/fonts/Bm437_IBM_VGA9-2x_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ITT_BIOS-2y psf2stitchfont/src/fonts/Bm437_ITT_BIOS-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ITT_BIOS psf2stitchfont/src/fonts/Bm437_ITT_BIOS_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Kaypro2K-2y_12.fnt.psf psf2stitchfont/src/fonts/Bm437_Kaypro2K-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Kaypro2K_6.fnt.psf psf2stitchfont/src/fonts/Bm437_Kaypro2K_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Phoenix_BIOS-2y psf2stitchfont/src/fonts/Bm437_Phoenix_BIOS-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Phoenix_BIOS psf2stitchfont/src/fonts/Bm437_Phoenix_BIOS_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_8x14 psf2stitchfont/src/fonts/Bm437_PhoenixEGA_8x14_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_8x16 psf2stitchfont/src/fonts/Bm437_PhoenixEGA_8x16_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_8x8-2y psf2stitchfont/src/fonts/Bm437_PhoenixEGA_8x8-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_8x8 psf2stitchfont/src/fonts/Bm437_PhoenixEGA_8x8_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_9x14 psf2stitchfont/src/fonts/Bm437_PhoenixEGA_9x14_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_225-2y psf2stitchfont/src/fonts/Bm437_TandyNew_225-2y_14.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_225 psf2stitchfont/src/fonts/Bm437_TandyNew_225_7.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_Mono psf2stitchfont/src/fonts/Bm437_TandyNew_Mono_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_TV-2y psf2stitchfont/src/fonts/Bm437_TandyNew_TV-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_TV psf2stitchfont/src/fonts/Bm437_TandyNew_TV_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyOld_225-2y psf2stitchfont/src/fonts/Bm437_TandyOld_225-2y_14.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyOld_225 psf2stitchfont/src/fonts/Bm437_TandyOld_225_7.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyOld_TV-2y psf2stitchfont/src/fonts/Bm437_TandyOld_TV-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyOld_TV psf2stitchfont/src/fonts/Bm437_TandyOld_TV_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ToshibaLCD_8x16 psf2stitchfont/src/fonts/Bm437_ToshibaLCD_8x16_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name ToshibaLCD_8x8 psf2stitchfont/src/fonts/Bm437_ToshibaLCD_8x8_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_8x14 psf2stitchfont/src/fonts/Bm437_Verite_8x14_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_8x16 psf2stitchfont/src/fonts/Bm437_Verite_8x16_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_8x8-2y psf2stitchfont/src/fonts/Bm437_Verite_8x8-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_8x8 psf2stitchfont/src/fonts/Bm437_Verite_8x8_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_9x14 psf2stitchfont/src/fonts/Bm437_Verite_9x14_1_.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_9x16 psf2stitchfont/src/fonts/Bm437_Verite_9x16_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name VGA_SquarePx psf2stitchfont/src/fonts/Bm437_VGA_SquarePx_14.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name VTech_BIOS-2y psf2stitchfont/src/fonts/Bm437_VTech_BIOS-2y_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name VTech_BIOS psf2stitchfont/src/fonts/Bm437_VTech_BIOS_6.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Wyse7_a_12 psf2stitchfont/src/fonts/Bm437_Wyse7__a_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Wyse7_2y24 psf2stitchfont/src/fonts/Bm437_Wyse7__a-2y_24.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Wyse7_b_12 psf2stitchfont/src/fonts/Bm437_Wyse7__b_12.fnt.psf)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name Wyse7_b_24 psf2stitchfont/src/fonts/Bm437_Wyse7__b-2y_24.fnt.psf)
-   )
-   ))
-
-(rule (alias smolfont)
- (deps (source_tree psf2stitchfont/src/fonts) )
+(rule
+ (alias viler_fonts)
+ (deps
+  (source_tree psf2stitchfont/src/fonts))
  (action
   (progn
-  (run readpsf psf2stitchfont/src/fonts/smolfont.psfu)
-(run psf2sqlite --db /tmp/fonts.sqlite3 --name smolfont psf2stitchfont/src/fonts/smolfont.psfu)
-)))
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name AMI_BIOS-2y
+     psf2stitchfont/src/fonts/Bm437_AMI_BIOS-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name AMI_BIOS
+     psf2stitchfont/src/fonts/Bm437_AMI_BIOS_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name AmstradPC1512-2y_12.fnt.psf
+     psf2stitchfont/src/fonts/Bm437_AmstradPC1512-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name AmstradPC1512_6.fnt.psf
+     psf2stitchfont/src/fonts/Bm437_AmstradPC1512_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_8x14
+     psf2stitchfont/src/fonts/Bm437_ATI_8x14_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_8x16
+     psf2stitchfont/src/fonts/Bm437_ATI_8x16_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_8x8-2y
+     psf2stitchfont/src/fonts/Bm437_ATI_8x8-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_8x8
+     psf2stitchfont/src/fonts/Bm437_ATI_8x8_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_9x14
+     psf2stitchfont/src/fonts/Bm437_ATI_9x14_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_9x16
+     psf2stitchfont/src/fonts/Bm437_ATI_9x16_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ATI_SmallW
+     psf2stitchfont/src/fonts/Bm437_ATI_SmallW_6x8_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name AT&T_PC63_12
+     psf2stitchfont/src/fonts/Bm437_AT&T_PC63___12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name AT&T_PC63_24
+     psf2stitchfont/src/fonts/Bm437_AT&T_PC63__-2x_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name CompaqThin_8x14
+     psf2stitchfont/src/fonts/Bm437_CompaqThin_8x14_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name CompaqThin_8x16
+     psf2stitchfont/src/fonts/Bm437_CompaqThin_8x16_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name CompaqThin_8x8
+     psf2stitchfont/src/fonts/Bm437_CompaqThin_8x8_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name DTK_BIOS-2y
+     psf2stitchfont/src/fonts/Bm437_DTK_BIOS-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name DTK_BIOS
+     psf2stitchfont/src/fonts/Bm437_DTK_BIOS_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_327
+     psf2stitchfont/src/fonts/Bm437_IBM_327_pc_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_BIOS-2x
+     psf2stitchfont/src/fonts/Bm437_IBM_BIOS-2x_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_BIOS-2y
+     psf2stitchfont/src/fonts/Bm437_IBM_BIOS-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_BIOS
+     psf2stitchfont/src/fonts/Bm437_IBM_BIOS_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_CGA-2y
+     psf2stitchfont/src/fonts/Bm437_IBM_CGA-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_CGA
+     psf2stitchfont/src/fonts/Bm437_IBM_CGA_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_CGAthin-2y
+     psf2stitchfont/src/fonts/Bm437_IBM_CGAthin-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_CGAthin
+     psf2stitchfont/src/fonts/Bm437_IBM_CGAthin_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_Conv-2x
+     psf2stitchfont/src/fonts/Bm437_IBM_Conv-2x_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_Conv-2y
+     psf2stitchfont/src/fonts/Bm437_IBM_Conv-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_Conv
+     psf2stitchfont/src/fonts/Bm437_IBM_Conv_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_EGA8
+     psf2stitchfont/src/fonts/Bm437_IBM_EGA8_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_EGA8-2x
+     psf2stitchfont/src/fonts/Bm437_IBM_EGA8-2x_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_EGA9
+     psf2stitchfont/src/fonts/Bm437_IBM_EGA9_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_EGA9-2x
+     psf2stitchfont/src/fonts/Bm437_IBM_EGA9-2x_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_ISO8
+     psf2stitchfont/src/fonts/Bm437_IBM_ISO8_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_ISO9
+     psf2stitchfont/src/fonts/Bm437_IBM_ISO9_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_MDA
+     psf2stitchfont/src/fonts/Bm437_IBM_MDA_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_PGC
+     psf2stitchfont/src/fonts/Bm437_IBM_PGC_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_PGC-2x
+     psf2stitchfont/src/fonts/Bm437_IBM_PGC-2x_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_VGA8
+     psf2stitchfont/src/fonts/Bm437_IBM_VGA8_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_VGA8-2x
+     psf2stitchfont/src/fonts/Bm437_IBM_VGA8-2x_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_VGA9
+     psf2stitchfont/src/fonts/Bm437_IBM_VGA9_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name IBM_VGA9-2x
+     psf2stitchfont/src/fonts/Bm437_IBM_VGA9-2x_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ITT_BIOS-2y
+     psf2stitchfont/src/fonts/Bm437_ITT_BIOS-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ITT_BIOS
+     psf2stitchfont/src/fonts/Bm437_ITT_BIOS_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Kaypro2K-2y_12.fnt.psf
+     psf2stitchfont/src/fonts/Bm437_Kaypro2K-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Kaypro2K_6.fnt.psf
+     psf2stitchfont/src/fonts/Bm437_Kaypro2K_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Phoenix_BIOS-2y
+     psf2stitchfont/src/fonts/Bm437_Phoenix_BIOS-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Phoenix_BIOS
+     psf2stitchfont/src/fonts/Bm437_Phoenix_BIOS_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_8x14
+     psf2stitchfont/src/fonts/Bm437_PhoenixEGA_8x14_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_8x16
+     psf2stitchfont/src/fonts/Bm437_PhoenixEGA_8x16_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_8x8-2y
+     psf2stitchfont/src/fonts/Bm437_PhoenixEGA_8x8-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_8x8
+     psf2stitchfont/src/fonts/Bm437_PhoenixEGA_8x8_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name PhoenixEGA_9x14
+     psf2stitchfont/src/fonts/Bm437_PhoenixEGA_9x14_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_225-2y
+     psf2stitchfont/src/fonts/Bm437_TandyNew_225-2y_14.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_225
+     psf2stitchfont/src/fonts/Bm437_TandyNew_225_7.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_Mono
+     psf2stitchfont/src/fonts/Bm437_TandyNew_Mono_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_TV-2y
+     psf2stitchfont/src/fonts/Bm437_TandyNew_TV-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyNew_TV
+     psf2stitchfont/src/fonts/Bm437_TandyNew_TV_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyOld_225-2y
+     psf2stitchfont/src/fonts/Bm437_TandyOld_225-2y_14.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyOld_225
+     psf2stitchfont/src/fonts/Bm437_TandyOld_225_7.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyOld_TV-2y
+     psf2stitchfont/src/fonts/Bm437_TandyOld_TV-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name TandyOld_TV
+     psf2stitchfont/src/fonts/Bm437_TandyOld_TV_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ToshibaLCD_8x16
+     psf2stitchfont/src/fonts/Bm437_ToshibaLCD_8x16_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name ToshibaLCD_8x8
+     psf2stitchfont/src/fonts/Bm437_ToshibaLCD_8x8_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_8x14
+     psf2stitchfont/src/fonts/Bm437_Verite_8x14_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_8x16
+     psf2stitchfont/src/fonts/Bm437_Verite_8x16_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_8x8-2y
+     psf2stitchfont/src/fonts/Bm437_Verite_8x8-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_8x8
+     psf2stitchfont/src/fonts/Bm437_Verite_8x8_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_9x14
+     psf2stitchfont/src/fonts/Bm437_Verite_9x14_1_.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Verite_9x16
+     psf2stitchfont/src/fonts/Bm437_Verite_9x16_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name VGA_SquarePx
+     psf2stitchfont/src/fonts/Bm437_VGA_SquarePx_14.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name VTech_BIOS-2y
+     psf2stitchfont/src/fonts/Bm437_VTech_BIOS-2y_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name VTech_BIOS
+     psf2stitchfont/src/fonts/Bm437_VTech_BIOS_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Wyse7_a_12
+     psf2stitchfont/src/fonts/Bm437_Wyse7__a_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Wyse7_2y24
+     psf2stitchfont/src/fonts/Bm437_Wyse7__a-2y_24.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Wyse7_b_12
+     psf2stitchfont/src/fonts/Bm437_Wyse7__b_12.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name Wyse7_b_24
+     psf2stitchfont/src/fonts/Bm437_Wyse7__b-2y_24.fnt.psf))))
 
-(rule (alias watts)
-  (action
-   (progn
-    (run c64stitch --db /tmp/fonts.sqlite3 -o empty.json "")
-    (run c64stitch --db /tmp/fonts.sqlite3 --font ATI_8x14 -t black --background=255,255,255 -o top.json ".·○°○·.")
-    (run c64stitch --db /tmp/fonts.sqlite3 --font ATI_8x14 -t black --background=255,255,255 -o watts.json 
-"If you can't make your own Watts
-       store-bought will do")
-    (run embellish_stitch --top=top.json --side=empty.json --corner=empty.json --center=watts.json -o embellished_watts.json)
-    (run stitchpattern -w "for more fun patterns, visit stitch.website" -i embellished_watts.json -o watts.pdf)
-    (run notty_canvas embellished_watts.json)
-)))
+(rule
+ (alias smolfont)
+ (deps
+  (source_tree psf2stitchfont/src/fonts))
+ (action
+  (progn
+   (run readpsf psf2stitchfont/src/fonts/smolfont.psfu)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name smolfont
+     psf2stitchfont/src/fonts/smolfont.psfu))))
 
-(rule (alias runtest)
+(rule
+ (alias watts)
+ (action
+  (progn
+   (run c64stitch --db /tmp/fonts.sqlite3 -o empty.json "")
+   (run c64stitch --db /tmp/fonts.sqlite3 --font ATI_8x14 -t black
+     --background=255,255,255 -o top.json
+     ".\194\183\226\151\139\194\176\226\151\139\194\183.")
+   (run c64stitch --db /tmp/fonts.sqlite3 --font ATI_8x14 -t black
+     --background=255,255,255 -o watts.json
+     "If you can't make your own Watts\n       store-bought will do")
+   (run embellish_stitch --top=top.json --side=empty.json --corner=empty.json
+     --center=watts.json -o embellished_watts.json)
+   (run stitchpattern -w "for more fun patterns, visit stitch.website" -i
+     embellished_watts.json -o watts.pdf)
+   (run notty_canvas embellished_watts.json))))
+
+(rule
+ (alias agi)
  (deps fonts.sqlite3)
  (action
   (progn
-   (run c64stitch -o hello.json --interline=2 "hello to this whole\nbeautiful world")
+   (run c64stitch --interline 1 --db /tmp/fonts.sqlite3 --font smolfont -o
+     flags.json
+     " AGI FLAGS\n0 on water\n1 invisible\n2 cmd sent\n3 signal trip\n4 user said\n5 new room\n6 restarted\n7 block script\n8 joystick\n  sensitivity\n9 sound\n10 debugger\n11 1st logic0\n12 restored\n13 status\n   selects\n   items\n14 allow menu\n15 print pos")
+   (run stitchpattern -w "for more reference documents, see stitch.website"
+     -i flags.json -o flags.pdf)
+   (run evince flags.pdf)
+   (run notty_canvas flags.json))))
+
+(rule
+ (alias wipp)
+ (action
+  (progn
+   (run c64stitch --db /tmp/fonts.sqlite3 --font PhoenixEGA_8x16
+     --background=0,0,0 -t lightred -o line1.json
+     "in this house, we believe:")
+   (run c64stitch -t cyan --font VTech_BIOS -o line2.json
+     "this place is not a place of honor")
+   (run c64stitch -t yellow --font CompaqThin_8x8 -o line3.json
+     "no highly esteemed deed is commemorated here")
+   (run c64stitch -t lightgreen --font TandyNew_Mono -o line4.json
+     "nothing valued is here")
+   (run c64stitch -t white --font Phoenix_BIOS -o line5.json
+     "what is here is dangerous and repulsive to us")
+   (run c64stitch -t lightblue --font IBM_ISO8 -o line6.json
+     "this place is best left shunned and uninhabited")
+   (run hcat -o center.json line1.json line2.json line3.json line4.json
+     line5.json line6.json)
+   (run stitchpattern -w "shun this place and visit stitch.website" -o
+     wipp.pdf -i center.json)
+   (run evince wipp.pdf))))
+
+(rule
+ (alias inthishouse)
+ (action
+  (progn
+   (run c64stitch --db /tmp/fonts.sqlite3 --font IBM_VGA8 -o house.json
+     "\n \226\148\143\226\148\147\n \226\148\131\226\148\131\226\149\177\226\149\178 in\n \226\148\131\226\149\177\226\149\177\226\149\178\226\149\178 this\n \226\149\177\226\149\177\226\149\173\226\149\174\226\149\178\226\149\178house\n \226\150\148\226\150\143\226\148\151\226\148\155\226\150\149\226\150\148 we use\n \226\149\177\226\150\148\226\150\148\226\150\148\226\150\148\226\150\148\226\150\148\226\150\148\226\150\148\226\150\148\226\150\148\226\149\178\nmonospace fonts\n \226\149\177\226\149\177\226\148\143\226\148\179\226\148\147\226\149\173\226\149\174\226\148\143\226\148\179\226\148\147 \226\149\178\226\149\178\n \226\150\148\226\150\143\226\148\151\226\148\187\226\148\155\226\148\131\226\148\131\226\148\151\226\148\187\226\148\155\226\150\149\226\150\148")
+   (run stitchpattern -w "for more bold claims, visit stitch.website" -i
+     house.json -o house.pdf)
+   (run evince house.pdf))))
+
+(rule
+ (alias runtest)
+ (deps fonts.sqlite3)
+ (action
+  (progn
+   (run c64stitch -o hello.json --interline=2
+     "hello to this whole\nbeautiful world")
    (run c64stitch -t cyan -o border.json "\\")
-   (run embellish_stitch --top=border.json --side=border.json --center=hello.json --corner=border.json -o embellished.json)
-   (run stitchpattern -w "made with love by yomimono" -i embellished.json -o embellished.pdf)
+   (run embellish_stitch --top=border.json --side=border.json
+     --center=hello.json --corner=border.json -o embellished.json)
+   (run stitchpattern -w "made with love by yomimono" -i embellished.json -o
+     embellished.pdf)
    (run evince embellished.pdf)
    (run listing -i embellished.json -o embellished_preview.png)
-   (run eog embellished_preview.png)
-  )
- )
-)
+   (run eog embellished_preview.png))))
 
-(rule (alias fortune)
+(rule
+ (alias fortune)
  (deps fonts.sqlite3)
  (action
   (progn
    (run c64stitch --db /tmp/fonts.sqlite3 -o fortune.json fortune)
-   (run notty_canvas fortune.json)
-   )))
+   (run notty_canvas fortune.json))))
 
-(rule (alias brainfuck)
+(rule
+ (alias brainfuck)
  (deps fonts.sqlite3)
  (action
   (progn
    (run c64stitch -o program.json
-"++++++++
-[>++++[>
-++>+++>+
-++>+<<<<
--]>+>+>-
->>+[<]<-
-]>>.>---
-.+++++++
-..+++.>>
-.<-.<.++
-+.------
-.-------
--.>>+.>+
-+.")
- (run stitchpattern -w "for more fun patterns, visit stitch.website" -i program.json -o brainfuck.pdf)
- (run listing -i program.json -o brainfuck.png)
-)))
+     "++++++++\n[>++++[>\n++>+++>+\n++>+<<<<\n-]>+>+>-\n>>+[<]<-\n]>>.>---\n.+++++++\n..+++.>>\n.<-.<.++\n+.------\n.-------\n-.>>+.>+\n+.")
+   (run stitchpattern -w "for more fun patterns, visit stitch.website" -i
+     program.json -o brainfuck.pdf)
+   (run listing -i program.json -o brainfuck.png))))
 
-
-(rule (alias
- butt)
+(rule
+ (alias butt)
  (deps fonts.sqlite3)
  (action
   (progn
    (run c64stitch -o butt.json "butt")
-   (run stitchpattern --paper letter -w "for more fun patterns, visit stitch.website" -i butt.json -o butt.pdf)
-   (run evince butt.pdf)
-)))
+   (run stitchpattern --paper letter -w
+     "for more fun patterns, visit stitch.website" -i butt.json -o butt.pdf)
+   (run evince butt.pdf))))
 
-(rule (alias
- cards)
- (deps fonts.sqlite3)
- (action
-  (progn
-   (run c64stitch --background=0,0,0 -t red -o suits.json "♠️♣️♦️♥️")
-   (run stitchpattern -i suits.json -o suits.pdf)
-   (run evince suits.pdf)
-   )))
-
-(rule (alias be_gay_find_primes)
- (deps (source_tree c64chars) fonts.sqlite3)
+(rule
+ (alias be_gay_find_primes)
+ (deps
+  (source_tree c64chars)
+  fonts.sqlite3)
  (action
   (progn
    (run c64stitch --background=0,0,0 -o red.json -t red "2")
@@ -181,63 +291,67 @@
    (run c64stitch --background=0,0,0 -o hblue.json -t blue "11")
    (run c64stitch --background=0,0,0 -o hpurple.json -t purple "13")
    (run c64stitch --background=0,0,0 -o vblueone.json -t blue "1")
-
    (run hcat -o vblueeleven.json vblueone.json vblueone.json)
    (run c64stitch -o vpurpleone.json -t purple "1")
    (run c64stitch -o vpurplethree.json -t purple "3")
-   
-   (run c64stitch -o corner.json --background=0,0,0 --font IBM_VGA8 -t white "♥️")
-   
    (run hcat -o vpurplethirteen.json vpurpleone.json vpurplethree.json)
-
-   (run vcat -o top.json red.json orange.json yellow.json green.json hblue.json hpurple.json)
-
-   (run hcat -o side.json red.json orange.json yellow.json green.json vblueeleven.json vpurplethirteen.json)
-
+   (run vcat -o top.json red.json orange.json yellow.json green.json
+     hblue.json hpurple.json)
+   (run hcat -o side.json red.json orange.json yellow.json green.json
+     vblueeleven.json vpurplethirteen.json)
    (run c64stitch -t white --background=0,0,0 -o be.json "be")
    (run c64stitch -t white --background=0,0,0 -o gay.json "gay")
    (run c64stitch -t white --background=0,0,0 -o find.json "find")
    (run c64stitch -t white --background=0,0,0 -o primes.json "primes")
-
    (run hcat -o saying.json be.json gay.json find.json primes.json)
-   (run embellish_stitch --top=top.json --side=side.json --corner=corner.json --center=saying.json -o be_gay_find_primes.json)
-   (run stitchpattern -w "for more fun patterns, visit stitch.website" -i be_gay_find_primes.json -o be_gay_find_primes.pdf)
-   (run notty_canvas be_gay_find_primes.json)
-        )))
+   (run embellish_stitch --top=top.json --side=side.json --corner=corner.json
+     --center=saying.json -o be_gay_find_primes.json)
+   (run stitchpattern -w "for more fun patterns, visit stitch.website" -i
+     be_gay_find_primes.json -o be_gay_find_primes.pdf)
+   (run notty_canvas be_gay_find_primes.json))))
 
-(rule (alias tops)
-  (deps (source_tree psf2stitchfont/src/fonts) )
-  (action
-   (progn
-    (run psf2sqlite --db /tmp/fonts.sqlite3 --name topfont psf2stitchfont/src/fonts/Bm437_ATI_8x8_6.fnt.psf)
-    (run psf2sqlite --db /tmp/fonts.sqlite3 --name skinnyfont psf2stitchfont/src/fonts/Bm437_Kaypro2K_6.fnt.psf)
-    (run c64stitch --db /tmp/fonts.sqlite3 --font topfont --background=255,255,255 -t black -o center.json "
-We must, we must,
-we must decrease our bust!
-The smaller the better,
-we don't need a letter,
-we'll ditch all the bounce and fuss!
-"
-    )
-    (run c64stitch --db /tmp/fonts.sqlite3 --font skinnyfont --background=255,255,255 -t black -o xform.json "(o )( o) => |o    o|")
-    (run hcat -o tops.json xform.json center.json xform.json)
-    (run stitchpattern -w "for more fun patterns, visit stitch.website" -i tops.json -o tops.pdf)
-    (run evince tops.pdf)
-  )))
+(rule
+ (alias tops)
+ (deps
+  (source_tree psf2stitchfont/src/fonts))
+ (action
+  (progn
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name topfont
+     psf2stitchfont/src/fonts/Bm437_ATI_8x8_6.fnt.psf)
+   (run psf2sqlite --db /tmp/fonts.sqlite3 --name skinnyfont
+     psf2stitchfont/src/fonts/Bm437_Kaypro2K_6.fnt.psf)
+   (run c64stitch --db /tmp/fonts.sqlite3 --font topfont
+     --background=255,255,255 -t black -o center.json
+     "\nWe must, we must,\nwe must decrease our bust!\nThe smaller the better,\nwe don't need a letter,\nwe'll ditch all the bounce and fuss!\n")
+   (run c64stitch --db /tmp/fonts.sqlite3 --font skinnyfont
+     --background=255,255,255 -t black -o xform.json "(o )( o) => |o    o|")
+   (run hcat -o tops.json xform.json center.json xform.json)
+   (run stitchpattern -w "for more fun patterns, visit stitch.website" -i
+     tops.json -o tops.pdf)
+   (run evince tops.pdf))))
 
-(rule (alias verbs)
-  (deps (source_tree c64chars) fonts.sqlite3)
-  (action
-   (progn
-    (run c64stitch --background=0,0,0 -t purple -o action.json "Pick up Zoey                       ")
-    (run c64stitch --background=0,0,0 -t green -o verbs1.json  "Cuddle Pet    Play    Wear   Nap   ")
-    (run c64stitch --background=0,0,0 -t green -o verbs2.json  "Hug    Dither Pick up Judge  Visit ")
-    (run c64stitch --background=0,0,0 -t green -o verbs3.json  "Watch  Read   Fuss    Listen Flirt ")
-    (run c64stitch --background=0,0,0 -t purple -o items1.json "wallet            cute earrings    ")
-    (run c64stitch --background=0,0,0 -t purple -o items2.json "phone                              ")
-    (run hcat -o verbs.json action.json verbs1.json verbs2.json verbs3.json items1.json items2.json) 
-    (run estimate verbs.json)
-    (run stitchpattern -i verbs.json -o verbs.pdf)
-    (run evince verbs.pdf)
-    (run notty_canvas verbs.json)
-    )))
+(rule
+ (alias verbs)
+ (deps
+  (source_tree c64chars)
+  fonts.sqlite3)
+ (action
+  (progn
+   (run c64stitch --background=0,0,0 -t purple -o action.json
+     "Pick up Zoey                       ")
+   (run c64stitch --background=0,0,0 -t green -o verbs1.json
+     "Cuddle Pet    Play    Wear   Nap   ")
+   (run c64stitch --background=0,0,0 -t green -o verbs2.json
+     "Hug    Dither Pick up Judge  Visit ")
+   (run c64stitch --background=0,0,0 -t green -o verbs3.json
+     "Watch  Read   Fuss    Listen Flirt ")
+   (run c64stitch --background=0,0,0 -t purple -o items1.json
+     "wallet            cute earrings    ")
+   (run c64stitch --background=0,0,0 -t purple -o items2.json
+     "phone                              ")
+   (run hcat -o verbs.json action.json verbs1.json verbs2.json verbs3.json
+     items1.json items2.json)
+   (run estimate verbs.json)
+   (run stitchpattern -i verbs.json -o verbs.pdf)
+   (run evince verbs.pdf)
+   (run notty_canvas verbs.json))))

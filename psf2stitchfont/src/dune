@@ -9,14 +9,21 @@
  (modules psf2sqlite)
  (libraries bos caqti caqti-driver-sqlite3 caqti-lwt cmdliner lwt psf2stitchfont sqlite3 stitchy)
 )
+(executable
+ (public_name readotf)
+ (modules readotf)
+ (libraries cmdliner bos fmt psf2stitchfont)
+)
 
 (alias
  (name runtest)
- (deps (file fonts/Bm437_ATI_8x8_6.fnt.psf))
+ (deps (file fonts/Bm437_ATI_8x8_6.fnt.psf)
+       (file fonts/Bm437_AMI_EGA_8x8.otb))
  (action
   (progn
    (run readpsf fonts/Bm437_ATI_8x8_6.fnt.psf)
    (run readpsf fonts/Bm437_IBM_VGA9-2x_12.fnt.psf)
+   (run readotf fonts/Bm437_AMI_EGA_8x8.otb)
 )))
 
 (alias
@@ -24,7 +31,16 @@
  (deps (source_tree fonts))
  (action
   (progn
-   (run psf2sqlite --name ati_font --db /tmp/fonts.sqlite3 fonts/Bm437_ATI_8x8_6.fnt.psf)
-   (run c64stitch --font ati_font --db /tmp/fonts.sqlite3 -o dosbutts.json 'halp')
+   (run psf2sqlite --name sqlitetestfont --db /tmp/fonts.sqlite3 fonts/Bm437_ATI_8x8_6.fnt.psf)
+   (run c64stitch --font sqlitetestfont --db /tmp/fonts.sqlite3 -o dosbutts.json
+"┏┓
+┃┃╱╲ in
+┃╱╱╲╲ this
+╱╱╭╮╲╲house
+▔▏┗┛▕▔ we
+╱▔▔▔▔▔▔▔▔▔▔╲
+handle unicode
+╱╱┏┳┓╭╮┏┳┓ ╲╲
+▔▏┗┻┛┃┃┗┻┛▕")
    (run notty_canvas dosbutts.json)
   )))
