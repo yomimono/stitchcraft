@@ -46,6 +46,7 @@ module Reader(Interpreter : INTERPRETER ) = struct
                 Uutf.Buffer.add_utf_8 scratch uchar;
                 Buffer.output_buffer stdout scratch;
                 Stdlib.flush_all ();
+                Format.printf " (int %d 0x%x) " (Uchar.to_int uchar) (Uchar.to_int uchar);
               ) uchars;
             Format.printf
               " glyph: %a\n%!" print_glyph glyph;

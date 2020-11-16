@@ -13,19 +13,30 @@ let pp_error fmt = function
   | `Format e -> Format.fprintf fmt "%a" Otfm.pp_error e
   | `No_glyphmap -> Format.fprintf fmt "the font does not contain a bitmap glyph table"
 
+
+let cp_list = function
+  | q, r when q = r -> [q]
+  | a, b -> List.init (b - a) ((+) a)
+
 let associate_cps (glyph_data : (int * Stitchy.Types.glyph) list) acc map_kind cp_range glyph_id =
   match map_kind with
   | `Glyph -> begin
     match List.assoc_opt glyph_id glyph_data with
     | None -> acc
     | Some data -> (* code points cp_range all map to the associated data *)
-      let cps = match cp_range with
-        | q, r when q = r -> [Uchar.of_int q]
-        | a, b -> List.init (b - a) (fun n -> Uchar.of_int @@ n + a)
-      in
-      (data, cps) :: acc
+      let cps = cp_list cp_range in
+      (data, (List.map Uchar.of_int cps)) :: acc
   end
-  | `Glyph_range -> acc (* TODO: don't quite understand this *)
+  | `Glyph_range ->
+    let cps = cp_list cp_range in
+    let l = List.mapi (fun n cp -> (cp, glyph_id + n)) cps in
+    let local_list = List.fold_left (fun local_acc (cp, glyph_id) ->
+        match List.assoc_opt glyph_id glyph_data with
+        | None -> local_acc
+        | Some data ->
+          (data, [Uchar.of_int cp]) :: local_acc
+      ) [] l in
+    local_list @ acc
 
 
 (* we say "map", but it's an associative list of glyphs to lists of uchar.ts *)
@@ -52,8 +63,9 @@ let glyphmap_of_buffer buffer =
             in
             glyphs_so_far @ glyphs
         ) [] sub_tables in
-    Printf.printf "got %d glyph IDs mapped to some data\n%!" @@ List.length glyph_ids_and_data;
     (* now we need to get the unicode code points or ranges mapped to glyph IDs *)
+    Printf.printf "%d glyph ids and data\n%!" @@ List.length glyph_ids_and_data;
     match Otfm.cmap source (associate_cps glyph_ids_and_data) [] with
     | Error e -> Error (`Format e)
-    | Ok (_, glyphlist) -> Ok (`Glyphmap (List.split glyphlist))
+    | Ok (_, glyphlist) ->
+      Ok (`Glyphmap (List.split glyphlist))

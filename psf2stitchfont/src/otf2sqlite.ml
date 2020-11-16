@@ -7,16 +7,16 @@ let db =
   Cmdliner.Arg.(value & opt string "fonts.sqlite3" & info ["db"] ~doc ~docv:"DB")
 
 let src =
-  let doc = "source PSF version 2 file (with unicode table)" in
+  let doc = "source otf font (with glyph bitmap data)" in
   Cmdliner.Arg.(value & pos 0 file "fonts" & info [] ~doc ~docv:"SRC")
 
 let font_name =
   let doc = "name by which to refer to this font" in
   Cmdliner.Arg.(value & opt string "c64" & info ["n"; "name"] ~doc ~docv:"FONT_NAME")
 
-module Populator = Sqlite.Populate(Psf2stitchfont)
+module Populator = Sqlite.Populate(Psf2stitchfont__Otf2stitchfont)
 
-let populate_t = Cmdliner.Term.(const populate $ db $ src $ font_name $ debug)
+let populate_t = Cmdliner.Term.(const Populator.populate $ db $ src $ font_name $ debug)
 
 let info = Cmdliner.Term.info "populate a sqlite database with font information"
 
