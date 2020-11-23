@@ -95,17 +95,16 @@ let assign_symbols (blocks : Stitchy.Types.stitches) =
       (freelist, Stitchy.Types.SymbolMap.add color symbol map))
   (Stitchy.Symbol.printable_symbols, color_map) colors
 
-let pages paper_size watermark ~pixel_size ~fat_line_interval state =
+let pages paper_size watermark ~pixel_size ~fat_line_interval symbols state =
   let open Stitchy.Types in
   let xpp = x_per_page ~pixel_size
   and ypp = y_per_page ~pixel_size
   in
   let width = state.substrate.max_x + 1 and height = state.substrate.max_y + 1 in
-  let symbols = snd @@ assign_symbols state.Stitchy.Types.stitches in
   let doc = { paper_size; pixel_size; fat_line_interval; symbols; } in
   let pixels = paint_pixels state.Stitchy.Types.stitches state.Stitchy.Types.substrate in
   let rec page x y n l =
-    let l = make_page doc ~watermark ~first_x:x ~first_y:y symbols ~width ~height n pixels :: l in
+    let l = make_page doc ~watermark ~first_x:x ~first_y:y ~width ~height n pixels :: l in
     if (x + xpp) >= width && (y + ypp) >= height then l    
     else if (y + ypp) >= height then page (x+xpp) 0 (n+1) l
     else page x (y + ypp) (n+1) l
@@ -123,8 +122,10 @@ let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
   match Stitchy.Types.state_of_yojson (json src) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
+    let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.stitches in
     let cover = coverpage paper_size pattern in
-    let pages = cover :: (pages paper_size watermark ~pixel_size ~fat_line_interval pattern) in
+    let symbols = symbolpage paper_size symbol_map in
+    let pages = cover :: symbols :: (pages paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in
     let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in
     let pdf = Pdfpage.add_root pageroot [] pdf in
     Pdfwrite.pdf_to_file pdf dst

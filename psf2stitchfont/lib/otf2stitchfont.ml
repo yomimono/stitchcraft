@@ -54,14 +54,13 @@ let glyphmap_of_buffer buffer =
       List.fold_left (fun glyphs_so_far sub_table ->
           match sub_table.Eblc.image_size, sub_table.metrics with
           | None, _ | _, None -> glyphs_so_far
-          | Some size, Some metrics ->
-            let glyphs = List.mapi (fun n glyph_id ->
-                let offset = sub_table.offset + n * size in
-                let glyph_data = Ebdt.glyph_data_to_pattern ebdt ~width:metrics.width ~height:metrics.height ~size ~offset in
-                (glyph_id, glyph_data)
-              ) sub_table.glyph_ids
-            in
-            glyphs_so_far @ glyphs
+          | Some _, Some metrics ->
+            let width = metrics.width and height = metrics.height in
+            let offset = sub_table.offset in
+            let n_glyphs = List.length sub_table.glyph_ids in
+            let glyph_data = Ebdt.glyph_data_to_pattern ~offset ~width ~height ebdt n_glyphs in
+            Printf.printf "combining %d glyph ids and %d glyphs worth of data\n%!" n_glyphs (List.length glyph_data);
+            List.combine sub_table.glyph_ids glyph_data
         ) [] sub_tables in
     (* now we need to get the unicode code points or ranges mapped to glyph IDs *)
     Printf.printf "%d glyph ids and data\n%!" @@ List.length glyph_ids_and_data;

@@ -268,6 +268,17 @@ let symbol_table color_to_symbol =
       (placement + 1, ops)
     ) color_to_symbol (0, [])
 
+let page_resources =
+   Pdf.(Dictionary [
+       ("/Font", Pdf.Dictionary [(symbol_key, symbol_font);
+                                 (zapf_key, zapf_font);
+                                 (helvetica_key, helvetica_font)]);
+     ])
+
+let symbolpage paper symbols =
+  let content = [ Pdfops.stream_of_ops @@ snd (symbol_table symbols) ] in 
+  {(Pdfpage.blankpage paper) with content; resources = page_resources;}
+
 (* generate a preview image *)
 let coverpage paper ({substrate; stitches} : Stitchy.Types.state) =
   let {min_x; min_y; max_x; max_y} = dimensions paper in
@@ -321,7 +332,7 @@ let coverpage paper ({substrate; stitches} : Stitchy.Types.state) =
      ]} in
   page
 
-let make_page doc ~watermark ~first_x ~first_y symbols page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
+let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
   let xpp = x_per_page ~pixel_size:doc.pixel_size
   and ypp = y_per_page ~pixel_size:doc.pixel_size
   in
@@ -341,7 +352,6 @@ let make_page doc ~watermark ~first_x ~first_y symbols page_number ~width ~heigh
      Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
      Pdfops.stream_of_ops @@ label_top_grid doc page;
      Pdfops.stream_of_ops @@ label_left_grid doc page;
-     Pdfops.stream_of_ops @@ snd (symbol_table symbols); (* TODO: we'd like to limit this by page, but not _recalculate_ it per page *)
      Pdfops.stream_of_ops @@ add_watermark watermark;
      Pdfops.stream_of_ops @@ number_page page_number;
    ];
