@@ -1,4 +1,4 @@
 (library
- (public_name assemble)
+ (name assemble)
  (libraries astring stitchy)
 )

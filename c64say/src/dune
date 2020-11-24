@@ -1,13 +1,5 @@
 (executable
  (public_name c64stitch)
- (libraries c64say astring cmdliner stitchy stitchy.files uutf)
+ (libraries c64say astring cmdliner stitchy uutf)
  (modules c64stitch)
 )
-
-(alias
- (name runtest)
-  (action
-   (progn
-    (run c64stitch -o rc.json "never graduate!!")
-    (run stitchpattern -i rc.json)
-)))

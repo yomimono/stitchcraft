@@ -27,7 +27,7 @@ let output =
   Cmdliner.Arg.(value & opt string "-" & info ["o"; "output"] ~doc)
 
 let go input user_supplied_thread background output =
-  match Files.stdin_or_file input with
+  match Stitchy.Files.stdin_or_file input with
   | Error s -> failwith s
   | Ok json ->
     match Stitchy.Types.layer_of_yojson json with
@@ -41,7 +41,7 @@ let go input user_supplied_thread background output =
           | Some layer_supplied_thread -> layer_supplied_thread
       in
       let pattern = Assemble.stitch thread background Fourteen layer in
-      Files.stdout_or_file (Stitchy.Types.state_to_yojson pattern) output
+      Stitchy.Files.stdout_or_file (Stitchy.Types.state_to_yojson pattern) output
 
 let info =
   let doc = "Assemble layer information and thread specification into a pattern." in

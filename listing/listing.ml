@@ -71,7 +71,7 @@ let go input output =
   in
   Annotate.add_pdf image ~orientation text_color;
   Stitchy.Types.BlockMap.iter (paint_pixel image adjustment) stitches;
-  ImageLib_unix.writefile output image;
+  let _ = ImageLib.writefile output image in
   Ok ()
 
 let reword input output =

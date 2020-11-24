@@ -1,4 +1,4 @@
 (library
- (public_name pattern)
+ (name pattern)
  (libraries camlpdf stitchy)
 )

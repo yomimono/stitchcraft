@@ -4,7 +4,3 @@
  (libraries alcotest compose_stitch)
 )
 
-(alias
- (name runtest)
- (action (run %{exe:stitch_test.exe})
-))
