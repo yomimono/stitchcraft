@@ -1,5 +1,0 @@
-(executable
- (name listing)
- (public_name listing)
- (libraries cmdliner embellish.compose embellish.compose_stitch imagelib imagelib-unix rresult stitchy stitchy.files)
-)

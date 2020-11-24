@@ -16,7 +16,7 @@ let font_name =
 
 module Populator = Sqlite.Populate(Psf2stitchfont)
 
-let populate_t = Cmdliner.Term.(const populate $ db $ src $ font_name $ debug)
+let populate_t = Cmdliner.Term.(const Populator.populate $ db $ src $ font_name $ debug)
 
 let info = Cmdliner.Term.info "populate a sqlite database with font information"
 
