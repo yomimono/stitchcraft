@@ -25,35 +25,3 @@
  (modules readotf)
  (libraries cmdliner bos fmt psf2stitchfont)
 )
-
-(alias
- (name runtest)
- (deps (file fonts/Bm437_ATI_8x8_6.fnt.psf)
-       (file fonts/Bm437_AMI_EGA_8x8.otb))
- (action
-  (progn
-   (run readpsf fonts/Bm437_ATI_8x8_6.fnt.psf)
-   (run readotf fonts/Bm437_AMI_EGA_8x8.otb)
-)))
-
-(alias
- (name sqltest)
- (deps (source_tree fonts))
- (action
-  (progn
-   (run otf2sqlite --debug --name sqlitetestfont --db /tmp/fonts.sqlite3 fonts/BmPlus_IBM_EGA_8x8.otb)
-   (run c64stitch --font sqlitetestfont --db /tmp/fonts.sqlite3 -o dosbutts.json
-
-"┌┐
-││/\\ in
-│//\\\\ this
-//┌┐\\\\ house
-‾│└┘│‾ we
-/‾‾‾‾‾‾‾‾‾\\
-handle unicode
-//┌┬┐┌┐┌┬┐\\\\
-‾│└┴┘││└┴┘│‾
-")
-
-   (run notty_canvas dosbutts.json)
-  )))

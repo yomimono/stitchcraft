@@ -1,5 +1,4 @@
 (library
-  (public_name estimator)
   (name estimator)
   (libraries stitchy)
 )

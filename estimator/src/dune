@@ -1,5 +1,5 @@
 (executable
   (public_name estimate)
   (name estimate)
-  (libraries estimator stitchy stitchy.files cmdliner)
+  (libraries estimator stitchy cmdliner)
 )

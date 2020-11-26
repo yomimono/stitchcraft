@@ -1,17 +1,5 @@
 (executable
-  (public_name fontify)
   (name fontify)
   (modules chars fontify)
   (libraries astring cmdliner caqti caqti-driver-sqlite3 caqti-lwt lwt stitchy uucp uutf)
-)
-
-(alias
-  (name font_test)
-  (action
-   (progn
-    (run rm -f /home/user/.stitchy/fonts.sqlite3)
-    (run touch /home/user/.stitchy/fonts.sqlite3)
-    (run %{exe:fontify.exe} --src=/home/user/stitch.website/c64chars /home/user/.stitchy/fonts.sqlite3)
-   )
-  )
 )
