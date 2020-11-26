@@ -1,9 +1,3 @@
-(executable
- (public_name readpsf)
- (modules readpsf)
- (libraries cmdliner bos fmt psf2stitchfont)
-)
-
 (library
  (name sqlite)
  (modules sqlite)
@@ -11,17 +5,22 @@
 )
 
 (executable
- (public_name psf2sqlite)
- (modules psf2sqlite)
- (libraries cmdliner psf2stitchfont sqlite)
+ (public_name readpsf)
+ (modules readpsf)
+ (libraries cmdliner bos fmt psf2stitchfont)
 )
 (executable
- (public_name otf2sqlite)
- (modules otf2sqlite)
+ (public_name psf2sqlite)
+ (modules psf2sqlite)
  (libraries cmdliner psf2stitchfont sqlite)
 )
 (executable
  (public_name readotf)
  (modules readotf)
  (libraries cmdliner bos fmt psf2stitchfont)
+)
+(executable
+ (public_name otf2sqlite)
+ (modules otf2sqlite)
+ (libraries cmdliner psf2stitchfont sqlite)
 )
