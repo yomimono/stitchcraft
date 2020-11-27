@@ -14,7 +14,7 @@ let font_name =
   let doc = "name by which to refer to this font" in
   Cmdliner.Arg.(value & opt string "c64" & info ["n"; "name"] ~doc ~docv:"FONT_NAME")
 
-module Populator = Sqlite.Populate(Psf2stitchfont__Otf2stitchfont)
+module Populator = Sqlite.Populate(Fontreader.Otf2stitchfont)
 
 let populate_t = Cmdliner.Term.(const Populator.populate $ db $ src $ font_name $ debug)
 

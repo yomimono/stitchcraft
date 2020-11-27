@@ -1,26 +1,26 @@
 (library
  (name sqlite)
  (modules sqlite)
- (libraries bos caqti caqti-driver-sqlite3 caqti-lwt lwt psf2stitchfont sqlite3 stitchy)
+ (libraries bos caqti caqti-driver-sqlite3 caqti-lwt fontreader lwt sqlite3 stitchy)
 )
 
 (executable
  (public_name readpsf)
  (modules readpsf)
- (libraries cmdliner bos fmt psf2stitchfont)
+ (libraries cmdliner bos fontreader fmt)
 )
 (executable
  (public_name psf2sqlite)
  (modules psf2sqlite)
- (libraries cmdliner psf2stitchfont sqlite)
+ (libraries cmdliner fontreader sqlite)
 )
 (executable
  (public_name readotf)
  (modules readotf)
- (libraries cmdliner bos fmt psf2stitchfont)
+ (libraries cmdliner bos fmt fontreader)
 )
 (executable
  (public_name otf2sqlite)
  (modules otf2sqlite)
- (libraries cmdliner psf2stitchfont sqlite)
+ (libraries cmdliner fontreader sqlite)
 )

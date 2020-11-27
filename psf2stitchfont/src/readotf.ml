@@ -6,8 +6,7 @@ let info =
   let doc = "ingest otf files" in
   Cmdliner.Term.info "readotf" ~doc
 
-(* TODO: YIKES that is a horrible line *)
-module Otfreader = Psf2stitchfont__Readfiles.Reader(Psf2stitchfont__Otf2stitchfont)
+module Otfreader = Fontreader.Readfiles.Reader(Fontreader.Otf2stitchfont)
 
 let read_t = Cmdliner.Term.(const Otfreader.read $ input)
 

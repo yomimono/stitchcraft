@@ -32,7 +32,7 @@ let write_db db font_name map : (unit, string) result Lwt.t =
           | Ok _ -> ()
         ) (Stitchy.Types.UcharMap.bindings map) >>= fun () ->
         Lwt.return @@ Ok ()
-module Populate(Reader : Psf2stitchfont__Readfiles.INTERPRETER) = struct
+module Populate(Reader : Fontreader.Readfiles.INTERPRETER) = struct
   let populate db src font debug =
     match Bos.OS.File.read (Fpath.v src) with
     | Error e -> Error e

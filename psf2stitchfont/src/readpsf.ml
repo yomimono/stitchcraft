@@ -7,7 +7,7 @@ let info =
   Cmdliner.Term.info "readpsf" ~doc
 
 (* you can tell somebody writes Java in her day job these days *)
-module Psfreader = Psf2stitchfont__Readfiles.Reader(Psf2stitchfont)
+module Psfreader = Fontreader.Readfiles.Reader(Fontreader.Psf2stitchfont)
 
 let read_t = Cmdliner.Term.(const Psfreader.read $ input)
 
