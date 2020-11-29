@@ -81,7 +81,7 @@ let read_unicode_glyphmap buffer =
         ~width:(get_psf2header_width buffer |> Int32.to_int)
         ~height:(get_psf2header_height buffer |> Int32.to_int) glyph_table in
     let unicode_map = keep_getting_glyphs unicode_table in
-    Ok (`Glyphmap (glyphs, unicode_map))
+    Ok (glyphs, unicode_map)
   end
 
 let read_nonunicode_glyphmap buffer =
@@ -93,7 +93,7 @@ let read_nonunicode_glyphmap buffer =
   in
   let glyphs = parse_glyph_table ~width ~height glyph_table |> List.rev in
   let unicode_map = List.init (Int32.to_int number_of_glyphs) (fun n -> [Uchar.of_int n]) in
-  Ok (`Glyphmap (glyphs, unicode_map))
+  Ok (glyphs, unicode_map)
 
 let glyphmap_of_buffer buffer =
   if Cstruct.len buffer < 0x20 then Error `Too_short

@@ -25,7 +25,7 @@ module type INTERPRETER = sig
     type glyphmap = Stitchy.Types.glyph list * Uchar.t list list
     type error
     val pp_error : Format.formatter -> error -> unit
-    val glyphmap_of_buffer : Cstruct.t -> ([`Glyphmap of glyphmap], error) result
+    val glyphmap_of_buffer : Cstruct.t -> (glyphmap, error) result
 end
 
 module Reader(Interpreter : INTERPRETER ) = struct
@@ -38,7 +38,7 @@ module Reader(Interpreter : INTERPRETER ) = struct
         | Error e ->
           Format.eprintf "%a\n%!" Interpreter.pp_error e;
           Error (`Msg "parsing failed")
-        | Ok (`Glyphmap (glyphs, unicode)) ->
+        | Ok (glyphs, unicode) ->
           let spoo glyph uchars =
             let scratch = Buffer.create 16 in
             List.iter (fun uchar ->

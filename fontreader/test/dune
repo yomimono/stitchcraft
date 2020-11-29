@@ -1,0 +1,12 @@
+(executable
+ (name test)
+ (libraries alcotest cmdliner bos fontreader fmt otfm stitchy)
+)
+
+(rule
+ (alias runtest)
+ (deps (source_tree fonts))
+ (action
+  (run %{exe:test.exe})
+ )
+)
