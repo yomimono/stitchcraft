@@ -40,7 +40,7 @@ module Populate(Reader : Fontreader.Readfiles.INTERPRETER) = struct
       if debug then Format.eprintf "got a file, length %d\n%!" (String.length s);
       match Reader.glyphmap_of_buffer (Cstruct.of_string s) with
       | Error e -> Error (`Msg (Format.asprintf "%a" Reader.pp_error e))
-      | Ok (`Glyphmap (glyphs, uchars_list)) ->
+      | Ok (glyphs, uchars_list) ->
         if debug then
           Format.eprintf "glyphs: %d, uchars_list: %d\n%!" (List.length glyphs) (List.length uchars_list);
         (* what? this should be a zipped list at least, that would make way more sense *)
