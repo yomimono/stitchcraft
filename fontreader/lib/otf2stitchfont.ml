@@ -6,7 +6,7 @@
 
 type error = [`Msg of string | `Format of Otfm.error | `No_glyphmap ]
 
-type glyphmap = Stitchy.Types.glyph list * Uchar.t list list
+type glyphmap = (Stitchy.Types.glyph * Uchar.t list) list
 
 let pp_error fmt = function
   | `Msg s -> Format.fprintf fmt "%s" s
@@ -70,4 +70,4 @@ let glyphmap_of_buffer debug buffer =
     match Otfm.cmap source (associate_cps glyph_ids_and_data) [] with
     | Error e -> Error (`Format e)
     | Ok (_, glyphlist) ->
-      Ok (List.split glyphlist)
+      Ok (List.rev glyphlist)

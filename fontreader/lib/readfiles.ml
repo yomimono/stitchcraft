@@ -22,7 +22,7 @@ let print_glyph fmt (glyph : Stitchy.Types.glyph) =
   Format.fprintf fmt "%a\n%!" Stitchy.Types.pp_state state
 
 module type INTERPRETER = sig
-    type glyphmap = Stitchy.Types.glyph list * Uchar.t list list
+    type glyphmap = (Stitchy.Types.glyph * Uchar.t list) list
     type error
     val pp_error : Format.formatter -> error -> unit
     (** [glyphmap_of_buffer debug buf] tries to extract a glyphmap from buf.
@@ -31,29 +31,29 @@ module type INTERPRETER = sig
 end
 
 module Reader(Interpreter : INTERPRETER ) = struct
-    let read debug input =
-      match Bos.OS.File.read (Fpath.v input) with
-      | Error e -> Error e
-      | Ok s ->
-        let buffer = Cstruct.of_string s in
-        match Interpreter.glyphmap_of_buffer debug buffer with
-        | Error e ->
-          Format.eprintf "%a\n%!" Interpreter.pp_error e;
-          Error (`Msg "parsing failed")
-        | Ok (glyphs, unicode) ->
-          if debug then Printf.printf "glyphmap read succeeded\n%!";
-          let spoo glyph uchars =
-            let scratch = Buffer.create 16 in
-            List.iter (fun uchar ->
-                Buffer.reset scratch;
-                Uutf.Buffer.add_utf_8 scratch uchar;
-                Buffer.output_buffer stdout scratch;
-                Stdlib.flush_all ();
-                Format.printf " (int %d 0x%x) " (Uchar.to_int uchar) (Uchar.to_int uchar);
-              ) uchars;
-            Format.printf
-              " glyph: %a\n%!" print_glyph glyph;
-          in
-          List.iter2 spoo glyphs unicode;
-          Ok ()
+  let read debug input =
+    match Bos.OS.File.read (Fpath.v input) with
+    | Error e -> Error e
+    | Ok s ->
+      let buffer = Cstruct.of_string s in
+      match Interpreter.glyphmap_of_buffer debug buffer with
+      | Error e ->
+        Format.eprintf "%a\n%!" Interpreter.pp_error e;
+        Error (`Msg "parsing failed")
+      | Ok l ->
+        if debug then Printf.printf "glyphmap read succeeded\n%!";
+        let spoo (glyph, uchars) =
+          let scratch = Buffer.create 16 in
+          List.iter (fun uchar ->
+              Buffer.reset scratch;
+              Uutf.Buffer.add_utf_8 scratch uchar;
+              Buffer.output_buffer stdout scratch;
+              Stdlib.flush_all ();
+              Format.printf " (int %d 0x%x) " (Uchar.to_int uchar) (Uchar.to_int uchar);
+            ) uchars;
+          Format.printf
+            " glyph: %a\n%!" print_glyph glyph;
+        in
+        List.iter spoo l;
+        Ok ()
 end
