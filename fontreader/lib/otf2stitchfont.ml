@@ -59,11 +59,9 @@ let glyphmap_of_buffer buffer =
             let offset = sub_table.offset in
             let n_glyphs = List.length sub_table.glyph_ids in
             let glyph_data = Ebdt.glyph_data_to_pattern ~offset ~width ~height ebdt n_glyphs in
-            Printf.printf "combining %d glyph ids and %d glyphs worth of data\n%!" n_glyphs (List.length glyph_data);
             glyphs_so_far @ (List.combine sub_table.glyph_ids glyph_data)
         ) [] sub_tables in
     (* now we need to get the unicode code points or ranges mapped to glyph IDs *)
-    Printf.printf "%d glyph ids and data\n%!" @@ List.length glyph_ids_and_data;
     match Otfm.cmap source (associate_cps glyph_ids_and_data) [] with
     | Error e -> Error (`Format e)
     | Ok (_, glyphlist) ->
