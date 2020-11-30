@@ -38,7 +38,7 @@ let stitches_of_bits ~width ~height bits =
   else begin
     List.fold_left (fun (stitches, n) bit ->
         let y = n / width in
-        if bit then (((n mod height), y)::stitches , n + 1)
+        if bit then (((n mod width), y)::stitches , n + 1)
         else (stitches, n + 1)
       ) ([], 0) bits |> fst
   end
