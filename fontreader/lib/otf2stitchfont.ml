@@ -41,26 +41,31 @@ let associate_cps (glyph_data : (int * Stitchy.Types.glyph) list) acc map_kind c
 
 (* we say "map", but it's an associative list of glyphs to lists of uchar.ts *)
 (* that feels awkward; why not return them as pairs? I guess because we'd have to reconstruct the snd of the pair all the time and that's a headache. we could zip it before returning I guess *)
-let glyphmap_of_buffer buffer =
+let glyphmap_of_buffer debug buffer =
   let source = Otfm.decoder (`String (Cstruct.to_string buffer)) in
   match Otfm.(table_raw source Tag.ebdt, table_raw source Tag.eblc) with
   | Error e, _ | _, Error e -> Error (`Format e)
   | Ok None, _ | _, Ok None -> Error `No_glyphmap
   | Ok (Some ebdt), Ok (Some eblc) ->
+    if debug then Printf.printf "decoder found EBDT and EBLC\n%!";
     let ebdt = Cstruct.of_string ebdt in
     let eblc = Cstruct.of_string eblc in
     let sub_tables = Eblc.sub_table_info eblc in
+    if debug then Format.printf "sub_tables: %a\n" Fmt.(list Eblc.pp_sub_table) sub_tables;
     let glyph_ids_and_data =
       List.fold_left (fun glyphs_so_far sub_table ->
+          if debug then Printf.printf "got %d glyphs so far\n%!" @@ List.length glyphs_so_far;
           match sub_table.Eblc.image_size, sub_table.metrics with
           | None, _ | _, None -> glyphs_so_far
           | Some _, Some metrics ->
             let width = metrics.width and height = metrics.height in
             let offset = sub_table.offset in
             let n_glyphs = List.length sub_table.glyph_ids in
+            if debug then Printf.printf "looking to get data for %d glyphs of size %dx%d starting at %x\n%!" n_glyphs width height offset;
             let glyph_data = Ebdt.glyph_data_to_pattern ~offset ~width ~height ebdt n_glyphs in
             glyphs_so_far @ (List.combine sub_table.glyph_ids glyph_data)
         ) [] sub_tables in
+    if debug then Printf.printf "got %d glyph ids\n%!" @@ List.length glyph_ids_and_data;
     (* now we need to get the unicode code points or ranges mapped to glyph IDs *)
     match Otfm.cmap source (associate_cps glyph_ids_and_data) [] with
     | Error e -> Error (`Format e)

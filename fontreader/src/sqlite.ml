@@ -38,7 +38,7 @@ module Populate(Reader : Fontreader.Readfiles.INTERPRETER) = struct
     | Error e -> Error e
     | Ok s ->
       if debug then Format.eprintf "got a file, length %d\n%!" (String.length s);
-      match Reader.glyphmap_of_buffer (Cstruct.of_string s) with
+      match Reader.glyphmap_of_buffer debug (Cstruct.of_string s) with
       | Error e -> Error (`Msg (Format.asprintf "%a" Reader.pp_error e))
       | Ok (glyphs, uchars_list) ->
         if debug then

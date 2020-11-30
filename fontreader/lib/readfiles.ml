@@ -25,20 +25,23 @@ module type INTERPRETER = sig
     type glyphmap = Stitchy.Types.glyph list * Uchar.t list list
     type error
     val pp_error : Format.formatter -> error -> unit
-    val glyphmap_of_buffer : Cstruct.t -> (glyphmap, error) result
+    (** [glyphmap_of_buffer debug buf] tries to extract a glyphmap from buf.
+        Setting [debug] gives a lot of output on stdout. *)
+    val glyphmap_of_buffer : bool -> Cstruct.t -> (glyphmap, error) result
 end
 
 module Reader(Interpreter : INTERPRETER ) = struct
-    let read input =
+    let read debug input =
       match Bos.OS.File.read (Fpath.v input) with
       | Error e -> Error e
       | Ok s ->
         let buffer = Cstruct.of_string s in
-        match Interpreter.glyphmap_of_buffer buffer with
+        match Interpreter.glyphmap_of_buffer debug buffer with
         | Error e ->
           Format.eprintf "%a\n%!" Interpreter.pp_error e;
           Error (`Msg "parsing failed")
         | Ok (glyphs, unicode) ->
+          if debug then Printf.printf "glyphmap read succeeded\n%!";
           let spoo glyph uchars =
             let scratch = Buffer.create 16 in
             List.iter (fun uchar ->
