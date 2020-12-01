@@ -7,9 +7,9 @@
 open Alcotest
 
 module Glyphmap : Alcotest.TESTABLE with
-  type t = Stitchy.Types.glyph list * Uchar.t list list
+  type t = (Stitchy.Types.glyph * Uchar.t list) list
 = struct
-  type t = Stitchy.Types.glyph list * Uchar.t list list
+  type t = (Stitchy.Types.glyph * Uchar.t list) list
 
   let pp_glyph fmt (glyph : Stitchy.Types.glyph) =
     let block : Stitchy.Types.block = {
@@ -30,12 +30,10 @@ module Glyphmap : Alcotest.TESTABLE with
     let state : Stitchy.Types.state = { stitches = blockmap; substrate; } in
     Format.fprintf fmt "%a\n%!" Stitchy.Types.pp_state state
 
-  let pp_glyph_list = Fmt.list (pp_glyph)
-
   let pp_uchars fmt l =
-    Format.fprintf fmt "%a" Fmt.(list (list int)) @@ List.map (List.map Uchar.to_int) l
+    Format.fprintf fmt "%a" Fmt.(list int) @@ List.map Uchar.to_int l
 
-  let pp = Fmt.pair pp_glyph_list pp_uchars
+  let pp = Fmt.(list @@ pair pp_glyph pp_uchars)
 
   let glyph_eq (a : Stitchy.Types.glyph) (b : Stitchy.Types.glyph) =
     let open Stitchy.Types in
@@ -43,11 +41,12 @@ module Glyphmap : Alcotest.TESTABLE with
     List.length a.stitches = List.length b.stitches &&
     List.for_all2 (fun (a, b) (q, r) -> a = q && b = r) a.stitches b.stitches
 
-  let equal (a_glyphs, a_uchars) (b_glyphs, b_uchars) =
-    List.for_all2 glyph_eq a_glyphs b_glyphs &&
-    List.for_all2 (fun q r ->
-        List.for_all2 (fun a b -> Uchar.equal a b) q r
-      ) a_uchars b_uchars
+  let ucharl_eq a b =
+    List.for_all2 Uchar.equal a b
+
+  let equal a b =
+    List.for_all2 (fun (glyph_a, uchars_a) (glyph_b, uchars_b) ->
+        glyph_eq glyph_a glyph_b && ucharl_eq uchars_a uchars_b) a b
 
 end
 
@@ -57,14 +56,14 @@ let (testable_err : Fontreader.Otf2stitchfont.error Alcotest.testable) =
   Alcotest.of_pp Fontreader.Otf2stitchfont.pp_error
 
 let zero_length_cstruct =
-  let res = Fontreader.Otf2stitchfont.glyphmap_of_buffer (Cstruct.create 0) in
+  let res = Fontreader.Otf2stitchfont.glyphmap_of_buffer true (Cstruct.create 0) in
   let exp = Error `No_glyphmap in
   Alcotest.check (result testable_glyphmap pass) "empty buffer gets failure" res exp
 
 let read_glyphmap font =
   let open Rresult.R in
   Fpath.of_string font >>= Bos.OS.File.read >>= fun font ->
-  match Fontreader.Otf2stitchfont.glyphmap_of_buffer (Cstruct.of_string font) with
+  match Fontreader.Otf2stitchfont.glyphmap_of_buffer true (Cstruct.of_string font) with
   | Error e -> Error (`Msg (Format.asprintf "%a" Fontreader.Otf2stitchfont.pp_error e))
   | Ok n -> Ok n
 
@@ -72,16 +71,15 @@ let eight_by_eight_ascii font =
   match read_glyphmap font with
   | Error (`Msg f) -> Alcotest.fail f
   | Ok glyphmap ->
-    let n_glyphs = List.length @@ fst glyphmap in
+    let n_glyphs = List.length glyphmap in
     let label = Format.asprintf "%s has %d glyphs" font n_glyphs in
     Alcotest.check bool label true (n_glyphs > 128)
 
 let space_is_empty font =
   match read_glyphmap font with
   | Error (`Msg f) -> Alcotest.fail f
-  | Ok (glyphs, uchar_lists) ->
+  | Ok lookup_friendly ->
     try
-      let lookup_friendly = List.combine glyphs uchar_lists in
       let is_space = Uchar.(equal @@ of_char ' ') in
       let has_space = List.exists is_space in
       let space_glyphs = List.filter (fun (_, uchars) -> has_space uchars) lookup_friendly in
@@ -94,8 +92,7 @@ let space_is_empty font =
 let full_box_is_full font =
   match read_glyphmap font with
   | Error (`Msg f) -> Alcotest.fail f
-  | Ok (glyphs, uchar_lists) ->
-    let lookup_friendly = List.combine glyphs uchar_lists in
+  | Ok lookup_friendly ->
     let is_box = Uchar.(equal @@ of_int 0x2588) in
     let box_glyphs = List.filter (fun (_, uchars) -> List.exists is_box uchars) lookup_friendly in
     Alcotest.check int (font ^ ": box char exists") 1 (List.length box_glyphs);

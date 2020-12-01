@@ -40,20 +40,14 @@ module Populate(Reader : Fontreader.Readfiles.INTERPRETER) = struct
       if debug then Format.eprintf "got a file, length %d\n%!" (String.length s);
       match Reader.glyphmap_of_buffer debug (Cstruct.of_string s) with
       | Error e -> Error (`Msg (Format.asprintf "%a" Reader.pp_error e))
-      | Ok (glyphs, uchars_list) ->
+      | Ok l ->
         if debug then
-          Format.eprintf "glyphs: %d, uchars_list: %d\n%!" (List.length glyphs) (List.length uchars_list);
-        (* what? this should be a zipped list at least, that would make way more sense *)
+          Format.eprintf "%d glyphs discovered\n%!" (List.length l);
         let map =
-          List.fold_left (fun (k, map) uchars ->
-              match List.nth_opt glyphs k with
-              | None ->
-                if debug then Format.eprintf "no %dth glyph\n%!" k;
-                (k+1, map)
-              | Some glyph ->
-                let map = List.fold_left (fun map uchar -> Stitchy.Types.UcharMap.add uchar glyph map) map uchars in
-                (k+1, map)
-            ) (0, Stitchy.Types.UcharMap.empty) uchars_list
+          List.fold_left (fun (k, map) (glyph, uchars) ->
+              let map = List.fold_left (fun map uchar -> Stitchy.Types.UcharMap.add uchar glyph map) map uchars in
+              (k+1, map)
+            ) (0, Stitchy.Types.UcharMap.empty) l
         in
         match Lwt_main.run @@ write_db db font (snd map) with
         | Error s -> Error (`Msg s)
