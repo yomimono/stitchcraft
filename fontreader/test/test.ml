@@ -75,35 +75,38 @@ let eight_by_eight_ascii font =
     let label = Format.asprintf "%s has %d glyphs" font n_glyphs in
     Alcotest.check bool label true (n_glyphs > 128)
 
-let space_is_empty font =
+let glyph_in_font font uchar =
   match read_glyphmap font with
   | Error (`Msg f) -> Alcotest.fail f
   | Ok lookup_friendly ->
-    try
-      let is_space = Uchar.(equal @@ of_char ' ') in
-      let has_space = List.exists is_space in
-      let space_glyphs = List.filter (fun (_, uchars) -> has_space uchars) lookup_friendly in
-      Alcotest.check int (font ^ ": space char exists") 1 (List.length space_glyphs);
-      let space = fst @@ List.hd space_glyphs in
-      Alcotest.check int "no stitches for space" 0 (List.length space.stitches)
-    with
-    Invalid_argument e -> Alcotest.fail e
+    let matches = Uchar.equal uchar in
+    let glyphs = List.filter (fun (_, uchars) -> List.exists matches uchars) lookup_friendly in
+
+    let msg = Format.asprintf "%s: char 0x%x exists" font (Uchar.to_int uchar) in
+    Alcotest.check int msg 1 (List.length glyphs);
+    List.hd glyphs
+
+let space_is_empty font =
+  let space = fst @@ glyph_in_font font (Uchar.of_char ' ') in
+  Alcotest.check int "no stitches for space" 0 (List.length space.stitches)
 
 let full_box_is_full font =
-  match read_glyphmap font with
-  | Error (`Msg f) -> Alcotest.fail f
-  | Ok lookup_friendly ->
-    let is_box = Uchar.(equal @@ of_int 0x2588) in
-    let box_glyphs = List.filter (fun (_, uchars) -> List.exists is_box uchars) lookup_friendly in
-    Alcotest.check int (font ^ ": box char exists") 1 (List.length box_glyphs);
-    let box = fst @@ List.hd box_glyphs in
-    let exp_size = box.width * box.height in
-    Alcotest.check int "full box has all stitches populated" exp_size (List.length box.stitches)
+  let full_box = fst @@ glyph_in_font font (Uchar.of_int 0x2588) in
+  let exp_size = full_box.width * full_box.height in
+  Alcotest.check int "full box has all stitches populated" exp_size (List.length full_box.stitches)
+
+let box_half_empty font =
+  let half_box = fst @@ glyph_in_font font @@ Uchar.of_int 0x2584 in
+  let first_row = List.filter (fun (_, y) -> y = 0) half_box.stitches in
+  let last_row = List.filter (fun (_, y) -> y = (half_box.height - 1)) half_box.stitches in
+  Alcotest.check int "first row of half-box is empty" 0 (List.length first_row);
+  Alcotest.check int "last row of half-box is full" half_box.width (List.length last_row)
 
 let test_font font =
   eight_by_eight_ascii font;
   space_is_empty font;
-  full_box_is_full font
+  full_box_is_full font;
+  box_half_empty font
 
 let () =
   let eight_by_eight = "./fonts/BmPlus_ToshibaSat_8x8.otb" in
