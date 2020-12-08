@@ -16,7 +16,7 @@ type error =
   | `No_unicode
   | `No_unicode_info ]
 
-type glyphmap = Stitchy.Types.glyph list * Uchar.t list list
+type glyphmap = (Stitchy.Types.glyph * Uchar.t list) list
 
 let psf2magic = Cstruct.of_string "\x72\xb5\x4a\x86"
 
@@ -81,7 +81,7 @@ let read_unicode_glyphmap buffer =
         ~width:(get_psf2header_width buffer |> Int32.to_int)
         ~height:(get_psf2header_height buffer |> Int32.to_int) glyph_table in
     let unicode_map = keep_getting_glyphs unicode_table in
-    Ok (glyphs, unicode_map)
+    Ok (List.combine glyphs unicode_map)
   end
 
 let read_nonunicode_glyphmap buffer =
@@ -93,9 +93,9 @@ let read_nonunicode_glyphmap buffer =
   in
   let glyphs = parse_glyph_table ~width ~height glyph_table |> List.rev in
   let unicode_map = List.init (Int32.to_int number_of_glyphs) (fun n -> [Uchar.of_int n]) in
-  Ok (glyphs, unicode_map)
+  Ok (List.combine glyphs unicode_map)
 
-let glyphmap_of_buffer buffer =
+let glyphmap_of_buffer _debug buffer =
   if Cstruct.len buffer < 0x20 then Error `Too_short
   else if 0 <> Cstruct.compare psf2magic (get_psf2header_magic buffer)
   then Error (`Wrong_magic (get_psf2header_magic buffer))

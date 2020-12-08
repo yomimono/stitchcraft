@@ -9,7 +9,7 @@ let info =
 (* you can tell somebody writes Java in her day job these days *)
 module Psfreader = Fontreader.Readfiles.Reader(Fontreader.Psf2stitchfont)
 
-let read_t = Cmdliner.Term.(const Psfreader.read $ input)
+let read_t = Cmdliner.Term.(const Psfreader.read $ const false $ input)
 
 let () =
   Cmdliner.Term.eval (read_t, info) |> function
