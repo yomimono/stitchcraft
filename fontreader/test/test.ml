@@ -72,8 +72,9 @@ let eight_by_eight_ascii font =
   | Error (`Msg f) -> Alcotest.fail f
   | Ok glyphmap ->
     let n_glyphs = List.length glyphmap in
-    let label = Format.asprintf "%s has %d glyphs" font n_glyphs in
-    Alcotest.check bool label true (n_glyphs > 128)
+    let minimal_number = 128 in
+    let label = Format.asprintf "%s has %d glyphs, which is more than %d" font n_glyphs minimal_number in
+    Alcotest.check bool label true (n_glyphs > minimal_number)
 
 let glyph_in_font font uchar =
   match read_glyphmap font with
@@ -88,7 +89,9 @@ let glyph_in_font font uchar =
 
 let space_is_empty font =
   let space = fst @@ glyph_in_font font (Uchar.of_char ' ') in
+  Format.printf "space char:\n%a\n" Fontreader.Readfiles.print_glyph space;
   Alcotest.check int "no stitches for space" 0 (List.length space.stitches)
+
 
 let full_box_is_full font =
   let full_box = fst @@ glyph_in_font font (Uchar.of_int 0x2588) in
@@ -112,6 +115,7 @@ let () =
   let eight_by_eight = "./fonts/BmPlus_ToshibaSat_8x8.otb" in
   let eight_by_sixteen = "./fonts/BmPlus_IBM_VGA_8x16.otb" in
   let nine_by_eight = "./fonts/BmPlus_ToshibaSat_9x8.otb" in
+  let nine_by_fourteen = "./fonts/BmPlus_IBM_VGA_9x14.otb" in
   let nine_by_sixteen = "./fonts/BmPlus_IBM_VGA_9x16.otb" in
   let eight_by_fourteen = "./fonts/BmPlus_IBM_VGA_8x14.otb" in
 
@@ -120,7 +124,8 @@ let () =
           ("8x8", `Quick, fun () -> test_font eight_by_eight);
           ("8x16", `Quick, fun () -> test_font eight_by_sixteen);
           ("9x8", `Quick, fun () -> test_font nine_by_eight);
-          ("9x16", `Quick, fun () -> test_font nine_by_sixteen);
           ("8x14", `Quick, fun () -> test_font eight_by_fourteen);
+          ("9x14", `Quick, fun () -> test_font nine_by_fourteen);
+          ("9x16", `Quick, fun () -> test_font nine_by_sixteen);
         ])
-  ]
+  ];

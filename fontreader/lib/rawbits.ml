@@ -18,24 +18,30 @@ let split_list l n =
   in
   aux l [] n
 
+let pp_bit fmt = function
+  | true -> Format.fprintf fmt "X"
+  | false -> Format.fprintf fmt " "
+
 let rows_bitwise y (acc, n) bit =
   if bit then ((n, y)::acc, n+1)
   else (acc, n+1)
 
 let get_nth_char_bits ~width ~height buf n =
-  let char_size_bits = width * height in
-  let offset_bit_index = char_size_bits * n in
-  let offset_byte_index = offset_bit_index / 8 in (* this is the offset # of the first byte we need *any* bits from *)
-  let bit_offset_within_first_byte = (offset_bit_index mod 8) in
-  let end_padding = if ((char_size_bits + bit_offset_within_first_byte) mod 8) > 0
-    then 1 else 0 in
-  let start_padding = if bit_offset_within_first_byte > 0 then 1 else 0 in
-  let char_size_bytes = char_size_bits / 8 + start_padding + end_padding in
+  let char_size_bytes = (width * height / 8) + if width * height mod 8 > 0 then 1 else 0 in
+  let offset_byte_index = char_size_bytes * n in
+  (* after quite a bit of head-scratching, it looks like non-byte-aligned characters still get padded
+     so they begin on a byte boundary. *)
   let relevant_bytes = Cstruct.sub buf offset_byte_index char_size_bytes in
   let bits = to_bit_stream relevant_bytes in
-  let _dropped_bits, offset_bits = split_list bits bit_offset_within_first_byte in
-  let bits_we_need, _extra_bits = split_list offset_bits char_size_bits in
-  bits_we_need
+  (* this is kind of wild, but it seems like we get some unneeded padding bits in 9x14 characters finishing out the 9th line (y=8).
+     They appear to be at the 6th bit (x=5).  (9*8 = 72, plus 5 is 77, which doesn't seem special to me, but what do I know.) *)
+  let uneven_adjusted =
+    if width = 9 && height = 14 then begin
+    let pre_pad, post_pad = split_list bits (9*8 + 5) in
+    let post_pad_less_4 = snd @@ split_list post_pad 0 in
+    pre_pad @ post_pad_less_4
+  end else fst @@ split_list bits (width * height) in
+  uneven_adjusted
 
 let stitches_of_bits ~width ~height bits =
   if (List.length bits < width * height) then []
@@ -48,10 +54,11 @@ let stitches_of_bits ~width ~height bits =
       ) ([], 0) bits |> fst
   end
 
-let get_chars ~width ~height (all_bytes : Cstruct.t) =
+let get_chars _debug ~width ~height (all_bytes : Cstruct.t) =
   let rec aux (n, acc) =
     (* if we're out of buffer, stop *)
-    if (((n + 1) * width * height) - 1) / 8 > (Cstruct.len all_bytes) then (n, List.rev acc)
+    let size_in_bytes = (width * height / 8) + if width * height mod 8 > 0 then 1 else 0 in
+    if (n + 1) * size_in_bytes > (Cstruct.len all_bytes) then (n, List.rev acc)
     else begin
       let bits = get_nth_char_bits ~width ~height all_bytes n in
       let stitches = stitches_of_bits ~width ~height bits in
@@ -61,5 +68,5 @@ let get_chars ~width ~height (all_bytes : Cstruct.t) =
   aux (0, [])
 
 (* width and height are in bits *)
-let glyphs_of_bytes ~width ~height bytes =
-  snd @@ get_chars ~width ~height bytes
+let glyphs_of_bytes debug ~width ~height bytes =
+  snd @@ get_chars debug ~width ~height bytes
