@@ -25,12 +25,17 @@ let count grid = match grid with
   | Sixteen -> 16
   | Eighteen -> 18
 
-let substrate_size_in_inches ?(margin_inches=1) substrate =
-  let inches dim count = (dim / count) + 2*margin_inches + (if 0 = dim mod count then 0 else 1)
-  in
+let substrate_size_in_inches ?(margin_inches=1.) substrate =
   let count = count substrate.grid in
+  let double_margin = 2. *. margin_inches in
+  let inches dim =
+    let inches_for_center dim =
+      (dim / count) + (if 0 = dim mod count then 0 else 1)
+    in
+    double_margin +. (float_of_int @@ inches_for_center dim)
+  in
   let width, height = substrate.max_x + 1, substrate.max_y + 1 in
-  (inches width count, inches height count)
+  (inches width, inches height)
 
 let stitches_per_color stitches =
   BlockMap.fold (fun _ block acc ->
@@ -62,7 +67,7 @@ type thread_info = {
 
 type materials = {
   threads : thread_info list;
-  fabric : int * int;
+  fabric : float * float;
 }
 
 let totals threads =
