@@ -1,6 +1,6 @@
 let all_chars font_name =
   Caqti_request.collect Caqti_type.unit (Caqti_type.tup2 Caqti_type.int Caqti_type.string) @@
-  "SELECT * FROM " ^ font_name
+  "SELECT * FROM `" ^ font_name ^ "`"
 
 let load_all_chars db_module font =
   let open Lwt.Infix in

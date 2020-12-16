@@ -1,0 +1,5 @@
+(library
+ (name fontreader)
+ (libraries bos cstruct ppx_cstruct otfm stitchy uutf uunf)
+ (preprocess (pps ppx_cstruct))
+)
