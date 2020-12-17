@@ -18,8 +18,10 @@ let estimate file margin =
     | Ok state ->
       let (substrate_w, substrate_h) = substrate_size_in_inches ~margin_inches:margin state.substrate in
       let substrate_cost = substrate_w *. substrate_h *. aida_price_per_square_inch in
+      let hoop_size = hoop_size state.substrate in
       Printf.printf "aida cloth: %.02f by %.02f inches (%.02f margin) - approximate cost: USD %.02G\n%!"
         substrate_w substrate_h margin substrate_cost;
+      Format.printf "%a\n%!" pp_hoop_size hoop_size;
       let threads = stitches_per_color state.stitches |> thread_info state.substrate.grid in
       List.iter print_thread_info threads;
       let total_cost, total_seconds = totals threads in

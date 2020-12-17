@@ -25,7 +25,7 @@ let count grid = match grid with
   | Sixteen -> 16
   | Eighteen -> 18
 
-let substrate_size_in_inches ?(margin_inches=1.) substrate =
+let substrate_size_in_inches ~margin_inches substrate =
   let count = count substrate.grid in
   let double_margin = 2. *. margin_inches in
   let inches dim =
@@ -36,6 +36,18 @@ let substrate_size_in_inches ?(margin_inches=1.) substrate =
   in
   let width, height = substrate.max_x + 1, substrate.max_y + 1 in
   (inches width, inches height)
+
+let hoop_size substrate =
+  let width_in, height_in = substrate_size_in_inches ~margin_inches:0. substrate in
+  let raw_size = int_of_float @@ (max width_in height_in) +. 1. in
+  if raw_size > 12 then
+    `Scroll_frame (int_of_float @@ (min width_in height_in) +. 1.)
+  else
+    `Embroidery_hoop (if raw_size > 4 then raw_size else 4)
+
+let pp_hoop_size fmt = function
+  | `Scroll_frame size -> Format.fprintf fmt "a scroll frame with small dimension of %d inches" size
+  | `Embroidery_hoop size -> Format.fprintf fmt "an embroidery hoop with diameter %d inches" size
 
 let stitches_per_color stitches =
   BlockMap.fold (fun _ block acc ->
@@ -88,4 +100,4 @@ let thread_info grid threads =
 
 let materials state =
   { threads = thread_info state.substrate.grid (stitches_per_color state.stitches);
-    fabric = substrate_size_in_inches state.substrate }
+    fabric = substrate_size_in_inches ~margin_inches:1. state.substrate }
