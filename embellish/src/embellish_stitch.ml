@@ -2,19 +2,19 @@ open Cmdliner
 
 let corner =
   let doc = "Corner border image (oriented to upper-left corner).  Will be flipped (not rotated) as appropriate for other corners." in
-  Arg.(value & opt file "corner.png" & info ["corner"] ~docv:"CORNER" ~doc)
+  Arg.(value & opt file "corner.json" & info ["corner"] ~docv:"CORNER" ~doc)
 
 let top =
   let doc = "top border image (oriented horizontally).  Will be flipped (not rotated) for the bottom border." in
-  Arg.(value & opt file "top.png" & info ["top"] ~docv:"TOP" ~doc)
+  Arg.(value & opt file "top.json" & info ["top"] ~docv:"TOP" ~doc)
 
 let side =
   let doc = "left side border image.  Will be flipped (not rotated) for the right border." in
-  Arg.(value & opt file "side.png" & info ["side"] ~docv:"LEFT" ~doc)
+  Arg.(value & opt file "side.json" & info ["side"] ~docv:"LEFT" ~doc)
 
 let center =
   let doc = "Center image.  Corner and side will be inserted to surround this image." in
-  Arg.(value & opt file "center.png" & info ["center"] ~docv:"CENTER" ~doc)
+  Arg.(value & opt file "center.json" & info ["center"] ~docv:"CENTER" ~doc)
 
 let output =
   let doc = "Where to output the finished, embellished image. -, the default, is stdout." in
