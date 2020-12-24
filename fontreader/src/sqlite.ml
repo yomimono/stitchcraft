@@ -19,10 +19,9 @@ let write_db db font_name map : (unit, string) result Lwt.t =
   | Error e -> Lwt.return @@ Error (Format.asprintf "%a" Caqti_error.pp e)
   | Ok m ->
     let module Db = (val m) in
-    Db.exec (make_db font_name) () >>= function
-      (* TODO: we need a fill-gaps mode *)
-    | Error e -> Lwt.return @@ Error (Format.asprintf "%a" Caqti_error.pp e)
-    | Ok _ ->
+    Db.exec (make_db font_name) () >>= fun _ ->
+    (* normally, we'd bail if this failed, but it's not a big deal if
+       we're stomping on existing tables *)
       Lwt_list.iter_s (fun (uchar, glyph) ->
           let key = Uchar.to_int uchar
           and value = Stitchy.Types.glyph_to_yojson glyph |> Yojson.Safe.to_string
