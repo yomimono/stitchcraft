@@ -118,6 +118,7 @@ let () =
   let nine_by_fourteen = "./fonts/BmPlus_IBM_VGA_9x14.otb" in
   let nine_by_sixteen = "./fonts/BmPlus_IBM_VGA_9x16.otb" in
   let eight_by_fourteen = "./fonts/BmPlus_IBM_VGA_8x14.otb" in
+  let weird_size = "./fonts/Bm437_IBM_PS-55_re.otb" in
 
   Alcotest.run "otb fonts" [
     ( "known-good otb fonts", [
@@ -127,5 +128,6 @@ let () =
           ("8x14", `Quick, fun () -> test_font eight_by_fourteen);
           ("9x14", `Quick, fun () -> test_font nine_by_fourteen);
           ("9x16", `Quick, fun () -> test_font nine_by_sixteen);
+          ("weird size", `Quick, fun () -> test_font weird_size);
         ])
   ];
