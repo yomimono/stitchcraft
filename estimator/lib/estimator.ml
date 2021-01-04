@@ -49,19 +49,13 @@ let pp_hoop_size fmt = function
   | `Scroll_frame size -> Format.fprintf fmt "a scroll frame with small dimension of %d inches" size
   | `Embroidery_hoop size -> Format.fprintf fmt "an embroidery hoop with diameter %d inches" size
 
-let stitches_per_color stitches =
-  BlockMap.fold (fun _ block acc ->
-      match ThreadMap.find_opt block.thread acc with
-      | None -> ThreadMap.add block.thread 1 acc
-      | Some n -> ThreadMap.add block.thread (n+1) acc
-    ) stitches ThreadMap.empty
-
 (* 2 * sqrt(2) + 2 is 4.8 which is close enough to 5 *)
 let stitch_length_units = 5
 
 (* TODO a better estimate would make some reference to region continuity --
    we need more thread for a bunch of unconnected stitches. for now, just
    multiply by a constant factor *)
+(* also TODO: this assumes every stitch is a full cross stitch *)
 let length_of_thread stitch_count grid_size =
   let grid_size = count grid_size in
   (* this is in [grid_size]ths of an inch, so divide it to get the size in inches *)
@@ -90,14 +84,15 @@ let print_thread_info {thread; amount; length; skeins; cost; seconds } =
   Printf.printf "%s: %d stitches (%.02G linear inches, %.02G standard skeins, USD %G, ~%d seconds)\n%!"
     (Stitchy.DMC.Thread.to_string thread) amount length skeins cost seconds
 
-let thread_info grid threads =
-  ThreadMap.fold (fun thread amount l ->
-      let length = length_of_thread amount grid in
-      let skeins = length /. skein_length_inches in
-      let cost = skeins *. price_per_skein in
-      let seconds = seconds_per_stitch * amount in
-      {thread; amount; length; skeins; cost; seconds;} :: l) threads []
+let thread_info grid (layer : layer) =
+  let thread = layer.thread in
+  let amount = List.length layer.stitches in
+  let length = length_of_thread amount grid in
+  let skeins = length /. skein_length_inches in
+  let cost = skeins *. price_per_skein in
+  let seconds = seconds_per_stitch * amount in
+  {thread; amount; length; skeins; cost; seconds;}
 
-let materials state =
-  { threads = thread_info state.substrate.grid (stitches_per_color state.stitches);
-    fabric = substrate_size_in_inches ~margin_inches:1. state.substrate }
+let materials pattern =
+  { threads = List.map (thread_info pattern.substrate.grid) pattern.layers;
+    fabric = substrate_size_in_inches ~margin_inches:1. pattern.substrate }
