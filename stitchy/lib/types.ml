@@ -27,12 +27,15 @@ type cross_stitch =
   | Reverse_comma (* mirrored , (lower right quadrant) *)
 [@@deriving eq, yojson]
 
-type stitch = cross_stitch (* previously, this could be a backstitch;
-                              preserve the name, even though we've
-                              pulled the backstitch representation for now
-                              (since it's not yet clear how to represent it) *)
+type back_stitch =
+  | Left | Right | Top | Bottom
+[@@deriving eq, yojson]
 
-let pp_stitch fmt = function
+type stitch = | Cross of cross_stitch
+              | Back of back_stitch
+[@@deriving eq, yojson]
+
+let pp_cross_stitch fmt = function
   | Full -> Format.fprintf fmt "X"
   | Backslash -> Format.fprintf fmt "\\"
   | Foreslash -> Format.fprintf fmt "/"
@@ -41,76 +44,20 @@ let pp_stitch fmt = function
   | Reverse_backtick -> Format.fprintf fmt "'"
   | Reverse_comma -> Format.fprintf fmt "."
 
+let pp_back_stitch fmt = function
+  | Bottom -> Format.fprintf fmt "_"
+  | Top -> Format.fprintf fmt "▔"
+  | Left -> Format.fprintf fmt "▏"
+  | Right -> Format.fprintf fmt "▕"
+
+let pp_stitch fmt = function
+  | Cross stitch -> pp_cross_stitch fmt stitch
+  | Back stitch -> pp_back_stitch fmt stitch
+
 type thread = DMC.Thread.t
 [@@deriving eq, yojson]
 
 let pp_thread = Fmt.of_to_string DMC.Thread.to_string
-
-type block = {
-  thread : thread;
-  stitch : cross_stitch;
-}
-[@@deriving eq, yojson]
-
-let pp_block (fmt : Format.formatter) (block : block) =
-  let classify_color (r, g, b) =
-    (* TODO: get a better heuristic for this. *)
-    if r >= g + b then `Red
-    else if b >= r + g then `Blue
-    else if g >= r + b then `Green
-    else if r > 200 && g > 200 && b > 200 then `White
-    else if r <= 50 && g <= 50 && b <= 50 then `Black
-    else if r == g && b < 50 then `Yellow
-    else if g == b && r < 50 then `Cyan
-    else if r == b && g < 50 then `Magenta
-    else `White
-  in
-  let style thread = `Fg (classify_color @@ DMC.Thread.to_rgb thread) in
-  let unstyled = Fmt.using (fun b -> b.stitch) pp_stitch in
-  let pp = Fmt.styled (style block.thread) unstyled in
-  Format.fprintf fmt "%a" pp block
-
-module BlockMap = struct
-  include Map.Make(Block)
-  let to_yojson m = `List
-      (fold (fun key value acc ->
-             (`Tuple [Block.to_yojson key;
-                      block_to_yojson value])::acc
-           ) m [])
-
-(* TODO: we should have some logic somewhere that disallows max_x/max_y
-   <=0 . *)
-  let of_yojson j =
-    let convert = function
-      | (`Tuple (l : Yojson.Safe.t list)) -> begin
-          match l with
-          | [] | _::[] | _::_::_::_ -> Error "weird tuple"
-          | k::v::[] ->
-            (* this ignores unparseable items where it could preserve the error. *)
-            let key = Block.of_yojson k in
-            let value = block_of_yojson v in
-            match (key, value) with
-            | Ok key, Ok value -> Ok (key, value)
-            | Error s, Ok _ | Ok _, Error s -> Error s
-            | Error e, Error s -> Error (e ^ ", and also " ^ s)
-        end
-      | _ -> Error "Something that wasn't a tuple, when a tuple was expected."
-    in
-    let l = Yojson.Safe.Util.convert_each convert j in
-    List.fold_left (fun acc item ->
-        match acc, item with
-        | Error e, Error s -> Error (e ^ ", and also " ^ s)
-        | Ok _, Error s | Error s, Ok _ -> Error s
-        | Ok m, Ok (key, value) -> Ok (add key value m)
-      ) (Ok empty) l
-
-  let submap ~x_off ~y_off ~width ~height map =
-    filter (fun (x, y) _ ->
-        x >= x_off && x < (x_off + width) &&
-        y >= y_off && y < (y_off + height))
-      map
-
-end
 
 module SymbolMap = Map.Make(RGB)
 
@@ -134,32 +81,34 @@ type substrate =
 let pp_substrate fmt {grid; background; _} =
   Format.fprintf fmt "%a aida cloth, color %a" pp_grid grid RGB.pp background
 
-(* TODO: This is a bit ugly; we only define this type to help the ppx_deriving plugins,
-   which probably won't need our help if we structure things differently *)
-type stitches = block BlockMap.t
-let stitches_to_yojson = BlockMap.to_yojson
-let stitches_of_yojson = BlockMap.of_yojson
-let equal_stitches = BlockMap.equal equal_block
-
-type state = {
-  substrate : substrate;
-  stitches : stitches;
+type layer = {
+  thread : thread; 
+  stitch : stitch;
+  stitches : (int * int) list;
 } [@@deriving eq, yojson]
 
-let pp_state = fun fmt {substrate; stitches} ->
+type pattern = {
+  substrate : substrate;
+  layers : layer list;
+} [@@deriving eq, yojson]
+
+let stitches_at pattern coordinate =
+  List.find_all (fun layer -> List.mem coordinate layer.stitches) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
+
+let pp_pattern = fun fmt {substrate; layers} ->
   Format.fprintf fmt "@[background: %a; full size %d x %d@]@." pp_substrate substrate (substrate.max_x + 1) (substrate.max_y + 1);
   (* we'd really like for stitches to be a list of lists, but alas *)
   if substrate.max_x > 80 || substrate.max_y > 100 then
     (* too wide for utop, probably *)
-    Format.fprintf fmt "pattern with %d stitches" (BlockMap.cardinal stitches)
+    Format.fprintf fmt "pattern with %d layers" (List.length layers)
   else begin
     (* poky, but we only do it for small substrates, so hopefully not too awful *)
     for y = 0 to substrate.max_y do
       Format.fprintf fmt "@[";
       for x = 0 to substrate.max_x do
-        match BlockMap.find_opt (x, y) stitches with
-        | Some block -> Format.fprintf fmt "%a" pp_block block
-        | None -> Format.fprintf fmt " "
+        match stitches_at {substrate; layers} (x, y) with
+        | (stitch, _)::_-> Format.fprintf fmt "%a" pp_stitch stitch
+        | [] -> Format.fprintf fmt " "
       done;
       Format.fprintf fmt "@]@."
     done
@@ -176,9 +125,3 @@ module UcharMap = Map.Make(Uchar)
 
 type font = glyph UcharMap.t
 
-type layer = {
-  color : RGB.t;
-  stitches : (int * int) list;
-  height : int;
-  width : int;
-} [@@deriving yojson]

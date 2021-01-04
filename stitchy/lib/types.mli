@@ -1,12 +1,7 @@
 (* some PPX-generated code results in warning 39; turn that off *)
 [@@@ocaml.warning "-39"]
 
-module Block : sig
-  type t
-  val compare : t -> t -> int
-  val pp : Format.formatter -> t -> unit [@@ocaml.toplevel_printer]
-end
-
+module UcharMap : Map.S with type key = Uchar.t
 
 type cross_stitch =
   | Full (* X *) (* full stitch *)
@@ -18,11 +13,15 @@ type cross_stitch =
   | Comma (* , (lower left quadrant) *)
   | Reverse_backtick (* mirrored ` (upper right quadrant) *)
   | Reverse_comma (* mirrored , (lower right quadrant) *)
+[@@deriving eq, yojson]
 
-type stitch = cross_stitch (* previously, this could be a backstitch;
-                              preserve the name, even though we've
-                              pulled the backstitch representation for now
-                              (since it's not yet clear how to represent it) *)
+type back_stitch =
+  | Left | Right | Top | Bottom
+[@@deriving eq, yojson]
+
+type stitch = | Cross of cross_stitch
+              | Back of back_stitch
+[@@deriving eq, yojson]
 
 val pp_stitch : Format.formatter -> stitch -> unit [@@ocaml.toplevel_printer]
 
@@ -30,25 +29,9 @@ type thread = DMC.Thread.t
 
 val pp_thread : Format.formatter -> thread -> unit [@@ocaml.toplevel_printer]
 
-type block = {
-  thread : thread;
-  stitch : cross_stitch;
-}
-
-val pp_block : Format.formatter -> block -> unit [@@ocaml.toplevel_printer]
-
-module BlockMap : sig
-  include Map.S with type key = int * int
-  val to_yojson : block t -> [> `List of [> `Tuple of Yojson.Safe.t list ] list ]
-
-  val of_yojson : Yojson.Safe.t -> (block t, string) result
-
-  val submap : x_off:int -> y_off:int -> width:int -> height:int -> 'a t -> 'a t
-
-end
-
 module SymbolMap : Map.S with type key = RGB.t
 
+(* this is rather unimaginative ;) *)
 type grid = | Fourteen | Sixteen | Eighteen
 
 val pp_grid : Format.formatter -> grid -> unit [@@ocaml.toplevel_printer]
@@ -60,19 +43,20 @@ type substrate =
     max_y : int; [@generator Crowbar.range 1023]
   }
 
-(* TODO: This is a bit ugly; we only define this type to help the ppx_deriving plugins,
-   which probably won't need our help if we structure things differently *)
-type stitches = block BlockMap.t
-val stitches_to_yojson : block BlockMap.t -> Yojson.Safe.t
-val stitches_of_yojson : Yojson.Safe.t -> (block BlockMap.t, string) result
-val equal_stitches : block BlockMap.t -> block BlockMap.t -> bool
-
-type state = {
-  substrate : substrate;
-  stitches : stitches;
+type layer = {
+  thread : thread;
+  stitch : stitch;
+  stitches : (int * int) list;
 } [@@deriving yojson]
 
-val pp_state : Format.formatter -> state -> unit [@@ocaml.toplevel_printer]
+type pattern = {
+  substrate : substrate;
+  layers : layer list;
+} [@@deriving yojson]
+
+val stitches_at: pattern -> (int * int) -> (stitch * thread) list
+
+val pp_pattern : Format.formatter -> pattern -> unit [@@ocaml.toplevel_printer]
 
 type glyph = {
   stitches : (int * int) list;
@@ -80,13 +64,4 @@ type glyph = {
   width : int;
 } [@@deriving yojson]
 
-module UcharMap : Map.S with type key = Uchar.t
-
 type font = glyph UcharMap.t
-
-type layer = {
-  color : RGB.t;
-  stitches : (int * int) list;
-  height : int;
-  width : int;
-} [@@deriving yojson]
