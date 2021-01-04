@@ -45,8 +45,8 @@ let make_pattern font db textcolor background gridsize phrase interline output =
     | Error s -> Lwt.return (Error s)
     | Ok map ->
       let lookup letter = Stitchy.Types.UcharMap.find_opt letter map in
-      let state = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in
-      let json = Stitchy.Types.state_to_yojson state in
+      let pattern = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in
+      let json = Stitchy.Types.pattern_to_yojson pattern in
       Lwt.return @@ Stitchy.Files.stdout_or_file json output
 
 let stitch font db textcolor background gridsize phrase interline output =
