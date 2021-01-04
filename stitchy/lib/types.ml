@@ -95,6 +95,15 @@ type pattern = {
 let stitches_at pattern coordinate =
   List.find_all (fun layer -> List.mem coordinate layer.stitches) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
 
+let submap ~x_off ~y_off ~width ~height layers =
+  let only_stitches_in_submap layer =
+    let stitches =
+      List.filter (fun (x, y)-> x < x_off + width && y < y_off + height) layer.stitches
+    in
+    {layer with stitches = stitches}
+  in
+  List.map only_stitches_in_submap layers
+
 let pp_pattern = fun fmt {substrate; layers} ->
   Format.fprintf fmt "@[background: %a; full size %d x %d@]@." pp_substrate substrate (substrate.max_x + 1) (substrate.max_y + 1);
   (* we'd really like for stitches to be a list of lists, but alas *)
