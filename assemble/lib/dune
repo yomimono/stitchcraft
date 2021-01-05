@@ -1,4 +1,0 @@
-(library
- (name assemble)
- (libraries astring stitchy)
-)
