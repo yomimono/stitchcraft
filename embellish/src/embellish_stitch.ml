@@ -34,13 +34,13 @@ let go corner top side center output =
     with
     | _ -> failwith "couldn't read an input file"
   in
-  match Stitchy.Types.(state_of_yojson corner,
-                       state_of_yojson top,
-                       state_of_yojson side,
-                       state_of_yojson center) with
+  match Stitchy.Types.(pattern_of_yojson corner,
+                       pattern_of_yojson top,
+                       pattern_of_yojson side,
+                       pattern_of_yojson center) with
   | Ok corner, Ok top, Ok side, Ok center ->
     Compose_stitch.embellish ~center ~corner ~top ~side
-    |> Stitchy.Types.state_to_yojson
+    |> Stitchy.Types.pattern_to_yojson
     |> spoo output
   | _, _, _, _ -> failwith (Printf.sprintf "failed to parse input json")
 

@@ -14,7 +14,7 @@ let go files output =
     with
     | _ -> failwith "couldn't read an input file"
   in
-  let files = List.fold_left (fun acc yojson -> match acc, Stitchy.Types.(state_of_yojson yojson) with
+  let files = List.fold_left (fun acc yojson -> match acc, Stitchy.Types.(pattern_of_yojson yojson) with
       | Error e, _ | _, Error e -> Error e
       | Ok states, Ok state -> Ok (state::states)
     ) (Ok []) files
@@ -31,7 +31,7 @@ let go files output =
     match bigpattern patterns with
     | None -> failwith "oh NOOOOOO!!!"
     | Some bigpattern ->
-      Stitchy.Types.state_to_yojson bigpattern
+      Stitchy.Types.pattern_to_yojson bigpattern
       |> Yojson.Safe.to_file output
 
 let hcat_t = Term.(const go $ files $ output)
