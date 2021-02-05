@@ -3,23 +3,19 @@ let white = match Stitchy.DMC.Thread.of_rgb (255, 255, 255) with
   | Some white -> white
 
 let print_glyph fmt (glyph : Stitchy.Types.glyph) =
-  let block : Stitchy.Types.block = {
+  let layer : Stitchy.Types.layer = {
     thread = white;
-    stitch = Stitchy.Types.Full;
+    stitch = Stitchy.Types.Cross Full;
+    stitches = glyph.stitches;
   } in
-  let blockmap = List.fold_left
-      (fun m coordinate -> Stitchy.Types.BlockMap.add coordinate block m)
-      Stitchy.Types.BlockMap.empty
-      glyph.stitches
-  in
   let substrate : Stitchy.Types.substrate = {
     grid = Stitchy.Types.Fourteen;
     background = (0, 0, 0);
     max_x = glyph.width - 1;
     max_y = glyph.height - 1;
   } in
-  let state : Stitchy.Types.state = { stitches = blockmap; substrate; } in
-  Format.fprintf fmt "%a\n%!" Stitchy.Types.pp_state state
+  let pattern : Stitchy.Types.pattern = { layers = [layer]; substrate; } in
+  Format.fprintf fmt "%a\n%!" Stitchy.Types.pp_pattern pattern
 
 module type INTERPRETER = sig
     type glyphmap = (Stitchy.Types.glyph * Uchar.t list) list
