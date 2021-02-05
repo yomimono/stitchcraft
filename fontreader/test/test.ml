@@ -11,29 +11,10 @@ module Glyphmap : Alcotest.TESTABLE with
 = struct
   type t = (Stitchy.Types.glyph * Uchar.t list) list
 
-  let pp_glyph fmt (glyph : Stitchy.Types.glyph) =
-    let block : Stitchy.Types.block = {
-      thread = List.hd Stitchy.DMC.Thread.basic;
-      stitch = Stitchy.Types.Full;
-    } in
-    let blockmap = List.fold_left
-        (fun m coordinate -> Stitchy.Types.BlockMap.add coordinate block m)
-        Stitchy.Types.BlockMap.empty
-        glyph.stitches
-    in
-    let substrate : Stitchy.Types.substrate = {
-      grid = Stitchy.Types.Fourteen;
-      background = (0, 0, 0);
-      max_x = glyph.width - 1;
-      max_y = glyph.height - 1;
-    } in
-    let state : Stitchy.Types.state = { stitches = blockmap; substrate; } in
-    Format.fprintf fmt "%a\n%!" Stitchy.Types.pp_state state
-
   let pp_uchars fmt l =
     Format.fprintf fmt "%a" Fmt.(list int) @@ List.map Uchar.to_int l
 
-  let pp = Fmt.(list @@ pair pp_glyph pp_uchars)
+  let pp = Fmt.(list @@ pair Fontreader.Readfiles.print_glyph pp_uchars)
 
   let glyph_eq (a : Stitchy.Types.glyph) (b : Stitchy.Types.glyph) =
     let open Stitchy.Types in
