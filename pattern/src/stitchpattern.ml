@@ -37,18 +37,19 @@ let paper_size =
   let doc = "size of paper to use" in
   Arg.(value & opt (enum sizes) Pdfpaper.usletter & info ["paper"] ~docv:"PAPER" ~doc)
 
-let get_symbol blockmap symbols substrate x y =
-  match Stitchy.Types.BlockMap.find_opt (x, y) blockmap with 
-  | None -> substrate.Stitchy.Types.background, Stitchy.Symbol.default
-  | Some block ->
-    let color = Stitchy.DMC.Thread.to_rgb block.Stitchy.Types.thread in
-    let symbol = match Stitchy.Types.SymbolMap.find_opt color symbols with
+let get_symbol pattern symbols x y =
+  let open Stitchy.Types in
+  match Stitchy.Types.stitches_at pattern (x, y) with
+  | [] -> pattern.substrate.background, Stitchy.Symbol.default
+  | (_stitch, thread)::_ ->
+    let color = Stitchy.DMC.Thread.to_rgb thread in
+    let symbol = match SymbolMap.find_opt color symbols with
       | None -> Stitchy.Symbol.default
       | Some symbol -> symbol
     in
     color, symbol
 
-let paint_pixels (blockmap : Stitchy.Types.block Stitchy.Types.BlockMap.t) substrate doc page =
+let paint_pixels pattern doc page =
   (* x and y are the relative offsets within the page. *)
   (* (so, even if this is page 3 and the grid that's painted over this will be
      stitches 100-200 (x) and 50-70 (y), x and y will count up from 0 here.
@@ -70,7 +71,7 @@ let paint_pixels (blockmap : Stitchy.Types.block Stitchy.Types.BlockMap.t) subst
 
       (* but color is based on the placement in the actual image, so pass those coordinates
          to the painting function *)
-      let ((r, g, b), symbol) = get_symbol blockmap doc.symbols substrate x y in
+      let ((r, g, b), symbol) = get_symbol pattern doc.symbols x y in
       let this_pixel =
         paint_pixel ~x_pos ~y_pos
           ~pixel_size:(float_of_int doc.pixel_size)
@@ -81,28 +82,27 @@ let paint_pixels (blockmap : Stitchy.Types.block Stitchy.Types.BlockMap.t) subst
   in
   aux (fst page.x_range) (fst page.y_range) []
 
-let assign_symbols (blocks : Stitchy.Types.stitches) =
+let assign_symbols (layers : Stitchy.Types.layer list )=
   let next = function
     | [] -> (Stitchy.Symbol.default, [])
     | hd::tl -> (hd, tl)
   in
-  let colors = Stitchy.Types.BlockMap.bindings blocks |>
-               List.map snd |>
-               List.map (fun block -> Stitchy.DMC.Thread.to_rgb block.Stitchy.Types.thread) |> List.sort_uniq Stitchy.RGB.compare in
+  let colors = List.map (fun layer -> Stitchy.DMC.Thread.to_rgb layer.Stitchy.Types.thread) layers
+               |> List.sort_uniq Stitchy.RGB.compare in
   let color_map = Stitchy.Types.SymbolMap.empty in
   List.fold_left (fun (freelist, map) color ->
       let symbol, freelist = next freelist in
       (freelist, Stitchy.Types.SymbolMap.add color symbol map))
   (Stitchy.Symbol.printable_symbols, color_map) colors
 
-let pages paper_size watermark ~pixel_size ~fat_line_interval symbols state =
+let pages paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
   let open Stitchy.Types in
   let xpp = x_per_page ~pixel_size
   and ypp = y_per_page ~pixel_size
   in
-  let width = state.substrate.max_x + 1 and height = state.substrate.max_y + 1 in
+  let width = pattern.substrate.max_x + 1 and height = pattern.substrate.max_y + 1 in
   let doc = { paper_size; pixel_size; fat_line_interval; symbols; } in
-  let pixels = paint_pixels state.Stitchy.Types.stitches state.Stitchy.Types.substrate in
+  let pixels = paint_pixels pattern in
   let rec page x y n l =
     let l = make_page doc ~watermark ~first_x:x ~first_y:y ~width ~height n pixels :: l in
     if (x + xpp) >= width && (y + ypp) >= height then l    
@@ -119,10 +119,10 @@ let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
     | src ->
       try Yojson.Safe.from_file src with _exn -> failwith "couldn't read file"
   in
-  match Stitchy.Types.state_of_yojson (json src) with
+  match Stitchy.Types.pattern_of_yojson (json src) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
-    let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.stitches in
+    let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.layers in
     let cover = coverpage paper_size pattern in
     let symbols = symbolpage paper_size symbol_map in
     let pages = cover :: symbols :: (pages paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in

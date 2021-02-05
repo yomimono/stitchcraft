@@ -280,7 +280,7 @@ let symbolpage paper symbols =
   {(Pdfpage.blankpage paper) with content; resources = page_resources;}
 
 (* generate a preview image *)
-let coverpage paper ({substrate; stitches} : Stitchy.Types.state) =
+let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
   let {min_x; min_y; max_x; max_y} = dimensions paper in
   let width = float_of_int (substrate.max_x + 1)
   and height = float_of_int (substrate.max_y + 1)
@@ -304,7 +304,7 @@ let coverpage paper ({substrate; stitches} : Stitchy.Types.state) =
       Op_f ; (* fill path *)
       Op_Q;
     ]) in
-  let paint_pixel (x, y) ({thread; _} : Stitchy.Types.block) =
+  let paint_pixel thread _stitch (x, y) =
     let r, g, b = Stitchy.DMC.Thread.to_rgb thread in
     (* x and y have their origin in the upper left, but pdf wants to address from the lower left *)
     (* x coordinates need no transposition, but y do *)
@@ -320,9 +320,11 @@ let coverpage paper ({substrate; stitches} : Stitchy.Types.state) =
         Op_Q;
       ])
   in
-  let pixels = Stitchy.Types.BlockMap.fold
-      (fun k v acc -> acc @ paint_pixel k v) stitches []
+  let paint_layer (layer : Stitchy.Types.layer) =
+    List.fold_left (fun ops pixel ->
+        ops @ paint_pixel layer.thread layer.stitch pixel) [] layer.stitches
   in
+  let pixels = List.fold_left (fun ops layer -> ops @ paint_layer layer) [] layers in
   let page =
     let open Pdfpage in
     {(blankpage paper) with
