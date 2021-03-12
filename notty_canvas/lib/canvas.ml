@@ -15,15 +15,16 @@ let color_map (a, b, c) =
   Notty.A.rgb ~r:(to_6_channels a)
       ~g:(to_6_channels b) ~b:(to_6_channels c)
 
-let colors ~x_off ~y_off ~width ~height stitches =
-  let color { thread; _ } = thread in
+let colors ~x_off ~y_off ~width ~height pattern =
   (* give an accounting of which colors are represented in the box
    * defined by [(x_off, y_off) ... (x_off + width), (y_off + height)) *)
-  let view = BlockMap.submap ~x_off ~y_off ~width ~height stitches in
-  BlockMap.bindings view |> List.map (fun (_, block) -> color block) |> List.sort_uniq
-    (fun a b -> Stitchy.DMC.Thread.compare a b)
+  let view : layer list = Stitchy.Types.submap ~x_off ~y_off ~width ~height pattern.layers in
+  List.filter_map (fun (layer : layer) ->
+      match layer.stitches with
+      | [] -> None
+      | _::_ -> Some layer.thread) view
 
-let uchar_of_stitch = function
+let uchar_of_cross_stitch = function
   | Full -> Uchar.of_int 0x2588
   | Backslash -> Uchar.of_char '\\'
   | Foreslash -> Uchar.of_char '/'
@@ -32,7 +33,11 @@ let uchar_of_stitch = function
   | Reverse_backtick -> Uchar.of_char '?' (* TODO: probably something in uchar works for this *)
   | Reverse_comma -> Uchar.of_char '?'
 
-let symbol_of_block symbols {thread; stitch} =
+let uchar_of_stitch = function
+  | Cross n -> uchar_of_cross_stitch n
+  | Back _ -> Uchar.of_char '?' (* TODO: obviously not, but I don't know what to do here instead *)
+
+let symbol_of_thread symbols (stitch, thread) =
   match SymbolMap.find_opt (Stitchy.DMC.Thread.to_rgb thread) symbols with
   | Some a -> a
   | None -> uchar_of_stitch stitch
@@ -101,17 +106,17 @@ let left_pane substrate (width, height) =
   let width = width * 2 / 3 in
   subdivide_left_pane ~left_pane_width:width ~left_pane_height:height substrate
 
-let show_left_pane {substrate; stitches} symbol_map view left_pane =
+let show_left_pane {substrate; layers} symbol_map view left_pane =
   let open Notty.Infix in
   let background = Notty.A.(bg @@ color_map substrate.background) in
-  let c x y = match BlockMap.find_opt (x + view.Controls.x_off, y + view.y_off) stitches with
-    | None -> (* no stitch here *)
+  let c x y = match Stitchy.Types.stitches_at {substrate; layers} (x + view.Controls.x_off, y + view.y_off) with
+    | [] -> (* no stitch here *)
       (* TODO: column/row display? *)
       Notty.I.char background ' ' 1 1
-    | Some ({thread; _} as block) ->
+    | (stitch, thread)::_ ->
       let symbol = match view.block_display with
-        | `Symbol -> symbol_of_block symbol_map block
-        | `Solid -> Uchar.of_int 0x2588
+        | `Symbol -> symbol_of_thread symbol_map (stitch, thread)
+        | `Solid -> uchar_of_stitch stitch
       in
       let fg_color = color_map @@ Stitchy.DMC.Thread.to_rgb thread in
       Notty.(I.uchar A.(background ++ fg fg_color) symbol 1 1)
@@ -149,30 +154,29 @@ let totals_pane (total_cost, total_seconds) =
   <->
   Notty.I.strf "time: %.02G hours" ((float_of_int total_seconds) /. 3600.)
 
-let main_view {substrate; stitches} view totals (width, height) =
+let main_view {substrate; layers} view totals (width, height) =
   let open Notty.Infix in
-  let just_stitches = Stitchy.Types.BlockMap.bindings stitches |> List.map snd |> List.sort_uniq (fun block1 block2 -> Stitchy.DMC.Thread.compare block1.thread block2.thread) in
-  let symbol_map = symbol_map (List.map (fun b -> b.thread) just_stitches) in
+  let symbol_map = symbol_map @@ List.map (fun layer -> layer.thread) layers in
   let left_pane = left_pane substrate (width, height) in
-  let stitch_grid = show_left_pane {substrate; stitches} symbol_map view left_pane in
+  let stitch_grid = show_left_pane {substrate; layers} symbol_map view left_pane in
   let colors = colors ~x_off:view.x_off ~y_off:view.y_off
-      ~width:left_pane.stitch_grid.width ~height:left_pane.stitch_grid.height 
-      stitches
+      ~width:left_pane.stitch_grid.width ~height:left_pane.stitch_grid.height
+      {substrate; layers}
   in
   let color_key = color_key substrate symbol_map view colors in
   (stitch_grid <|> (color_key <-> (totals_pane totals)))
   <->
   key_help view
 
-let step state view (width, height) event =
-  let left_pane = left_pane state.substrate (width, height) in
+let step pattern view (width, height) event =
+  let left_pane = left_pane pattern.substrate (width, height) in
   match event with
-  | `Resize _ | `Mouse _ | `Paste _ -> Some (state, view)
+  | `Resize _ | `Mouse _ | `Paste _ -> Some (pattern, view)
   | `Key (key, mods) -> begin
       match key, mods with
       | (`Escape, _) | (`ASCII 'q', _) -> None
-      | (`Arrow dir, l) when List.mem `Shift l -> Some (state, Controls.page state.substrate view left_pane dir)
-      | (`Arrow dir, _) -> Some (state, Controls.scroll state.substrate view dir)
-      | (`ASCII 's', _) -> Some (state, Controls.switch_view view)
-      | _ -> Some (state, view)
+      | (`Arrow dir, l) when List.mem `Shift l -> Some (pattern, Controls.page pattern.substrate view left_pane dir)
+      | (`Arrow dir, _) -> Some (pattern, Controls.scroll pattern.substrate view dir)
+      | (`ASCII 's', _) -> Some (pattern, Controls.switch_view view)
+      | _ -> Some (pattern, view)
     end

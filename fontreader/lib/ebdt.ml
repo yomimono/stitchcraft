@@ -5,9 +5,9 @@
   } [@@big_endian]]
 
 (* we'll assume image format 5 for this *)
-(* oooooooof this inconsistent-ass naming yikes *)
-let glyph_data_to_pattern ~width ~height ~offset ebdt glyph_ids =
-  let n_bytes = (Rawbytes.pad_to_8 (width * height * glyph_ids)) / 8 in
-  let data = Cstruct.sub ebdt offset n_bytes in
-  let coordinates = Rawbits.glyphs_of_bytes ~height ~width data in
+let unicode_glyph_data_to_stitchy_glyph debug ~width ~height ~offset ebdt n_glyphs =
+  let size_in_bytes = (width * height / 8) + if width * height mod 8 > 0 then 1 else 0 in
+  let data = Cstruct.sub ebdt offset (n_glyphs * size_in_bytes) in
+  if debug then Printf.printf "for %d glyphs, got %d bytes starting at offset %x\n%!" n_glyphs (Cstruct.len data) offset;
+  let coordinates = Rawbits.glyphs_of_bytes debug ~height ~width data in
   List.map (fun stitches -> {Stitchy.Types.stitches; width; height }) coordinates

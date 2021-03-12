@@ -16,23 +16,23 @@ let disp input =
           Yojson.Safe.from_file input
       with _ -> failwith "couldn't read input file"
     in
-    match start_state |> state_of_yojson with
+    match start_state |> pattern_of_yojson with
     | Error e -> failwith (Printf.sprintf "failed to parse input json: %s" e)
-    | Ok start_state ->
+    | Ok pattern ->
       let open Lwt.Infix in
       let term = Notty_lwt.Term.create () in
-      let totals = Estimator.((materials start_state).threads |> totals) in
-      Notty_lwt.Term.image term @@ main_view start_state start_view totals (Notty_lwt.Term.size term) >>= fun () ->
-      let rec loop (state : state) (view : Canvas__Controls.view) =
+      let totals = Estimator.((materials pattern).threads |> totals) in
+      Notty_lwt.Term.image term @@ main_view pattern start_view totals (Notty_lwt.Term.size term) >>= fun () ->
+      let rec loop (pattern : pattern) (view : Canvas__Controls.view) =
         (Lwt_stream.last_new @@ Notty_lwt.Term.events term) >>= fun event ->
         let size = Notty_lwt.Term.size term in
-        match step state view size event with
+        match step pattern view size event with
         | None -> Notty_lwt.Term.release term
-        | Some (state, view) ->
-          Notty_lwt.Term.image term (main_view state view totals size) >>= fun () ->
-          loop state view
+        | Some (pattern, view) ->
+          Notty_lwt.Term.image term (main_view pattern view totals size) >>= fun () ->
+          loop pattern view
       in
-      loop start_state start_view
+      loop pattern start_view
   in
   Lwt_main.run @@ aux ()
 

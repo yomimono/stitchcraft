@@ -11,29 +11,10 @@ module Glyphmap : Alcotest.TESTABLE with
 = struct
   type t = (Stitchy.Types.glyph * Uchar.t list) list
 
-  let pp_glyph fmt (glyph : Stitchy.Types.glyph) =
-    let block : Stitchy.Types.block = {
-      thread = List.hd Stitchy.DMC.Thread.basic;
-      stitch = Stitchy.Types.Full;
-    } in
-    let blockmap = List.fold_left
-        (fun m coordinate -> Stitchy.Types.BlockMap.add coordinate block m)
-        Stitchy.Types.BlockMap.empty
-        glyph.stitches
-    in
-    let substrate : Stitchy.Types.substrate = {
-      grid = Stitchy.Types.Fourteen;
-      background = (0, 0, 0);
-      max_x = glyph.width - 1;
-      max_y = glyph.height - 1;
-    } in
-    let state : Stitchy.Types.state = { stitches = blockmap; substrate; } in
-    Format.fprintf fmt "%a\n%!" Stitchy.Types.pp_state state
-
   let pp_uchars fmt l =
     Format.fprintf fmt "%a" Fmt.(list int) @@ List.map Uchar.to_int l
 
-  let pp = Fmt.(list @@ pair pp_glyph pp_uchars)
+  let pp = Fmt.(list @@ pair Fontreader.Readfiles.print_glyph pp_uchars)
 
   let glyph_eq (a : Stitchy.Types.glyph) (b : Stitchy.Types.glyph) =
     let open Stitchy.Types in
@@ -72,8 +53,9 @@ let eight_by_eight_ascii font =
   | Error (`Msg f) -> Alcotest.fail f
   | Ok glyphmap ->
     let n_glyphs = List.length glyphmap in
-    let label = Format.asprintf "%s has %d glyphs" font n_glyphs in
-    Alcotest.check bool label true (n_glyphs > 128)
+    let minimal_number = 128 in
+    let label = Format.asprintf "%s has %d glyphs, which is more than %d" font n_glyphs minimal_number in
+    Alcotest.check bool label true (n_glyphs > minimal_number)
 
 let glyph_in_font font uchar =
   match read_glyphmap font with
@@ -88,7 +70,9 @@ let glyph_in_font font uchar =
 
 let space_is_empty font =
   let space = fst @@ glyph_in_font font (Uchar.of_char ' ') in
+  Format.printf "space char:\n%a\n" Fontreader.Readfiles.print_glyph space;
   Alcotest.check int "no stitches for space" 0 (List.length space.stitches)
+
 
 let full_box_is_full font =
   let full_box = fst @@ glyph_in_font font (Uchar.of_int 0x2588) in
@@ -112,15 +96,19 @@ let () =
   let eight_by_eight = "./fonts/BmPlus_ToshibaSat_8x8.otb" in
   let eight_by_sixteen = "./fonts/BmPlus_IBM_VGA_8x16.otb" in
   let nine_by_eight = "./fonts/BmPlus_ToshibaSat_9x8.otb" in
+  let nine_by_fourteen = "./fonts/BmPlus_IBM_VGA_9x14.otb" in
   let nine_by_sixteen = "./fonts/BmPlus_IBM_VGA_9x16.otb" in
   let eight_by_fourteen = "./fonts/BmPlus_IBM_VGA_8x14.otb" in
+  let weird_size = "./fonts/Bm437_IBM_PS-55_re.otb" in
 
   Alcotest.run "otb fonts" [
     ( "known-good otb fonts", [
           ("8x8", `Quick, fun () -> test_font eight_by_eight);
           ("8x16", `Quick, fun () -> test_font eight_by_sixteen);
           ("9x8", `Quick, fun () -> test_font nine_by_eight);
-          ("9x16", `Quick, fun () -> test_font nine_by_sixteen);
           ("8x14", `Quick, fun () -> test_font eight_by_fourteen);
+          ("9x14", `Quick, fun () -> test_font nine_by_fourteen);
+          ("9x16", `Quick, fun () -> test_font nine_by_sixteen);
+          ("weird size", `Quick, fun () -> test_font weird_size);
         ])
-  ]
+  ];

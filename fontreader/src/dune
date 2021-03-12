@@ -34,5 +34,7 @@
   (run readotf ./fonts/BmPlus_IBM_VGA_8x14.otb)
   (run readotf ./fonts/BmPlus_IBM_VGA_8x16.otb)
   (run readotf ./fonts/BmPlus_ToshibaSat_9x8.otb)
+  (run readotf ./fonts/BmPlus_IBM_VGA_9x14.otb)
   (run readotf ./fonts/BmPlus_IBM_VGA_9x16.otb)
+  (run readotf ./fonts/Bm437_IBM_PS-55_re.otb)
 )))
