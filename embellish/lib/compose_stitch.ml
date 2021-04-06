@@ -25,7 +25,9 @@ let padding one two =
   if one = two then `None, 0, 0
   else begin
     let difference = bigger - smaller in
+    (* for an even difference,pad evenly on both sides *)
     if difference mod 2 = 0 then (which_to_pad, (difference / 2), (difference / 2))
+    (* for an odd difference, favor padding the top or left element *)
     else which_to_pad, ((difference / 2) + 1), (difference / 2)
   end
 
@@ -76,7 +78,7 @@ let hcat_with_substrate substrate (upper : pattern) (lower : pattern) =
     let layers = merge_threads shifted_lower_layers upper.layers in
     { substrate; layers}
 
-(** [hcat upper lower] horizontally concatenates two patterns.
+(** [hcat upper lower] concatenates two patterns around a horizontal axis.
     If the substrates differ in background color, grid, or block size,
     the upper pattern's substrate will be used. *)
 let hcat upper lower =
@@ -90,8 +92,8 @@ let vcat_with_substrate substrate left right =
   let substrate = { substrate with max_x = new_max_x; max_y = new_max_y } in
   match which_to_pad with
   | `None ->
-    let shifted_left_layers = List.map (shift_stitches_right ~amount:(left.substrate.max_x + 1)) left.layers in
-    {substrate; layers = merge_threads shifted_left_layers right.layers}
+    let shifted_layers = List.map (shift_stitches_right ~amount:(left.substrate.max_x + 1)) right.layers in
+    {substrate; layers = merge_threads left.layers shifted_layers}
   | `First ->
     (* shift the left-side elements down to center stuff vertically,
        and also shift the right-side elements right *)
@@ -108,7 +110,7 @@ let vcat_with_substrate substrate left right =
         right.layers in
     {substrate; layers = merge_threads left.layers displaced_right_side}
 
-(** [vcat left right] vertically concatenates two patterns.
+(** [vcat left right] joins two patterns along a vertical axis.
     If the substrates differ in background color, grid, or block size,
     the left pattern's substrate will be used. *)
 let vcat left right =
