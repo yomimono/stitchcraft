@@ -30,6 +30,15 @@ let substrate_size ?(name="substrate size") (x, y) pattern =
   Alcotest.(check @@ pair int int) name (x, y)
     (pattern.substrate.max_x, pattern.substrate.max_y)
 
+let stitches_all_in_substrate (pattern : Stitchy.Types.pattern) =
+        let stitch_in_substrate (x, y) = pattern.substrate.max_x >= x
+        && pattern.substrate.max_y >= y
+        && x >= 0 && y >= 0 in
+        let check_stitches_in_layer (layer : Stitchy.Types.layer) =
+        List.iter (fun stitch -> Alcotest.(check bool) "stitch is within substrate" (stitch_in_substrate stitch) true) layer.stitches
+        in
+        List.iter check_stitches_in_layer pattern.layers
+
 let n_stitches ?(name="number of stitches is right") n pattern =
   let stitches = List.fold_left (fun acc (layer : layer) -> acc + List.length layer.stitches) 0 pattern.layers in
   Alcotest.(check @@ int) name n stitches
@@ -91,14 +100,44 @@ let check_vcat () =
 
 let check_multiple_vcat () =
   Format.printf "%a" Stitchy.Types.pp_pattern Patterns.smol;
-  let vcat_smol = Compose_stitch.vcat Patterns.smol Patterns.smol in
-  Format.printf "%a" Stitchy.Types.pp_pattern vcat_smol;
-  let vcat_moar = Compose_stitch.vcat vcat_smol Patterns.smol in
+  let vcat_twosmol = Compose_stitch.vcat Patterns.smol Patterns.smol in
+  Format.printf "%a" Stitchy.Types.pp_pattern vcat_twosmol;
+  let vcat_moar = Compose_stitch.vcat vcat_twosmol Patterns.smol in
   substrate_size (8, 1) vcat_moar;
   Format.printf "%a" Stitchy.Types.pp_pattern vcat_moar;
-  has_stitch ~name:"far right stitches present" vcat_moar (7, 1);
   has_stitch ~name:"far left stitches present" vcat_moar (1, 1);
-  has_stitch ~name:"middle stitches present" vcat_moar (4, 1)
+  has_stitch ~name:"middle stitches present" vcat_moar (4, 1);
+  has_stitch ~name:"far right stitches present" vcat_moar (7, 1);
+  n_stitches 3 vcat_moar;
+  stitches_all_in_substrate vcat_moar
+
+let unmergeable_vcat () =
+  let orange_thread = List.nth Stitchy.DMC.Thread.basic 2 in
+  let orange_layer = { Patterns.blackstitch with thread = orange_thread } in
+  let unmergeable_layer = {orange_layer with stitches = [(0, 0)]} in
+  let left_pattern = {layers = [unmergeable_layer]; substrate = Patterns.smol.substrate} in
+  let vcatted = Compose_stitch.vcat left_pattern Patterns.smol in
+  n_stitches 2 vcatted;
+  substrate_size (5, 1) vcatted;
+  (
+  match Stitchy.Types.stitches_at vcatted (1, 1) with
+  | [] -> ()
+  | _ -> Alcotest.fail "stitches at (1, 1), which there shouldn't be"
+  );
+  (
+  match Stitchy.Types.stitches_at vcatted (0, 0) with
+  | [] -> Alcotest.fail "no stitch at (0, 0)"
+  | _::_::_ -> Alcotest.fail "too many stitches at (0, 0)"
+  | stitch::[] ->
+                  let stitch_color = snd stitch in
+                  Alcotest.(check @@ bool) "stitch at (0, 0) is orange" (Stitchy.DMC.Thread.equal stitch_color orange_thread) true);
+  match Stitchy.Types.stitches_at vcatted (4, 1) with
+  | [] -> Alcotest.fail "no stitch at (4, 1)"
+  | _::_::_ -> Alcotest.fail "too many stitches at (4, 1)"
+  | stitch::[] ->
+                  let stitch_color = snd stitch in
+                  Alcotest.(check @@ bool) "stitch at (4, 1) is black" (Stitchy.DMC.Thread.equal stitch_color (List.hd Stitchy.DMC.Thread.basic)) true
+
 
 let check_hcat () =
   let hcat_smol = Compose_stitch.hcat Patterns.smol Patterns.smol in
@@ -142,6 +181,7 @@ let () = Alcotest.run "concatenation" [
         ]);
     ("no padding", [Alcotest.test_case "same dimensions vcat" `Quick check_vcat;
                     Alcotest.test_case "multiple vcats" `Quick check_multiple_vcat;
+                    Alcotest.test_case "unmergeable vcats" `Quick unmergeable_vcat;
                     Alcotest.test_case "same dimensions hcat" `Quick check_hcat;
                     Alcotest.test_case "multiple hcats" `Quick check_multiple_hcat;
                    ]);
