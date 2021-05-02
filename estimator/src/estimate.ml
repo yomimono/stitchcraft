@@ -20,7 +20,7 @@ let estimate file margin =
       let (substrate_w, substrate_h) = materials.fabric in
       let substrate_cost = substrate_w *. substrate_h *. aida_price_per_square_inch in
       let hoop_size = hoop_size pattern.substrate in
-      Printf.printf "aida cloth: %.02f by %.02f inches (%.02f margin) - approximate cost: USD %.02G\n%!"
+      Printf.printf "aida cloth: %.02f by %.02f inches (including %.02f margin) - approximate cost: USD %.02G\n%!"
         substrate_w substrate_h margin substrate_cost;
       Format.printf "%a\n%!" pp_hoop_size hoop_size;
       List.iter print_thread_info materials.threads;
