@@ -6,14 +6,14 @@ type borders = {
 }
 
 let dimensions paper =
-  (* half-unit margins *)
-  let base_unit = 72. in
-  let margin = base_unit *. 0.5 in
 
-  let max_x = base_unit *. Pdfpaper.(width paper) -. margin
-  and max_y = base_unit *. Pdfpaper.(height paper) -. margin
-  and min_x = margin
-  and min_y = margin
+  let get_points = Pdfunits.convert 72. Pdfpaper.(unit paper) Pdfunits.PdfPoint in
+  let margin_points = Pdfunits.convert 72. Pdfunits.Inch Pdfunits.PdfPoint 0.5 in
+
+  let max_x = (get_points Pdfpaper.(width paper)) -. margin_points
+  and max_y = (get_points Pdfpaper.(height paper)) -. margin_points
+  and min_x = margin_points
+  and min_y = margin_points
   in
   { max_y;
     max_x;
@@ -286,9 +286,9 @@ let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
   and height = float_of_int (substrate.max_y + 1)
   in
   let px =
-    if substrate.max_x > substrate.max_y
-    then (max_x -. min_x) /. width
-    else (max_y -. min_y) /. height
+    if substrate.max_x < substrate.max_y
+    then (max_y -. min_y) /. height
+    else (max_x -. min_x) /. width
   in
   let fill_color =
     let (r, g, b) = substrate.background in
