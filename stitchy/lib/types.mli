@@ -49,6 +49,8 @@ type layer = {
   stitches : (int * int) list;
 } [@@deriving yojson]
 
+type layers = layer list [@@deriving yojson]
+
 type pattern = {
   substrate : substrate;
   layers : layer list;

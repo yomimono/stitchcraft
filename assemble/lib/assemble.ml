@@ -7,11 +7,23 @@ let make_substrate background grid ~width ~height =
     max_y = max 0 (height - 1);
   }
 
-let stitch thread background gridsize blocks =
-  let substrate = make_substrate background gridsize ~width:blocks.width ~height:blocks.height in
-  let block : block = { thread; stitch = Full; } in
-  let stitches = List.fold_left (fun m (x, y) -> 
-      BlockMap.add (x, y) block m
-    ) BlockMap.empty blocks.stitches
-  in
-  {stitches; substrate;}
+let max_dimensions (x1, y1) (x2, y2) =
+        (max x1 x2), (max y1 y2)
+
+let biggest_dims (layer : Stitchy.Types.layer) : (int * int) =
+        List.fold_left max_dimensions (0, 0) layer.stitches
+
+let find_size layers =
+        List.fold_left (fun acc layer ->
+                max_dimensions acc (biggest_dims layer)
+        ) (0, 0) layers
+
+        (* humans usually like to supply "width, height" instead of
+           "max_x", "max_y", so accommodate them preferentially. *)
+let stitch background width height gridsize (layers : Stitchy.Types.layer list)=
+        let max_x, max_y = find_size layers in
+        let width = max (max_x + 1) width
+        and height = max (max_y + 1) height
+        in
+  let substrate = make_substrate background gridsize ~width ~height in
+  {layers; substrate;}
