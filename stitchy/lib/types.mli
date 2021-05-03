@@ -3,6 +3,9 @@
 
 module UcharMap : Map.S with type key = Uchar.t
 
+type coordinates = int * int [@@deriving yojson]
+module CoordinateSet : Set.S with type elt = coordinates [@@deriving yojson]
+
 type cross_stitch =
   | Full (* X *) (* full stitch *)
     (* half stitches *)
@@ -46,7 +49,7 @@ type substrate =
 type layer = {
   thread : thread;
   stitch : stitch;
-  stitches : (int * int) list;
+  stitches : CoordinateSet.t;
 } [@@deriving yojson]
 
 type layers = layer list [@@deriving yojson]
