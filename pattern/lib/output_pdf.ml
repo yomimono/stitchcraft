@@ -321,8 +321,8 @@ let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
       ])
   in
   let paint_layer (layer : Stitchy.Types.layer) =
-    List.fold_left (fun ops pixel ->
-        ops @ paint_pixel layer.thread layer.stitch pixel) [] layer.stitches
+    Stitchy.Types.CoordinateSet.fold (fun pixel ops ->
+        ops @ paint_pixel layer.thread layer.stitch pixel) layer.stitches []
   in
   let pixels = List.fold_left (fun ops layer -> ops @ paint_layer layer) [] layers in
   let page =

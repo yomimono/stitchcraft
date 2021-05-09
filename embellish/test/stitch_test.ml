@@ -5,7 +5,7 @@ module Patterns = struct
   let blackstitch =
     { stitch = Cross Full;
       thread = List.hd Stitchy.DMC.Thread.basic;
-      stitches = []
+      stitches = CoordinateSet.empty;
     }
 
   let white_bg max_x max_y : substrate =
@@ -16,12 +16,13 @@ module Patterns = struct
 
   let smol =
     let substrate = white_bg 2 1 in
-    let layer = {blackstitch with stitches = [(1, 1)]} in
+    let layer = {blackstitch with stitches = CoordinateSet.singleton (1, 1)} in
     { substrate; layers = layer::[]}
 
   let big =
     let substrate = white_bg 20 10 in
-    let layer = {blackstitch with stitches = [(0, 0); (20, 10)]} in
+    let layer = {blackstitch with stitches =
+                                    CoordinateSet.of_list [(0, 0); (20, 10)]} in
     { substrate; layers = layer::[]}
 
 end
@@ -35,12 +36,12 @@ let stitches_all_in_substrate (pattern : Stitchy.Types.pattern) =
         && pattern.substrate.max_y >= y
         && x >= 0 && y >= 0 in
         let check_stitches_in_layer (layer : Stitchy.Types.layer) =
-        List.iter (fun stitch -> Alcotest.(check bool) "stitch is within substrate" (stitch_in_substrate stitch) true) layer.stitches
+        CoordinateSet.iter (fun stitch -> Alcotest.(check bool) "stitch is within substrate" (stitch_in_substrate stitch) true) layer.stitches
         in
         List.iter check_stitches_in_layer pattern.layers
 
 let n_stitches ?(name="number of stitches is right") n pattern =
-  let stitches = List.fold_left (fun acc (layer : layer) -> acc + List.length layer.stitches) 0 pattern.layers in
+  let stitches = List.fold_left (fun acc (layer : layer) -> acc + CoordinateSet.cardinal layer.stitches) 0 pattern.layers in
   Alcotest.(check @@ int) name n stitches
 
 let has_stitch ?(name="stitch present") pattern (x, y) =
@@ -67,21 +68,21 @@ let second_needs_padding_hcat () =
 
 let shift_stitch_down () =
         let displaced_down = Compose_stitch.shift_stitches_down ~amount:1 (List.hd Patterns.smol.layers) in
-        Alcotest.(check int) "only one stitch after shifting down" (List.length displaced_down.stitches) 1;
+        Alcotest.(check int) "only one stitch after shifting down" (CoordinateSet.cardinal displaced_down.stitches) 1;
         let displaced_pattern = {layers = [displaced_down]; substrate = Patterns.big.substrate } in
         has_stitch ~name:"displaced single smol stitch" displaced_pattern (1, 2);
         n_stitches 1 displaced_pattern
 
 let shift_stitch_right () =
         let displaced_right = Compose_stitch.shift_stitches_right ~amount:1 (List.hd Patterns.smol.layers) in
-        Alcotest.(check int) "only one stitch after shifting right" (List.length displaced_right.stitches) 1;
+        Alcotest.(check int) "only one stitch after shifting right" (CoordinateSet.cardinal displaced_right.stitches) 1;
         let displaced_pattern = {layers = [displaced_right]; substrate = Patterns.big.substrate } in
         has_stitch ~name:"displaced single smol stitch" displaced_pattern (2, 1);
         n_stitches 1 displaced_pattern
 
 let merge_unmergeable_layers () =
         let nonblack_thread = { Patterns.blackstitch with thread = List.nth Stitchy.DMC.Thread.basic 2; } in
-        let nonmergeable_with_smol_layer = {nonblack_thread with stitches = [(1, 1)]} in
+        let nonmergeable_with_smol_layer = {nonblack_thread with stitches = CoordinateSet.singleton (1, 1)} in
         Alcotest.(check int) "smol pattern only has one layer" 1 (List.length Patterns.smol.layers);
         let merged = Compose_stitch.merge_threads [nonmergeable_with_smol_layer] Patterns.smol.layers in
         Alcotest.(check int) "two layers after attempted unmergeable merge" 2 (List.length merged)
@@ -89,7 +90,7 @@ let merge_unmergeable_layers () =
 let merge_mergeable_layers () =
         let merged = Compose_stitch.merge_threads Patterns.smol.layers Patterns.big.layers in
         Alcotest.(check int) "smol and big pattern use the same thread and should be mergeable" 1 (List.length merged);
-        Alcotest.(check int) "stitches in merged layer" 3 (List.length (List.hd merged).stitches)
+        Alcotest.(check int) "stitches in merged layer" 3 (CoordinateSet.cardinal (List.hd merged).stitches)
 
 let check_vcat () =
   let vcat_smol = Compose_stitch.vcat Patterns.smol Patterns.smol in
@@ -114,7 +115,7 @@ let check_multiple_vcat () =
 let unmergeable_vcat () =
   let orange_thread = List.nth Stitchy.DMC.Thread.basic 2 in
   let orange_layer = { Patterns.blackstitch with thread = orange_thread } in
-  let unmergeable_layer = {orange_layer with stitches = [(0, 0)]} in
+  let unmergeable_layer = {orange_layer with stitches = CoordinateSet.singleton (0, 0)} in
   let left_pattern = {layers = [unmergeable_layer]; substrate = Patterns.smol.substrate} in
   let vcatted = Compose_stitch.vcat left_pattern Patterns.smol in
   n_stitches 2 vcatted;

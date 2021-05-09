@@ -6,14 +6,14 @@ let displace_stitch_down ~amount (x, y) =
 
 let shift_stitches_down ~amount (layer : layer) =
   {layer with stitches =
-                List.map (displace_stitch_down ~amount) layer.stitches}
+                CoordinateSet.map (displace_stitch_down ~amount) layer.stitches}
 
 let displace_stitch_right ~amount (x, y) =
   (x + amount), y
 
 let shift_stitches_right ~amount (layer : layer) =
   {layer with stitches =
-                List.map (displace_stitch_right ~amount) layer.stitches}
+                CoordinateSet.map (displace_stitch_right ~amount) layer.stitches}
 
 
 let padding one two =
@@ -40,7 +40,7 @@ let merge_threads layers_a layers_b =
     Stitchy.Types.equal_stitch a.stitch b.stitch
   in
   let merge (a : layer) (b : layer) =
-    {a with stitches = a.stitches @ b.stitches}
+    {a with stitches = CoordinateSet.union a.stitches b.stitches}
   in
   List.fold_left (fun deduplicated layer ->
       match List.partition (is_mergeable layer) deduplicated with

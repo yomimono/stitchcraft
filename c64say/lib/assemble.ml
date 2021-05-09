@@ -16,9 +16,9 @@ let default_char = Uchar.of_char '#' (* we assume "#" is in most fonts and prett
 
 let add_glyph_to_layer ~x_off ~y_off glyph (layer : layer) : layer =
   let with_new_stitches =
-    List.fold_left (fun stitches (x, y) ->
-        (x_off + x, y_off + y)::stitches
-      ) layer.stitches glyph.Stitchy.Types.stitches
+    CoordinateSet.fold (fun (x, y) stitches ->
+        CoordinateSet.add (x_off + x, y_off + y) stitches
+      ) glyph.Stitchy.Types.stitches layer.stitches
   in
   {layer with stitches = with_new_stitches}
 
@@ -62,7 +62,7 @@ let blocks_of_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread phr
   let empty_layer = {
     thread;
     stitch = Cross Full;
-    stitches = [];
+    stitches = CoordinateSet.empty;
   } in
   advance decoder 0 0 (empty_layer, 0, starting_height)
 

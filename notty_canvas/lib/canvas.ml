@@ -20,9 +20,9 @@ let colors ~x_off ~y_off ~width ~height pattern =
    * defined by [(x_off, y_off) ... (x_off + width), (y_off + height)) *)
   let view : layer list = Stitchy.Types.submap ~x_off ~y_off ~width ~height pattern.layers in
   List.filter_map (fun (layer : layer) ->
-      match layer.stitches with
-      | [] -> None
-      | _::_ -> Some layer.thread) view
+      match CoordinateSet.is_empty layer.stitches with
+      | true -> None
+      | false -> Some layer.thread) view
 
 let uchar_of_cross_stitch = function
   | Full -> Uchar.of_int 0x2588

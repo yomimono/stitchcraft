@@ -86,7 +86,7 @@ let print_thread_info {thread; amount; length; skeins; cost; seconds } =
 
 let thread_info grid (layer : layer) =
   let thread = layer.thread in
-  let amount = List.length layer.stitches in
+  let amount = CoordinateSet.cardinal layer.stitches in
   let length = length_of_thread amount grid in
   let skeins = length /. skein_length_inches in
   let cost = skeins *. price_per_skein in

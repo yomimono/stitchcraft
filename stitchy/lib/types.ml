@@ -99,12 +99,12 @@ type pattern = {
 } [@@deriving eq, yojson]
 
 let stitches_at pattern coordinate =
-  List.find_all (fun layer -> List.mem coordinate layer.stitches) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
+  List.find_all (fun layer -> CoordinateSet.mem coordinate layer.stitches) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
 
 let submap ~x_off ~y_off ~width ~height layers =
   let only_stitches_in_submap layer =
     let stitches =
-      List.filter (fun (x, y)-> x < x_off + width && y < y_off + height) layer.stitches
+      CoordinateSet.filter (fun (x, y)-> x < x_off + width && y < y_off + height) layer.stitches
     in
     {layer with stitches = stitches}
   in
@@ -131,7 +131,7 @@ let pp_pattern = fun fmt {substrate; layers} ->
 
 (* lack of dependent types makes us Zalgo-compatible by default *)
 type glyph = {
-  stitches : (int * int) list;
+  stitches : CoordinateSet.t;
   height : int;
   width : int;
 } [@@deriving yojson {strict=false}]

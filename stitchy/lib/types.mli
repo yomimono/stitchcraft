@@ -65,7 +65,7 @@ val submap : x_off:int -> y_off:int -> width:int -> height:int -> layer list -> 
 val pp_pattern : Format.formatter -> pattern -> unit [@@ocaml.toplevel_printer]
 
 type glyph = {
-  stitches : (int * int) list;
+  stitches : CoordinateSet.t;
   height : int;
   width : int;
 } [@@deriving yojson]
