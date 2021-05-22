@@ -3,7 +3,7 @@ open Pattern.Output_pdf
 
 let grid_size =
   let doc = "Size of a grid entry representing one stitch, in points. 72 points is one inch." in
-  Arg.(value & opt int 12 & info ["pixel-size"; "p"] ~docv:"PIXEL_SIZE" ~doc)
+  Arg.(value & opt int 10 & info ["pixel-size"; "p"] ~docv:"PIXEL_SIZE" ~doc)
 
 let fat_line_interval =
   let doc = "Interval at which to draw a thicker guideline on the grid and label the axis with intermediate values." in
@@ -37,8 +37,6 @@ let paper_size =
   let doc = "size of paper to use" in
   Arg.(value & opt (enum sizes) Pdfpaper.usletter & info ["paper"] ~docv:"PAPER" ~doc)
 
-let font_size = 12
-
 let get_symbol pattern symbols x y =
   let open Stitchy.Types in
   match Stitchy.Types.stitches_at pattern (x, y) with
@@ -50,7 +48,7 @@ let get_symbol pattern symbols x y =
     in
     (Stitchy.DMC.Thread.to_rgb thread), symbol
 
-let paint_pixels pattern doc page =
+let paint_pixels ~font_size pattern doc page =
   (* x and y are the relative offsets within the page. *)
   (* (so, even if this is page 3 and the grid that's painted over this will be
      stitches 100-200 (x) and 50-70 (y), x and y will count up from 0 here.
@@ -95,14 +93,14 @@ let assign_symbols (layers : Stitchy.Types.layer list )=
       (freelist, Stitchy.Types.SymbolMap.add thread symbol map))
   (Stitchy.Symbol.printable_symbols, color_map) threads
 
-let pages paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
+let pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
   let open Stitchy.Types in
   let xpp = x_per_page ~pixel_size
   and ypp = y_per_page ~pixel_size
   in
   let width = pattern.substrate.max_x + 1 and height = pattern.substrate.max_y + 1 in
   let doc = { paper_size; pixel_size; fat_line_interval; symbols; } in
-  let pixels = paint_pixels pattern in
+  let pixels = paint_pixels ~font_size pattern in
   let rec page x y n l =
     let l = make_page doc ~watermark ~first_x:x ~first_y:y ~width ~height n pixels :: l in
     if (x + xpp) >= width && (y + ypp) >= height then l    
@@ -122,10 +120,11 @@ let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
   match Stitchy.Types.pattern_of_yojson (json src) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
+    let font_size = pixel_size - 4 in
     let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.layers in
     let cover = coverpage paper_size pattern in
-    let symbols = symbolpage ~font_size paper_size symbol_map in
-    let pages = cover :: symbols :: (pages paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in
+    let symbols = symbolpage ~font_size:12 paper_size symbol_map in
+    let pages = cover :: symbols :: (pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in
     let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in
     let pdf = Pdfpage.add_root pageroot [] pdf in
     Pdfwrite.pdf_to_file pdf dst
