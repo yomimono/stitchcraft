@@ -203,7 +203,6 @@ let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
   (* the color now needs to come in a bit from the grid sides, since
        we're doing a border rather than a fill; this is the constant
        by which it is inset *)
-  let color_inset = (stroke_width *. 0.5) in
   let (font_key, symbol) = key_and_symbol symbol in
   let font_stroke, font_paint =
     if contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
@@ -211,10 +210,6 @@ let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
     else
       (* TODO: check the background as well and make sure this won't fade in there *)
       Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
-  in
-  let bounding_box = Pdfops.Op_re (x_pos +. color_inset, (y_pos -. pixel_size +. color_inset),
-             (pixel_size -. (color_inset *. 2.)),
-             (pixel_size -. (color_inset *. 2.)));
   in
   let font_location =
     (* y_transform gives us the offset to draw our character in a vertically centered location *)
@@ -229,8 +224,6 @@ let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
   Pdfops.([
       Op_q;
       Op_w stroke_width;
-      Op_RG (scale r, scale g, scale b);
-      bounding_box;
       Op_s;
       Op_cm
         (Pdftransform.matrix_of_transform [font_location]);

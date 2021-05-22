@@ -3,7 +3,7 @@ open Pattern.Output_pdf
 
 let grid_size =
   let doc = "Size of a grid entry representing one stitch, in points. 72 points is one inch." in
-  Arg.(value & opt int 10 & info ["pixel-size"; "p"] ~docv:"PIXEL_SIZE" ~doc)
+  Arg.(value & opt int 12 & info ["pixel-size"; "p"] ~docv:"PIXEL_SIZE" ~doc)
 
 let fat_line_interval =
   let doc = "Interval at which to draw a thicker guideline on the grid and label the axis with intermediate values." in
