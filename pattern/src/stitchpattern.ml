@@ -28,9 +28,8 @@ let info =
 let paper_size =
   let sizes = [ (*
     "a0", Pdfpaper.a0; "a1", Pdfpaper.a1; "a2", Pdfpaper.a2; "a3", Pdfpaper.a3;
-    "a4", Pdfpaper.a4; "a5", Pdfpaper.a5; "a6", Pdfpaper.a6; "a7", Pdfpaper.a7;
+    *) "a4", Pdfpaper.a4; (* "a5", Pdfpaper.a5; "a6", Pdfpaper.a6; "a7", Pdfpaper.a7;
     "a8", Pdfpaper.a8; "a9", Pdfpaper.a9; "a10", Pdfpaper.a10; *)
-    (* a4 seems not to work, so TODO commenting it out *)
     "letter", Pdfpaper.usletter;
     "legal", Pdfpaper.uslegal;
   ] in
