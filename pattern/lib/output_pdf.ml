@@ -49,6 +49,8 @@ type page = {
   page_number : int;
 }
 
+
+(* TODO both of these should be parameterized by the paper info *)
 let x_per_page ~pixel_size =
   (* assume 7 usable inches after margins and axis labels *)
   (72 * 7) / pixel_size
@@ -258,12 +260,8 @@ let symbol_table color_to_symbol =
       Op_Q;
     ]
   in
-  Stitchy.Types.SymbolMap.fold (fun (r, g, b) symbol (placement, ops) ->
-      let description =
-        match Stitchy.DMC.Thread.of_rgb (r, g, b) with
-        | None -> Printf.sprintf "an unknown thread of color (%d, %d, %d)" r g b
-        | Some thread -> Stitchy.DMC.Thread.to_string thread
-      in
+  Stitchy.Types.SymbolMap.fold (fun thread symbol (placement, ops) ->
+      let description = Stitchy.DMC.Thread.to_string thread in
       let ops = paint_symbol description symbol placement @ ops in
       (placement + 1, ops)
     ) color_to_symbol (0, [])

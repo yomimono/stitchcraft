@@ -32,7 +32,7 @@ type thread = DMC.Thread.t
 
 val pp_thread : Format.formatter -> thread -> unit [@@ocaml.toplevel_printer]
 
-module SymbolMap : Map.S with type key = RGB.t
+module SymbolMap : Map.S with type key = thread
 
 (* this is rather unimaginative ;) *)
 type grid = | Fourteen | Sixteen | Eighteen

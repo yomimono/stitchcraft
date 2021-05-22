@@ -45,7 +45,7 @@ type thread = DMC.Thread.t
 
 let pp_thread = Fmt.of_to_string DMC.Thread.to_string
 
-module SymbolMap = Map.Make(RGB)
+module SymbolMap = Map.Make(DMC.Thread)
 
 type grid = | Fourteen | Sixteen | Eighteen
 [@@deriving eq, yojson]

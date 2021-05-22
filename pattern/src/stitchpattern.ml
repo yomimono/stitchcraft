@@ -42,12 +42,11 @@ let get_symbol pattern symbols x y =
   match Stitchy.Types.stitches_at pattern (x, y) with
   | [] -> pattern.substrate.background, Stitchy.Symbol.default
   | (_stitch, thread)::_ ->
-    let color = Stitchy.DMC.Thread.to_rgb thread in
-    let symbol = match SymbolMap.find_opt color symbols with
+    let symbol = match SymbolMap.find_opt thread symbols with
       | None -> Stitchy.Symbol.default
       | Some symbol -> symbol
     in
-    color, symbol
+    (Stitchy.DMC.Thread.to_rgb thread), symbol
 
 let paint_pixels pattern doc page =
   (* x and y are the relative offsets within the page. *)
@@ -87,13 +86,12 @@ let assign_symbols (layers : Stitchy.Types.layer list )=
     | [] -> (Stitchy.Symbol.default, [])
     | hd::tl -> (hd, tl)
   in
-  let colors = List.map (fun layer -> Stitchy.DMC.Thread.to_rgb layer.Stitchy.Types.thread) layers
-               |> List.sort_uniq Stitchy.RGB.compare in
+  let threads = List.map (fun layer -> layer.Stitchy.Types.thread) layers |> List.sort_uniq Stitchy.DMC.Thread.compare in
   let color_map = Stitchy.Types.SymbolMap.empty in
-  List.fold_left (fun (freelist, map) color ->
+  List.fold_left (fun (freelist, map) thread ->
       let symbol, freelist = next freelist in
-      (freelist, Stitchy.Types.SymbolMap.add color symbol map))
-  (Stitchy.Symbol.printable_symbols, color_map) colors
+      (freelist, Stitchy.Types.SymbolMap.add thread symbol map))
+  (Stitchy.Symbol.printable_symbols, color_map) threads
 
 let pages paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
   let open Stitchy.Types in

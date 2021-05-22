@@ -7,7 +7,7 @@ let symbol_map colors =
       | Some symbol -> (thread, symbol.uchar)
     ) colors in
   List.fold_left (fun map (thread, symbol) ->
-      SymbolMap.add (Stitchy.DMC.Thread.to_rgb thread) symbol map
+      SymbolMap.add thread symbol map
     ) SymbolMap.empty lookups
 
 let color_map (a, b, c) =
@@ -38,7 +38,7 @@ let uchar_of_stitch = function
   | Back _ -> Uchar.of_char '?' (* TODO: obviously not, but I don't know what to do here instead *)
 
 let symbol_of_thread symbols (stitch, thread) =
-  match SymbolMap.find_opt (Stitchy.DMC.Thread.to_rgb thread) symbols with
+  match SymbolMap.find_opt thread symbols with
   | Some a -> a
   | None -> uchar_of_stitch stitch
 
@@ -49,7 +49,7 @@ let color_key substrate symbols view colors =
       let style = Notty.A.(fg (color_map needle) ++ bg (color_map substrate.background)) in
       let symbol =
         if view.Controls.block_display = `Solid then Uchar.of_int 0x2588 else
-        match SymbolMap.find_opt needle symbols with
+        match SymbolMap.find_opt c symbols with
         | Some a -> a
         | None -> Uchar.of_int 0x2588
       in
