@@ -37,6 +37,8 @@ let paper_size =
   let doc = "size of paper to use" in
   Arg.(value & opt (enum sizes) Pdfpaper.usletter & info ["paper"] ~docv:"PAPER" ~doc)
 
+let font_size = 12
+
 let get_symbol pattern symbols x y =
   let open Stitchy.Types in
   match Stitchy.Types.stitches_at pattern (x, y) with
@@ -72,7 +74,7 @@ let paint_pixels pattern doc page =
          to the painting function *)
       let ((r, g, b), symbol) = get_symbol pattern doc.symbols x y in
       let this_pixel =
-        paint_pixel ~x_pos ~y_pos
+        paint_pixel ~font_size ~x_pos ~y_pos
           ~pixel_size:(float_of_int doc.pixel_size)
           r g b symbol
       in
@@ -122,7 +124,7 @@ let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
   | Ok pattern ->
     let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.layers in
     let cover = coverpage paper_size pattern in
-    let symbols = symbolpage paper_size symbol_map in
+    let symbols = symbolpage ~font_size paper_size symbol_map in
     let pages = cover :: symbols :: (pages paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in
     let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in
     let pdf = Pdfpage.add_root pageroot [] pdf in
