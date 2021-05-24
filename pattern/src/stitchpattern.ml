@@ -26,10 +26,8 @@ let info =
   Term.info "pattern" ~doc
 
 let paper_size =
-  let sizes = [ (*
-    "a0", Pdfpaper.a0; "a1", Pdfpaper.a1; "a2", Pdfpaper.a2; "a3", Pdfpaper.a3;
-    *) "a4", Pdfpaper.a4; (* "a5", Pdfpaper.a5; "a6", Pdfpaper.a6; "a7", Pdfpaper.a7;
-    "a8", Pdfpaper.a8; "a9", Pdfpaper.a9; "a10", Pdfpaper.a10; *)
+  let sizes = [
+    "a4", Pdfpaper.a4;
     "letter", Pdfpaper.usletter;
     "legal", Pdfpaper.uslegal;
   ] in
