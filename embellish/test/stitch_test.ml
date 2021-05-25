@@ -1,5 +1,7 @@
 open Stitchy.Types
 
+(* TODO: a few tests here just exercise merge_threads, and should be moved over to the stitchy library *)
+
 module Patterns = struct
 
   let blackstitch =
@@ -84,11 +86,11 @@ let merge_unmergeable_layers () =
         let nonblack_thread = { Patterns.blackstitch with thread = List.nth Stitchy.DMC.Thread.basic 2; } in
         let nonmergeable_with_smol_layer = {nonblack_thread with stitches = CoordinateSet.singleton (1, 1)} in
         Alcotest.(check int) "smol pattern only has one layer" 1 (List.length Patterns.smol.layers);
-        let merged = Compose_stitch.merge_threads [nonmergeable_with_smol_layer] Patterns.smol.layers in
+        let merged = Stitchy.Layers.merge_threads [nonmergeable_with_smol_layer] Patterns.smol.layers in
         Alcotest.(check int) "two layers after attempted unmergeable merge" 2 (List.length merged)
 
 let merge_mergeable_layers () =
-        let merged = Compose_stitch.merge_threads Patterns.smol.layers Patterns.big.layers in
+        let merged = Stitchy.Layers.merge_threads Patterns.smol.layers Patterns.big.layers in
         Alcotest.(check int) "smol and big pattern use the same thread and should be mergeable" 1 (List.length merged);
         Alcotest.(check int) "stitches in merged layer" 3 (CoordinateSet.cardinal (List.hd merged).stitches)
 

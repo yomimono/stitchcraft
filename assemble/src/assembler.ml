@@ -24,6 +24,7 @@ let output =
   let doc = "output the assembled pattern here. - for stdout (the default)." in
   Cmdliner.Arg.(value & opt string "-" & info ["o"; "output"] ~doc)
 
+(* TODO: don't disregard grid size here *)
 let go input _grid width height background output =
   match Stitchy.Files.stdin_or_file input with
   | Error s -> failwith s

@@ -1,0 +1,17 @@
+let merge_threads layers_a layers_b =
+  let is_mergeable a b = 
+    DMC.Thread.equal a.Types.thread b.Types.thread &&
+    Types.equal_stitch a.stitch b.stitch
+  in  
+  let merge (a : Types.layer) (b : Types.layer) =
+    {a with stitches = Types.CoordinateSet.union a.stitches b.stitches}
+  in  
+  List.fold_left (fun deduplicated layer ->
+      match List.partition (is_mergeable layer) deduplicated with
+      | [], deduplicated -> layer :: deduplicated
+      | duplicates, sans_duplicates ->
+        (* there shouldn't be more than one duplicate here, but it's not hard
+           to do the right thing if there is, so let's just go for it *)
+        let new_layer = List.fold_left (fun l dupe -> merge l dupe) layer duplicates in
+        new_layer :: sans_duplicates
+    ) [] (layers_a @ layers_b)
