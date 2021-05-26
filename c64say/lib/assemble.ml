@@ -47,6 +47,7 @@ let blocks_of_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread phr
         advance decoder (x_off + width) y_off (stitches, new_max_x, max_y)
       | `Ll | `Lm | `Lo | `Lt | `Lu
       (* for the moment, we ignore all combining marks *)
+      (* there are many fonts for which we could do the right thing here -- TODO *)
       | `Nd | `Nl | `No
       | `Pc | `Pd | `Pe | `Pf | `Pi | `Po | `Ps
       | `Sc | `Sk | `Sm | `So ->
