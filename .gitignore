@@ -3,3 +3,4 @@ _build
 *.merlin
 c64say/isaid.png
 examples/
+stitchcraft.opam
