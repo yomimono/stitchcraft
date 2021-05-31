@@ -42,6 +42,10 @@ Stitchcraft bundles several executables for command-line use.  Many assume the p
 
 The `dune` file contains several test cases.  Have a look at the `brainfuck`, `butts`, `cards`, `be_gay_find_primes`, `verbs`, and `tops` targets.
 
+## Importing Graphics
+
+`ih` is a fabulous command-line tool for automatically generating cross-stitch patterns from raster images. There is a fork of `ih` available at [https://github.com/yomimono/ih/tree/stitchy_interchange](https://github.com/yomimono/ih/tree/stitchy_interchange) which adds a `-o json` output mode; the output of `ih` in this mode is a list of layers, which can be imported into a Stitchcraft workflow with the `assemble` tool.
+
 # Design Goals
 
 All tools are built around the central `stitchy` library and a simple JSON-based interchange format.  As a tool of last resort, it is possible to hand-build patterns understandable by Stitchcraft, but I hope it's easier to use the libraries to build tools instead.
