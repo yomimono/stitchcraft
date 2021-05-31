@@ -22,7 +22,7 @@ let add_glyph_to_layer ~x_off ~y_off glyph (layer : layer) : layer =
   in
   {layer with stitches = with_new_stitches}
 
-let blocks_of_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread phrase interline =
+let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread phrase interline =
   let add_stitches_for_glyph ~x_off ~y_off letter layer =
     match lookup letter with
     | None -> layer
@@ -73,6 +73,6 @@ let normalize phrase =
 let stitch lookup textcolor background gridsize (phrase : string) interline =
   let phrase = normalize phrase in
   let thread = Colors.thread_of_color textcolor in
-  let (phrase, max_x, max_y) = blocks_of_phrase lookup thread phrase interline in
+  let (phrase, max_x, max_y) = render_phrase lookup thread phrase interline in
   let substrate = make_substrate ~max_x ~max_y background gridsize in
   {layers = [phrase]; substrate;}
