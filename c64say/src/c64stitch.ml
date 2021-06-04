@@ -30,7 +30,8 @@ let gridsize =
 
 let font_name =
   let doc = "font to use (should match a database name)" in
-  Cmdliner.Arg.(value & opt string "Bm437_PhoenixEGA_8x8" & info ["f"; "font"] ~doc)
+  let env = Cmdliner.Arg.env_var "STITCH_FONT" ~doc in
+  Cmdliner.Arg.(value & opt string "Bm437_PhoenixEGA_8x8" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
 
 let db =
   let doc = "filename containing a sqlite database of font information" in
