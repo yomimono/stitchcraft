@@ -124,13 +124,19 @@ let embellish ~center ~corner ~top ~side =
       ~center:(center.substrate.max_y + 1)
       ~side:(side.substrate.max_y + 1)
   in
+  let divide_space amount =
+    if amount mod 2 == 0 then (amount / 2, amount / 2)
+    else (amount / 2 + 1, amount / 2)
+  in
   let side_border = hrepeat side vert_border_reps in
   let top_border = vrepeat top horiz_border_reps in
   let center =
     if center.substrate.max_x < top_border.substrate.max_x then begin
-      let empty_corner_x = (top_border.substrate.max_x - center.substrate.max_x) / 2 in
-      let empty_corner = empty center.substrate (empty_corner_x - 1) 1 in
-      (side_border <|> empty_corner <|> center <|> empty_corner <|> side_border)
+      let x_difference = top_border.substrate.max_x - center.substrate.max_x in
+      let left_pad, right_pad = divide_space x_difference in
+      let empty_corner_left = empty center.substrate (left_pad - 1) 1 in
+      let empty_corner_right = empty center.substrate (right_pad - 1) 1 in
+      (side_border <|> empty_corner_left <|> center <|> empty_corner_right <|> side_border)
     end else
       (side_border <|> center <|> side_border)
   in
