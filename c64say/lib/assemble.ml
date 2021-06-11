@@ -16,13 +16,13 @@ let default_char = Uchar.of_char '#' (* we assume "#" is in most fonts and prett
 
 let add_glyph_to_layer ~x_off ~y_off glyph (layer : layer) : layer =
   let with_new_stitches =
-    List.fold_left (fun stitches (x, y) ->
-        (x_off + x, y_off + y)::stitches
-      ) layer.stitches glyph.Stitchy.Types.stitches
+    CoordinateSet.fold (fun (x, y) stitches ->
+        CoordinateSet.add (x_off + x, y_off + y) stitches
+      ) glyph.Stitchy.Types.stitches layer.stitches
   in
   {layer with stitches = with_new_stitches}
 
-let blocks_of_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread phrase interline =
+let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread phrase interline =
   let add_stitches_for_glyph ~x_off ~y_off letter layer =
     match lookup letter with
     | None -> layer
@@ -47,6 +47,7 @@ let blocks_of_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread phr
         advance decoder (x_off + width) y_off (stitches, new_max_x, max_y)
       | `Ll | `Lm | `Lo | `Lt | `Lu
       (* for the moment, we ignore all combining marks *)
+      (* there are many fonts for which we could do the right thing here -- TODO *)
       | `Nd | `Nl | `No
       | `Pc | `Pd | `Pe | `Pf | `Pi | `Po | `Ps
       | `Sc | `Sk | `Sm | `So ->
@@ -62,7 +63,7 @@ let blocks_of_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread phr
   let empty_layer = {
     thread;
     stitch = Cross Full;
-    stitches = [];
+    stitches = CoordinateSet.empty;
   } in
   advance decoder 0 0 (empty_layer, 0, starting_height)
 
@@ -72,6 +73,6 @@ let normalize phrase =
 let stitch lookup textcolor background gridsize (phrase : string) interline =
   let phrase = normalize phrase in
   let thread = Colors.thread_of_color textcolor in
-  let (phrase, max_x, max_y) = blocks_of_phrase lookup thread phrase interline in
+  let (phrase, max_x, max_y) = render_phrase lookup thread phrase interline in
   let substrate = make_substrate ~max_x ~max_y background gridsize in
   {layers = [phrase]; substrate;}

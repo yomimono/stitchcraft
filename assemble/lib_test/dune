@@ -1,0 +1,11 @@
+(executable
+ (name lib_test)
+ (libraries alcotest assemble stitchy)
+)
+
+(rule
+ (alias runtest)
+ (action
+  (run %{exe:lib_test.exe})
+ )
+)

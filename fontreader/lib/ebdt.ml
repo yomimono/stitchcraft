@@ -10,4 +10,5 @@ let unicode_glyph_data_to_stitchy_glyph debug ~width ~height ~offset ebdt n_glyp
   let data = Cstruct.sub ebdt offset (n_glyphs * size_in_bytes) in
   if debug then Printf.printf "for %d glyphs, got %d bytes starting at offset %x\n%!" n_glyphs (Cstruct.len data) offset;
   let coordinates = Rawbits.glyphs_of_bytes debug ~height ~width data in
-  List.map (fun stitches -> {Stitchy.Types.stitches; width; height }) coordinates
+  let open Stitchy.Types in
+  List.map (fun stitches -> {stitches = CoordinateSet.of_list stitches; width; height }) coordinates

@@ -1,20 +1,6 @@
 (* some PPX-generated code results in warning 39; turn that off *)
 [@@@ocaml.warning "-32-39"]
 
-(* a "block" is a region which may contain a stitch. *)
-(* the piece is composed of a whole bunch of blocks of constant size
-   in a 2d plane. *)
-
-module Block = struct
-  type t = int * int (* x, y *) [@@deriving eq, yojson]
-  let compare (x1, y1) (x2, y2) =
-    match Stdlib.compare x1 x2 with
-    | 0 -> Stdlib.compare y1 y2
-    | n -> n
-  let pp = Fmt.(pair int int) [@@toplevel_printer]
-end
-
-
 type cross_stitch =
   | Full (* X *) (* full stitch *)
     (* half stitches *)
@@ -59,7 +45,7 @@ type thread = DMC.Thread.t
 
 let pp_thread = Fmt.of_to_string DMC.Thread.to_string
 
-module SymbolMap = Map.Make(RGB)
+module SymbolMap = Map.Make(DMC.Thread)
 
 type grid = | Fourteen | Sixteen | Eighteen
 [@@deriving eq, yojson]
@@ -81,11 +67,31 @@ type substrate =
 let pp_substrate fmt {grid; background; _} =
   Format.fprintf fmt "%a aida cloth, color %a" pp_grid grid RGB.pp background
 
+type coordinates = int * int [@@deriving yojson]
+
+module Coordinates = struct
+  type t = coordinates [@@deriving yojson]
+  let compare (x1, y1) (x2, y2) =
+    if compare x1 x2 == 0 then compare y1 y2 else compare x1 x2
+end
+module CoordinateSet = struct
+  include Set.Make(Coordinates)
+  type coord_list = coordinates list [@@deriving yojson]
+  let to_yojson set =
+    coord_list_to_yojson @@ elements set
+  let of_yojson set =
+    match coord_list_of_yojson set with
+    | Error e -> Error e
+    | Ok coords -> Ok (of_list coords)
+end
+
 type layer = {
   thread : thread; 
   stitch : stitch;
-  stitches : (int * int) list;
+  stitches : CoordinateSet.t;
 } [@@deriving eq, yojson]
+
+type layers = layer list [@@deriving eq, yojson]
 
 type pattern = {
   substrate : substrate;
@@ -93,12 +99,12 @@ type pattern = {
 } [@@deriving eq, yojson]
 
 let stitches_at pattern coordinate =
-  List.find_all (fun layer -> List.mem coordinate layer.stitches) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
+  List.find_all (fun layer -> CoordinateSet.mem coordinate layer.stitches) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
 
 let submap ~x_off ~y_off ~width ~height layers =
   let only_stitches_in_submap layer =
     let stitches =
-      List.filter (fun (x, y)-> x < x_off + width && y < y_off + height) layer.stitches
+      CoordinateSet.filter (fun (x, y)-> x < x_off + width && y < y_off + height) layer.stitches
     in
     {layer with stitches = stitches}
   in
@@ -125,10 +131,11 @@ let pp_pattern = fun fmt {substrate; layers} ->
 
 (* lack of dependent types makes us Zalgo-compatible by default *)
 type glyph = {
-  stitches : (int * int) list;
+  stitches : CoordinateSet.t;
   height : int;
   width : int;
 } [@@deriving yojson {strict=false}]
+
 
 module UcharMap = Map.Make(Uchar)
 

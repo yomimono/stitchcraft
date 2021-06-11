@@ -31,7 +31,7 @@ let parse_glyph_table ~width ~height table =
   let rec next_glyph glyphs table =
     if Cstruct.len table < bytes_in_row * height then glyphs
     else begin
-      let stitches = Rawbytes.read_rows table ~bytes_in_row ~height ~width [] 0 in
+      let stitches = Rawbytes.read_rows table ~bytes_in_row ~height ~width [] 0 |> Stitchy.Types.CoordinateSet.of_list in
       let glyph : Stitchy.Types.glyph = {
         stitches;
         height;

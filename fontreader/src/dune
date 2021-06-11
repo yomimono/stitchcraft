@@ -15,26 +15,7 @@
  (libraries cmdliner fontreader sqlite)
 )
 (executable
- (public_name readotf)
- (modules readotf)
- (libraries cmdliner bos fmt fontreader)
-)
-(executable
  (public_name otf2sqlite)
  (modules otf2sqlite)
  (libraries cmdliner fontreader sqlite)
 )
-
-(rule
- (alias runtest)
- (deps (source_tree fonts) readotf.exe)
- (action
-  (progn
-  (run readotf ./fonts/BmPlus_ToshibaSat_8x8.otb)
-  (run readotf ./fonts/BmPlus_IBM_VGA_8x14.otb)
-  (run readotf ./fonts/BmPlus_IBM_VGA_8x16.otb)
-  (run readotf ./fonts/BmPlus_ToshibaSat_9x8.otb)
-  (run readotf ./fonts/BmPlus_IBM_VGA_9x14.otb)
-  (run readotf ./fonts/BmPlus_IBM_VGA_9x16.otb)
-  (run readotf ./fonts/Bm437_IBM_PS-55_re.otb)
-)))

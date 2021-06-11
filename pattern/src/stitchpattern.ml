@@ -26,11 +26,8 @@ let info =
   Term.info "pattern" ~doc
 
 let paper_size =
-  let sizes = [ (*
-    "a0", Pdfpaper.a0; "a1", Pdfpaper.a1; "a2", Pdfpaper.a2; "a3", Pdfpaper.a3;
-    "a4", Pdfpaper.a4; "a5", Pdfpaper.a5; "a6", Pdfpaper.a6; "a7", Pdfpaper.a7;
-    "a8", Pdfpaper.a8; "a9", Pdfpaper.a9; "a10", Pdfpaper.a10; *)
-    (* a4 seems not to work, so TODO commenting it out *)
+  let sizes = [
+    "a4", Pdfpaper.a4;
     "letter", Pdfpaper.usletter;
     "legal", Pdfpaper.uslegal;
   ] in
@@ -42,14 +39,13 @@ let get_symbol pattern symbols x y =
   match Stitchy.Types.stitches_at pattern (x, y) with
   | [] -> pattern.substrate.background, Stitchy.Symbol.default
   | (_stitch, thread)::_ ->
-    let color = Stitchy.DMC.Thread.to_rgb thread in
-    let symbol = match SymbolMap.find_opt color symbols with
+    let symbol = match SymbolMap.find_opt thread symbols with
       | None -> Stitchy.Symbol.default
       | Some symbol -> symbol
     in
-    color, symbol
+    (Stitchy.DMC.Thread.to_rgb thread), symbol
 
-let paint_pixels pattern doc page =
+let paint_pixels ~font_size pattern doc page =
   (* x and y are the relative offsets within the page. *)
   (* (so, even if this is page 3 and the grid that's painted over this will be
      stitches 100-200 (x) and 50-70 (y), x and y will count up from 0 here.
@@ -73,7 +69,7 @@ let paint_pixels pattern doc page =
          to the painting function *)
       let ((r, g, b), symbol) = get_symbol pattern doc.symbols x y in
       let this_pixel =
-        paint_pixel ~x_pos ~y_pos
+        paint_pixel ~font_size ~x_pos ~y_pos
           ~pixel_size:(float_of_int doc.pixel_size)
           r g b symbol
       in
@@ -87,22 +83,21 @@ let assign_symbols (layers : Stitchy.Types.layer list )=
     | [] -> (Stitchy.Symbol.default, [])
     | hd::tl -> (hd, tl)
   in
-  let colors = List.map (fun layer -> Stitchy.DMC.Thread.to_rgb layer.Stitchy.Types.thread) layers
-               |> List.sort_uniq Stitchy.RGB.compare in
+  let threads = List.map (fun layer -> layer.Stitchy.Types.thread) layers |> List.sort_uniq Stitchy.DMC.Thread.compare in
   let color_map = Stitchy.Types.SymbolMap.empty in
-  List.fold_left (fun (freelist, map) color ->
+  List.fold_left (fun (freelist, map) thread ->
       let symbol, freelist = next freelist in
-      (freelist, Stitchy.Types.SymbolMap.add color symbol map))
-  (Stitchy.Symbol.printable_symbols, color_map) colors
+      (freelist, Stitchy.Types.SymbolMap.add thread symbol map))
+  (Stitchy.Symbol.printable_symbols, color_map) threads
 
-let pages paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
+let pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
   let open Stitchy.Types in
   let xpp = x_per_page ~pixel_size
   and ypp = y_per_page ~pixel_size
   in
   let width = pattern.substrate.max_x + 1 and height = pattern.substrate.max_y + 1 in
   let doc = { paper_size; pixel_size; fat_line_interval; symbols; } in
-  let pixels = paint_pixels pattern in
+  let pixels = paint_pixels ~font_size pattern in
   let rec page x y n l =
     let l = make_page doc ~watermark ~first_x:x ~first_y:y ~width ~height n pixels :: l in
     if (x + xpp) >= width && (y + ypp) >= height then l    
@@ -122,10 +117,11 @@ let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
   match Stitchy.Types.pattern_of_yojson (json src) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
+    let font_size = pixel_size - 4 in
     let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.layers in
     let cover = coverpage paper_size pattern in
-    let symbols = symbolpage paper_size symbol_map in
-    let pages = cover :: symbols :: (pages paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in
+    let symbols = symbolpage ~font_size:12 paper_size symbol_map in
+    let pages = cover :: symbols :: (pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in
     let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in
     let pdf = Pdfpage.add_root pageroot [] pdf in
     Pdfwrite.pdf_to_file pdf dst

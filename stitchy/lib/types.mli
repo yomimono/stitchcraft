@@ -3,6 +3,9 @@
 
 module UcharMap : Map.S with type key = Uchar.t
 
+type coordinates = int * int [@@deriving yojson]
+module CoordinateSet : Set.S with type elt = coordinates [@@deriving yojson]
+
 type cross_stitch =
   | Full (* X *) (* full stitch *)
     (* half stitches *)
@@ -29,7 +32,7 @@ type thread = DMC.Thread.t
 
 val pp_thread : Format.formatter -> thread -> unit [@@ocaml.toplevel_printer]
 
-module SymbolMap : Map.S with type key = RGB.t
+module SymbolMap : Map.S with type key = thread
 
 (* this is rather unimaginative ;) *)
 type grid = | Fourteen | Sixteen | Eighteen
@@ -46,8 +49,10 @@ type substrate =
 type layer = {
   thread : thread;
   stitch : stitch;
-  stitches : (int * int) list;
+  stitches : CoordinateSet.t;
 } [@@deriving yojson]
+
+type layers = layer list [@@deriving yojson]
 
 type pattern = {
   substrate : substrate;
@@ -60,7 +65,7 @@ val submap : x_off:int -> y_off:int -> width:int -> height:int -> layer list -> 
 val pp_pattern : Format.formatter -> pattern -> unit [@@ocaml.toplevel_printer]
 
 type glyph = {
-  stitches : (int * int) list;
+  stitches : CoordinateSet.t;
   height : int;
   width : int;
 } [@@deriving yojson]

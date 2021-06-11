@@ -16,7 +16,7 @@ let go files output =
   in
   let files = List.fold_left (fun acc yojson -> match acc, Stitchy.Types.(pattern_of_yojson yojson) with
       | Error e, _ | _, Error e -> Error e
-      | Ok states, Ok state -> Ok (state::states)
+      | Ok patterns, Ok pattern -> Ok (pattern::patterns)
     ) (Ok []) files
   in
   let bigpattern patterns =

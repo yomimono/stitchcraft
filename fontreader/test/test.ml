@@ -2,8 +2,7 @@
 (* for formats that aren't byte-aligned, make sure to test non-bit-aligned sizes *)
 (* e.g. an 8x8 test, a 16x8 test, a 9x8 test *)
 
-(* readers have to implement `Readfiles.INTERPRETER`, so let's test that *)
-
+module CoordinateSet = Stitchy.Types.CoordinateSet
 open Alcotest
 
 module Glyphmap : Alcotest.TESTABLE with
@@ -19,8 +18,7 @@ module Glyphmap : Alcotest.TESTABLE with
   let glyph_eq (a : Stitchy.Types.glyph) (b : Stitchy.Types.glyph) =
     let open Stitchy.Types in
     a.height = b.height && a.width = b.width &&
-    List.length a.stitches = List.length b.stitches &&
-    List.for_all2 (fun (a, b) (q, r) -> a = q && b = r) a.stitches b.stitches
+    CoordinateSet.equal a.stitches b.stitches
 
   let ucharl_eq a b =
     List.for_all2 Uchar.equal a b
@@ -48,7 +46,8 @@ let read_glyphmap font =
   | Error e -> Error (`Msg (Format.asprintf "%a" Fontreader.Otf2stitchfont.pp_error e))
   | Ok n -> Ok n
 
-let eight_by_eight_ascii font =
+(* minimal test: the font has any glyphs in it at all *)
+let has_some_glyphs font =
   match read_glyphmap font with
   | Error (`Msg f) -> Alcotest.fail f
   | Ok glyphmap ->
@@ -68,26 +67,42 @@ let glyph_in_font font uchar =
     Alcotest.check int msg 1 (List.length glyphs);
     List.hd glyphs
 
+(* we make the slightly questionable assumption that 0x20 is always going to be blank rather than
+ * some kind of marking word boundary. None of the fonts we chose to test with have anything in this glyph,
+ * though, so expect no stitches in it. *)
 let space_is_empty font =
   let space = fst @@ glyph_in_font font (Uchar.of_char ' ') in
   Format.printf "space char:\n%a\n" Fontreader.Readfiles.print_glyph space;
-  Alcotest.check int "no stitches for space" 0 (List.length space.stitches)
+  Alcotest.check int "no stitches for space" 0 (CoordinateSet.cardinal space.stitches)
 
-
+(* 0x2588 is supposed to be the full box-filling character, so we expect it to be full of stitches
+ * in a reasonable font. *)
 let full_box_is_full font =
   let full_box = fst @@ glyph_in_font font (Uchar.of_int 0x2588) in
   let exp_size = full_box.width * full_box.height in
-  Alcotest.check int "full box has all stitches populated" exp_size (List.length full_box.stitches)
+  Alcotest.check int "full box has all stitches populated" exp_size (CoordinateSet.cardinal full_box.stitches)
 
+(* 0x2584 is supposed to be a half-empty (split horizontally) box. Regardless of how "half" is interpreted,
+ * we don't expect to see any stitches in the first row, and we expect the last row to be fully populated.
+ * TODO: We also expect for every row to either be completely populated or empty --
+ * any partially-populated row is a misaligned translation *)
 let box_half_empty font =
   let half_box = fst @@ glyph_in_font font @@ Uchar.of_int 0x2584 in
-  let first_row = List.filter (fun (_, y) -> y = 0) half_box.stitches in
-  let last_row = List.filter (fun (_, y) -> y = (half_box.height - 1)) half_box.stitches in
-  Alcotest.check int "first row of half-box is empty" 0 (List.length first_row);
-  Alcotest.check int "last row of half-box is full" half_box.width (List.length last_row)
+  let first_row = CoordinateSet.filter (fun (_, y) -> y = 0) half_box.stitches in
+  let last_row = CoordinateSet.filter (fun (_, y) -> y = (half_box.height - 1)) half_box.stitches in
+  let full_or_empty_row y =
+    let row = CoordinateSet.filter (fun (_, this_y) -> this_y = y) half_box.stitches in
+    let n_stitches = CoordinateSet.cardinal row in
+    Alcotest.check bool "row is either full or empty" true (n_stitches = 0 || n_stitches = half_box.width)
+  in
+  Alcotest.check int "first row of half-box is empty" 0 (CoordinateSet.cardinal first_row);
+  Alcotest.check int "last row of half-box is full" half_box.width (CoordinateSet.cardinal last_row);
+  for row_number = 0 to half_box.height do
+    full_or_empty_row row_number
+  done
 
 let test_font font =
-  eight_by_eight_ascii font;
+  has_some_glyphs font;
   space_is_empty font;
   full_box_is_full font;
   box_half_empty font

@@ -6,14 +6,14 @@ type borders = {
 }
 
 let dimensions paper =
-  (* half-unit margins *)
-  let base_unit = 72. in
-  let margin = base_unit *. 0.5 in
 
-  let max_x = base_unit *. Pdfpaper.(width paper) -. margin
-  and max_y = base_unit *. Pdfpaper.(height paper) -. margin
-  and min_x = margin
-  and min_y = margin
+  let get_points = Pdfunits.convert 72. Pdfpaper.(unit paper) Pdfunits.PdfPoint in
+  let margin_points = Pdfunits.convert 72. Pdfunits.Inch Pdfunits.PdfPoint 0.5 in
+
+  let max_x = (get_points Pdfpaper.(width paper)) -. margin_points
+  and max_y = (get_points Pdfpaper.(height paper)) -. margin_points
+  and min_x = margin_points
+  and min_y = margin_points
   in
   { max_y;
     max_x;
@@ -49,6 +49,8 @@ type page = {
   page_number : int;
 }
 
+
+(* TODO both of these should be parameterized by the paper info *)
 let x_per_page ~pixel_size =
   (* assume 7 usable inches after margins and axis labels *)
   (72 * 7) / pixel_size
@@ -196,12 +198,11 @@ let key_and_symbol s = match s.Stitchy.Symbol.pdf with
 (* (otherwise we end up with a lot of tiny segments when we could have just one through-line,
    and also we can more easily do thicker lines on grid intervals when we put them all in at once) *)
 (* x_pos and y_pos are the position of the upper left-hand corner of the pixel on the page *)
-let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
+let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
   let stroke_width = 3. in (* TODO this should be relative to the thickness of fat lines *)
   (* the color now needs to come in a bit from the grid sides, since
        we're doing a border rather than a fill; this is the constant
        by which it is inset *)
-  (* let color_inset = (stroke_width *. 0.5) in *)
   let (font_key, symbol) = key_and_symbol symbol in
   let font_stroke, font_paint =
     if contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
@@ -210,37 +211,36 @@ let paint_pixel ~pixel_size ~x_pos ~y_pos r g b symbol =
       (* TODO: check the background as well and make sure this won't fade in there *)
       Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
   in
+  let font_location =
+    (* y_transform gives us the offset to draw our character in a vertically centered location *)
+    let y_transform = Pdfstandard14.baseline_adjustment Pdftext.ZapfDingbats |> float_of_int |> (/.) 1000. in
+    (* we can get the text width in millipoints directly *)
+    let symbol_width = (Pdfstandard14.textwidth false Pdftext.ImplicitInFontFile Pdftext.ZapfDingbats symbol) |>
+                       float_of_int |> (/.) 2000. in
+    Pdftransform.Translate
+      ((x_pos +. ((pixel_size *. 0.5) -. symbol_width)),
+       (y_pos -. pixel_size *. 0.5 -. y_transform))
+  in
   Pdfops.([
       Op_q;
       Op_w stroke_width;
-      Op_RG (scale r, scale g, scale b);
-      (* 
-      Op_re (x_pos +. color_inset, (y_pos -. pixel_size +. color_inset),
-             (pixel_size -. (color_inset *. 2.)),
-             (pixel_size -. (color_inset *. 2.))); *)
       Op_s;
       Op_cm
-        (* TODO: find a better way to center this *)
-        (Pdftransform.matrix_of_transform
-           [Pdftransform.Translate
-              ((x_pos +. pixel_size *. 0.0),
-               (y_pos -. pixel_size *. 1.0))
-           ]);
+        (Pdftransform.matrix_of_transform [font_location]);
       font_stroke;
       font_paint;
-      Op_Tf (font_key, 12.);
+      Op_Tf (font_key, (float_of_int font_size));
       Op_BT;
       Op_Tj symbol;
       Op_ET;
       Op_Q;
     ])
 
-let symbol_table color_to_symbol =
+let symbol_table ~font_size color_to_symbol =
   let paint_symbol description s n =
     let font_key, symbol = key_and_symbol s in
-    let font_size = 12. in
     let vertical_offset = 1. *. 72. in
-    let vertical_step n = (font_size +. 4.) *. (float_of_int n) in
+    let vertical_step n = (font_size + 4) * n |> float_of_int in
     Pdfops.[
       Op_q;
       Op_cm
@@ -248,36 +248,32 @@ let symbol_table color_to_symbol =
            [Pdftransform.Translate
               (72., vertical_offset +. vertical_step n);
            ]);
-      Op_Tf (font_key, font_size);
+      Op_Tf (font_key, (float_of_int font_size));
       Op_BT;
       Op_Tj symbol;
-      Op_Tf (helvetica_key, font_size);
+      Op_Tf (helvetica_key, (float_of_int font_size));
       Op_Tj " : ";
       Op_Tj description;
       Op_ET;
       Op_Q;
     ]
   in
-  Stitchy.Types.SymbolMap.fold (fun (r, g, b) symbol (placement, ops) ->
-      let description =
-        match Stitchy.DMC.Thread.of_rgb (r, g, b) with
-        | None -> Printf.sprintf "an unknown thread of color (%d, %d, %d)" r g b
-        | Some thread -> Stitchy.DMC.Thread.to_string thread
-      in
+  Stitchy.Types.SymbolMap.fold (fun thread symbol (placement, ops) ->
+      let description = Stitchy.DMC.Thread.to_string thread in
       let ops = paint_symbol description symbol placement @ ops in
       (placement + 1, ops)
     ) color_to_symbol (0, [])
 
-let page_resources =
+let font_resources =
    Pdf.(Dictionary [
        ("/Font", Pdf.Dictionary [(symbol_key, symbol_font);
                                  (zapf_key, zapf_font);
                                  (helvetica_key, helvetica_font)]);
      ])
 
-let symbolpage paper symbols =
-  let content = [ Pdfops.stream_of_ops @@ snd (symbol_table symbols) ] in 
-  {(Pdfpage.blankpage paper) with content; resources = page_resources;}
+let symbolpage ~font_size paper symbols =
+  let content = [ Pdfops.stream_of_ops @@ snd (symbol_table ~font_size symbols) ] in
+  {(Pdfpage.blankpage paper) with content; resources = font_resources;}
 
 (* generate a preview image *)
 let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
@@ -286,9 +282,9 @@ let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
   and height = float_of_int (substrate.max_y + 1)
   in
   let px =
-    if substrate.max_x > substrate.max_y
-    then (max_x -. min_x) /. width
-    else (max_y -. min_y) /. height
+    if substrate.max_x < substrate.max_y
+    then (max_y -. min_y) /. height
+    else (max_x -. min_x) /. width
   in
   let fill_color =
     let (r, g, b) = substrate.background in
@@ -321,8 +317,8 @@ let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
       ])
   in
   let paint_layer (layer : Stitchy.Types.layer) =
-    List.fold_left (fun ops pixel ->
-        ops @ paint_pixel layer.thread layer.stitch pixel) [] layer.stitches
+    Stitchy.Types.CoordinateSet.fold (fun pixel ops ->
+        ops @ paint_pixel layer.thread layer.stitch pixel) layer.stitches []
   in
   let pixels = List.fold_left (fun ops layer -> ops @ paint_layer layer) [] layers in
   let page =

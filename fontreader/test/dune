@@ -1,6 +1,12 @@
 (executable
  (name test)
+ (modules test)
  (libraries alcotest cmdliner bos fontreader fmt otfm stitchy)
+)
+(executable
+ (public_name readotf)
+ (modules readotf)
+ (libraries cmdliner bos fmt fontreader)
 )
 
 (rule

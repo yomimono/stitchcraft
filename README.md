@@ -2,14 +2,15 @@
 
 This is "stitchcraft", a collection of interoperable tools for generating cross-stitch patterns.
 
+# How good is it?
+
+"stitchcraft" is free-as-in-mattress. It is several bits of software the author created to satisfy her own needs; if it's useful to you, great!
+
 # How can I install it?
 
 ### If you are familiar with building OCaml packages with opam:
 
-You will need to pin:
-* `imagelib` and `imagelib-unix` to an unmerged branch: `opam pin add https://github.com/cfcs/ocaml-imagelib.git#alcotest-add`.
-
-Then `dune build` in the top-level directory of your cloned repository and follow any directions given in the `Error` lines until the build succeeds.  Once that happens, you should be able to `dune exec` the individual programs from the project's top-level directory.
+`dune build` in the top-level directory of your cloned repository and follow any directions given in the `Error` lines until the build succeeds.  Once that happens, you should be able to `dune exec` the individual programs from the project's top-level directory.
 
 Installation via `opam` is not currently supported for version treadmill reasons; watch this space.
 
@@ -17,11 +18,11 @@ Installation via `opam` is not currently supported for version treadmill reasons
 
 Stitchcraft is written in OCaml and uses several OCaml tools including the [dune](https://github.com/ocaml/dune) build system.  See documentation there to get started.
 
-A better user experience for such folks is coming soon.
+A better user experience for such folks is coming someday.
 
 # How can I use it?
 
-Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in the current directory, which stores raster font information; if this file is missing, you're gonna have a bad time.  You can create entries for it with `psf2stitchfont`.
+Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in the current directory, which stores raster font information; if this file is missing, you're gonna have a bad time.  You can create entries for it with `otb2stitchfont`.
 
 ## Pattern Generation and Manipulation
 
@@ -30,7 +31,7 @@ Stitchcraft bundles several executables for command-line use.  Many assume the p
 * embellish , for composing cross-stitch patterns in various ways
 * estimator , which gives very loose time and materials estimates for cross-stitch patterns
 * listing , which makes supplementary files useful in listing cross-stitch patterns on Etsy
-* psf2stitchfont , for importing psfv2 raster fonts to the font database
+* otb2stitchfont , for importing otf bitmap fonts to the font database
 
 ## Pattern Viewing
 
@@ -40,6 +41,10 @@ Stitchcraft bundles several executables for command-line use.  Many assume the p
 ## Example Compositions
 
 The `dune` file contains several test cases.  Have a look at the `brainfuck`, `butts`, `cards`, `be_gay_find_primes`, `verbs`, and `tops` targets.
+
+## Importing Graphics
+
+`ih` is a fabulous command-line tool for automatically generating cross-stitch patterns from raster images. There is a fork of `ih` available at [https://github.com/yomimono/ih/tree/stitchy_interchange](https://github.com/yomimono/ih/tree/stitchy_interchange) which adds a `-o json` output mode; the output of `ih` in this mode is a list of layers, which can be imported into a Stitchcraft workflow with the `assemble` tool.
 
 # Design Goals
 

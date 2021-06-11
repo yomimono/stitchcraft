@@ -1,6 +1,9 @@
 (executable
  (name stitch_test)
- (public_name stitch_test)
- (libraries alcotest compose_stitch)
+ (libraries alcotest compose_stitch stitchy)
 )
 
+(rule
+ (alias runtest)
+ (action (run %{exe:stitch_test.exe}))
+)
