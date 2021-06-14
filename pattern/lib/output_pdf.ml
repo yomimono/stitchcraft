@@ -5,6 +5,9 @@ type borders = {
   min_y : float;
 }
 
+let thick_line_thickness = 1.
+let thin_line_thickness = 0.5
+
 let dimensions paper =
 
   let get_points = Pdfunits.convert 72. Pdfpaper.(unit paper) Pdfunits.PdfPoint in
@@ -68,7 +71,7 @@ let find_upper_left doc x y =
   (min_x +. (float_of_int left_adjust), max_y -. (float_of_int top_adjust))
 
 let paint_grid_lines (doc : doc) (page : page) =
-  let thickness n = if n mod doc.fat_line_interval = 0 then 2. else 1. in
+  let thickness n = if n mod doc.fat_line_interval = 0 then thick_line_thickness else thin_line_thickness in
   let paint_line ~thickness (x1, y1) (x2, y2) =
     Pdfops.([
         Op_q;
