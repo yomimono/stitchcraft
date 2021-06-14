@@ -117,7 +117,7 @@ let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
   match Stitchy.Types.pattern_of_yojson (json src) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
-    let font_size = pixel_size - 4 in
+    let font_size = pixel_size - 2 in
     let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.layers in
     let cover = coverpage paper_size pattern in
     let symbols = symbolpage ~font_size:12 paper_size symbol_map in

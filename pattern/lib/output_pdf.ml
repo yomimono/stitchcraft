@@ -6,7 +6,7 @@ type borders = {
 }
 
 let thick_line_thickness = 1.
-let thin_line_thickness = .5
+let thin_line_thickness = 0.5
 
 let dimensions paper =
 
@@ -209,7 +209,6 @@ let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
   let (font_key, symbol) = key_and_symbol symbol in
   let font_stroke, font_paint =
     if contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
-      let thin_line_thickness = 1.
       Pdfops.Op_RG (scale r, scale g, scale b), Pdfops.Op_rg (scale r, scale g, scale b)
     else
       (* TODO: check the background as well and make sure this won't fade in there *)
