@@ -1,5 +1,4 @@
 (executable
- (package stitchcraft)
  (public_name stitchpattern)
  (modules stitchpattern)
  (libraries pattern cmdliner camlpdf stitchy)
