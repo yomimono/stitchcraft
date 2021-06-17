@@ -150,7 +150,7 @@ module V7 = struct
   let stitches ~width ~height =
     let stitch_coordinates base_index ~new_color ~new_type n =
       let y = (base_index + n) mod height
-      and x = (base_index + n) mod width
+      and x = (base_index + n) / height
       in
       ((x, y), new_color, new_type)
     in
