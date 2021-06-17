@@ -23,7 +23,7 @@ type back_stitch =
 [@@deriving eq, yojson]
 
 type stitch = | Cross of cross_stitch
-              | Back of back_stitch
+              | Back of back_stitch list
 [@@deriving eq, yojson]
 
 val pp_stitch : Format.formatter -> stitch -> unit [@@ocaml.toplevel_printer]
