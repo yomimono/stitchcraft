@@ -147,9 +147,23 @@ module V7 = struct
     any_uint8 >>= fun stitch_type ->
     return (n_stitches, stitch_color_index, stitch_type)
 
-  let stitches width height =
-    let expected = width * height in
-
+  let stitches ~width ~height =
+    let stitch_coordinates base_index ~new_color ~new_type n =
+      let y = (base_index + n) mod height
+      and x = (base_index + n) mod width
+      in
+      ((x, y), new_color, new_type)
+    in
+    let rec aux expected (so_far, stitches) =
+      if so_far >= expected
+      then return stitches
+      else begin
+        stitch >>= fun (n_stitches, new_color, new_type) ->
+        let new_stitches = List.init n_stitches (stitch_coordinates so_far ~new_color ~new_type) in
+        aux expected (so_far + n_stitches, stitches @ new_stitches)
+      end
+    in
+    aux (width * height) (0, [])
 end
 
 let file =
@@ -158,5 +172,6 @@ let file =
     V7.known_postheader >>= fun fabric ->
     V7.metadata >>= fun metadata ->
     V7.palette >>= fun palette ->
-    let n_stitches = fabric.width * fabric.height in
+    V7.stitches ~width:fabric.width ~height:fabric.height >>= fun stitches ->
+    return (fabric, metadata, palette, stitches)
   | _ -> fail "unknown file format -- try a version 7 file"
