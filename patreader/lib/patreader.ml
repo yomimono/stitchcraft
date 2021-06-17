@@ -30,6 +30,23 @@ type palette_entry = {
 
 type palette = palette_entry list
 
+(* TODO I don't see any reason this shouldn't just be a stitch type. *)
+type knot = {
+  x : int;
+  y : int;
+  color_index : int;
+}
+
+type backstitch = {
+  start_x : int;
+  start_y : int;
+  start_position : int;
+  end_x : int;
+  end_y : int;
+  end_position : int;
+  color_index : int;
+}
+
 let pp_dechex fmt n =
   Format.fprintf fmt "%d (0x%x)" n n
 
@@ -150,7 +167,7 @@ module V7 = struct
   let stitches ~width ~height =
     let stitch_coordinates base_index ~new_color ~new_type n =
       let y = (base_index + n) mod height
-      and x = (base_index + n) mod width
+      and x = (base_index + n) / height
       in
       ((x, y), new_color, new_type)
     in
@@ -164,6 +181,46 @@ module V7 = struct
       end
     in
     aux (width * height) (0, [])
+
+  let extra =
+    (* I don't know what an "extra" is, nor how to render it. *)
+    LE.any_uint16 >>= fun _x_coordinate ->
+    LE.any_uint16 >>= fun _y_coordinate ->
+    let detailed_info = 
+      any_uint8 >>= fun _color_index ->
+      any_uint8 >>= fun _stitch_type ->
+      return ()
+    in
+    count 4 detailed_info
+
+  let extras =
+    LE.any_int32 >>= fun num_extras ->
+    count (Int32.to_int num_extras) extra
+
+  let knot =
+    (* I *do* know what a knot is, although we don't have a way to render that atm. *)
+    LE.any_uint16 >>= fun x ->
+    LE.any_uint16 >>= fun y ->
+    LE.any_uint16 >>= fun color_index ->
+    return {x; y; color_index }
+
+  let knots =
+    LE.any_int32 >>= fun num_knots ->
+    count (Int32.to_int num_knots) knot
+    
+  let backstitch =
+    LE.any_uint16 >>= fun start_x ->
+    LE.any_uint16 >>= fun start_y ->
+    LE.any_uint16 >>= fun start_position -> (* "1..9 based on snap points" *)
+    LE.any_uint16 >>= fun end_x ->
+    LE.any_uint16 >>= fun end_y ->
+    LE.any_uint16 >>= fun end_position -> (* "1..9 based on snap points" *)
+    LE.any_uint16 >>= fun color_index ->
+    return {start_x; start_y; start_position; end_x; end_y; end_position; color_index}
+
+  let backstitches =
+    LE.any_int32 >>= fun num_backstitches ->
+    count (Int32.to_int num_backstitches) backstitch
 end
 
 let file =
@@ -173,5 +230,8 @@ let file =
     V7.metadata >>= fun metadata ->
     V7.palette >>= fun palette ->
     V7.stitches ~width:fabric.width ~height:fabric.height >>= fun stitches ->
-    return (fabric, metadata, palette, stitches)
+    V7.extras >>= fun extras ->
+    V7.knots >>= fun knots ->
+    V7.backstitches >>= fun backstitches ->
+    return (fabric, metadata, palette, stitches, extras, knots, backstitches)
   | _ -> fail "unknown file format -- try a version 7 file"

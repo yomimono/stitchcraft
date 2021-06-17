@@ -18,7 +18,7 @@ type back_stitch =
 [@@deriving eq, yojson]
 
 type stitch = | Cross of cross_stitch
-              | Back of back_stitch
+              | Back of back_stitch list
 [@@deriving eq, yojson]
 
 let pp_cross_stitch fmt = function
@@ -38,7 +38,9 @@ let pp_back_stitch fmt = function
 
 let pp_stitch fmt = function
   | Cross stitch -> pp_cross_stitch fmt stitch
-  | Back stitch -> pp_back_stitch fmt stitch
+  | Back stitches -> (* TODO there are a number of special cases here;
+                        we should handle all the possible combinations. *)
+    pp_back_stitch fmt (List.hd stitches)
 
 type thread = DMC.Thread.t
 [@@deriving eq, yojson]

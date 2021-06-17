@@ -5,6 +5,7 @@ type borders = {
   min_y : float;
 }
 
+let backstitch_thickness = 1.5
 let thick_line_thickness = 1.
 let thin_line_thickness = 0.5
 
@@ -303,21 +304,49 @@ let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
       Op_f ; (* fill path *)
       Op_Q;
     ]) in
-  let paint_pixel thread _stitch (x, y) =
+  let paint_pixel thread stitch (x, y) =
     let r, g, b = Stitchy.DMC.Thread.to_rgb thread in
     (* x and y have their origin in the upper left, but pdf wants to address from the lower left *)
     (* x coordinates need no transposition, but y do *)
     let pdf_x = min_x +. ((float_of_int x) *. px)
     and pdf_y = max_y -. ((float_of_int (y + 1)) *. px)
     in
-    Pdfops.([
-        Op_q;
-        Op_m (0., 0.);
-        Op_rg (scale r, scale g, scale b);
-        Op_re (pdf_x, pdf_y, px, px);
-        Op_f;
-        Op_Q;
-      ])
+    match stitch with
+    | Stitchy.Types.Cross _ ->
+      Pdfops.([
+          Op_q;
+          Op_m (0., 0.);
+          Op_rg (scale r, scale g, scale b);
+          Op_re (pdf_x, pdf_y, px, px);
+          Op_f;
+          Op_Q;
+        ])
+    | Stitchy.Types.Back stitch ->
+      let ((start_x, start_y), (fin_x, fin_y)) = begin
+        match stitch with
+        | Top ->
+          ((pdf_x, pdf_y +. px),
+           (pdf_x +. px, pdf_y +. px))
+        | Left ->
+          ((pdf_x, pdf_y +. px),
+           (pdf_x, pdf_y))
+        | Right ->
+          ((pdf_x +. px, pdf_y +. px),
+           (pdf_x +. px, pdf_y))
+        | Bottom ->
+          ((pdf_x, pdf_y),
+           (pdf_x +. px, pdf_y))
+      end
+      in
+      Pdfops.([
+          Op_q;
+          Op_RG (scale r, scale g, scale b);
+          Op_w backstitch_thickness;
+          Op_m (start_x, start_y);
+          Op_l (fin_x, fin_y);
+          Op_s;
+          Op_Q;
+        ]);
   in
   let paint_layer (layer : Stitchy.Types.layer) =
     Stitchy.Types.CoordinateSet.fold (fun pixel ops ->
