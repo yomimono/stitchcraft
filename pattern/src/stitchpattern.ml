@@ -34,18 +34,21 @@ let paper_size =
   let doc = "size of paper to use" in
   Arg.(value & opt (enum sizes) Pdfpaper.usletter & info ["paper"] ~docv:"PAPER" ~doc)
 
-let get_symbol pattern symbols x y =
-  let open Stitchy.Types in
-  match Stitchy.Types.stitches_at pattern (x, y) with
-  | [] -> pattern.substrate.background, Stitchy.Symbol.default
-  | (_stitch, thread)::_ ->
-    let symbol = match SymbolMap.find_opt thread symbols with
-      | None -> Stitchy.Symbol.default
-      | Some symbol -> symbol
-    in
-    (Stitchy.DMC.Thread.to_rgb thread), symbol
+let paint_stitch doc page ~font_size pattern (x, y) =
+  (* position is based on x and y relative to the range expressed on this page *)
+  let open Pattern.Types in
+  let (x_pos, y_pos) = Pattern.Positioning.find_upper_left doc (x - (fst page.x_range)) (y - (fst page.y_range)) in
+  let paint_repr = function
+  | Symbol ((r, g, b), symbol) ->
+      paint_pixel ~font_size ~x_pos ~y_pos
+        ~pixel_size:(float_of_int doc.pixel_size)
+        r g b symbol
+  | Line (_color, _stitch) -> []
+  in
+  let this_pixel = List.map paint_repr (get_representation pattern doc.symbols x y) |> List.flatten in
+  this_pixel
 
-let paint_pixels ~font_size pattern doc page =
+let paint_stitches ~font_size pattern doc page =
   (* x and y are the relative offsets within the page. *)
   (* (so, even if this is page 3 and the grid that's painted over this will be
      stitches 100-200 (x) and 50-70 (y), x and y will count up from 0 here.
@@ -57,22 +60,12 @@ let paint_pixels ~font_size pattern doc page =
      the original image, or (50, 25), or (1024, 768). *)
   let rec aux x y l =
     (* if we've advanced beyond the horizontal edge, start over on the left edge of the next row *)
-    if x >= (snd page.x_range) then aux (fst page.x_range) (y+1) l
+    if x >= (snd page.Pattern.Types.x_range) then aux (fst page.Pattern.Types.x_range) (y+1) l
     (* if we've advanced beyond the vertical edge, time to stop *)
     else if y >= (snd page.y_range) then l
     (* otherwise, let's paint the pixel *)
     else begin
-      (* position is based on x and y relative to the range expressed on this page *)
-      let (x_pos, y_pos) = find_upper_left doc (x - (fst page.x_range)) (y - (fst page.y_range)) in
-
-      (* but color is based on the placement in the actual image, so pass those coordinates
-         to the painting function *)
-      let ((r, g, b), symbol) = get_symbol pattern doc.symbols x y in
-      let this_pixel =
-        paint_pixel ~font_size ~x_pos ~y_pos
-          ~pixel_size:(float_of_int doc.pixel_size)
-          r g b symbol
-      in
+      let this_pixel = paint_stitch doc page ~font_size pattern (x, y) in
       aux (x+1) y (this_pixel @ l)
     end
   in
@@ -96,8 +89,8 @@ let pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbols
   and ypp = y_per_page ~pixel_size
   in
   let width = pattern.substrate.max_x + 1 and height = pattern.substrate.max_y + 1 in
-  let doc = { paper_size; pixel_size; fat_line_interval; symbols; } in
-  let pixels = paint_pixels ~font_size pattern in
+  let doc = { Pattern.Types.paper_size; pixel_size; fat_line_interval; symbols; } in
+  let pixels = paint_stitches ~font_size pattern in
   let rec page x y n l =
     let l = make_page doc ~watermark ~first_x:x ~first_y:y ~width ~height n pixels :: l in
     if (x + xpp) >= width && (y + ypp) >= height then l    

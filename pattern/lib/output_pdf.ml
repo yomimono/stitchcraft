@@ -1,30 +1,8 @@
-type borders = {
-  max_x : float;
-  max_y : float;
-  min_x : float;
-  min_y : float;
-}
+open Types
 
 let backstitch_thickness = 1.5
 let thick_line_thickness = 1.
 let thin_line_thickness = 0.5
-
-let dimensions paper =
-
-  let get_points = Pdfunits.convert 72. Pdfpaper.(unit paper) Pdfunits.PdfPoint in
-  let margin_points = Pdfunits.convert 72. Pdfunits.Inch Pdfunits.PdfPoint 0.5 in
-
-  let max_x = (get_points Pdfpaper.(width paper)) -. margin_points
-  and max_y = (get_points Pdfpaper.(height paper)) -. margin_points
-  and min_x = margin_points
-  and min_y = margin_points
-  in
-  { max_y;
-    max_x;
-    min_y;
-    min_x;
-  }
-
 
 let t1_font name =
   Pdf.(Dictionary
@@ -40,20 +18,6 @@ let symbol_key = "/F0"
 and zapf_key = "/F1"
 and helvetica_key = "/F2"
 
-type doc = {
-  symbols : Stitchy.Symbol.t Stitchy.Types.SymbolMap.t;
-  pixel_size : int;
-  paper_size : Pdfpaper.t;
-  fat_line_interval : int;
-}
-
-type page = {
-  x_range : int * int;
-  y_range : int * int;
-  page_number : int;
-}
-
-
 (* TODO both of these should be parameterized by the paper info *)
 let x_per_page ~pixel_size =
   (* assume 7 usable inches after margins and axis labels *)
@@ -63,13 +27,21 @@ let y_per_page ~pixel_size =
   (* assume 9 usable inches after margins, axis labels, and page number *)
   (72 * 9) / pixel_size
 
-let find_upper_left doc x y =
-  let {min_x; max_y; _} = dimensions doc.paper_size in
-  (* on the page, find the right upper-left-hand corner for this pixel
-     given the x and y coordinates and `t` representing this page *)
-  let left_adjust = x * doc.pixel_size
-  and top_adjust = y * doc.pixel_size in
-  (min_x +. (float_of_int left_adjust), max_y -. (float_of_int top_adjust))
+let get_representation pattern symbols x y =
+  let open Stitchy.Types in
+  let stitch_repr = function
+  | (Stitchy.Types.Cross _, thread) ->
+    let color = Stitchy.DMC.Thread.to_rgb thread in
+    let symbol = match SymbolMap.find_opt thread symbols with
+      | None -> Stitchy.Symbol.default
+      | Some symbol -> symbol
+    in
+    Symbol (color, symbol)
+  | (Stitchy.Types.Back stitch, thread) ->
+    let color = Stitchy.DMC.Thread.to_rgb thread in
+    Line (color, stitch)
+  in
+  List.map stitch_repr (Stitchy.Types.stitches_at pattern (x, y))
 
 let paint_grid_lines (doc : doc) (page : page) =
   let thickness n = if n mod doc.fat_line_interval = 0 then thick_line_thickness else thin_line_thickness in
@@ -84,13 +56,13 @@ let paint_grid_lines (doc : doc) (page : page) =
       ])
   in
   let paint_horizontal_line y =
-    let (left_pt_x, y_pt) = find_upper_left doc 0 y in
-    let (right_pt_x, _) = find_upper_left doc (snd page.x_range - fst page.x_range) y in
+    let (left_pt_x, y_pt) = Positioning.find_upper_left doc 0 y in
+    let (right_pt_x, _) = Positioning.find_upper_left doc (snd page.x_range - fst page.x_range) y in
     paint_line ~thickness:(thickness (y + fst page.y_range)) (left_pt_x, y_pt) (right_pt_x, y_pt)
   in
   let paint_vertical_line x =
-    let (x_pt, top_y_pt) = find_upper_left doc x 0 in
-    let (_, bottom_y_pt) = find_upper_left doc x (snd page.y_range - fst page.y_range) in
+    let (x_pt, top_y_pt) = Positioning.find_upper_left doc x 0 in
+    let (_, bottom_y_pt) = Positioning.find_upper_left doc x (snd page.y_range - fst page.y_range) in
     paint_line ~thickness:(thickness (x + fst page.x_range)) (x_pt, top_y_pt) (x_pt, bottom_y_pt)
   in
   let rec paint_horizontal_lines n l =
@@ -118,14 +90,14 @@ let make_grid_label ~text_size n n_x_pos n_y_pos =
 
 let label_top_line doc page n =
   (* label n goes where the nth pixel would go, just nudged up a bit *)
-  let (n_x_pos, n_y_pos) = find_upper_left doc (n - (fst page.x_range)) 0 in
+  let (n_x_pos, n_y_pos) = Positioning.find_upper_left doc (n - (fst page.x_range)) 0 in
   make_grid_label ~text_size:(float_of_int doc.pixel_size) n n_x_pos (n_y_pos +. (float_of_int doc.pixel_size))
 
 let label_left_line doc page n =
   (* label n goes where the nth pixel would go, just nudged left a bit *)
   (* TODO: it would be good to right-justify this; it's weird-looking with different-width labels *)
   (* is there a way to right-justify this bad boy? *)
-  let (n_x_pos, n_y_pos) = find_upper_left doc 0 (n - (fst page.y_range)) in
+  let (n_x_pos, n_y_pos) = Positioning.find_upper_left doc 0 (n - (fst page.y_range)) in
   make_grid_label ~text_size:(float_of_int doc.pixel_size) n (n_x_pos -. (float_of_int (doc.pixel_size * 2))) n_y_pos
 
 let label_top_grid doc page =

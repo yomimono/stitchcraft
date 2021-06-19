@@ -1,6 +1,6 @@
 (* generate a preview image *)
 let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
-  let Output_pdf.{min_x; min_y; max_x; max_y} = Output_pdf.dimensions paper in
+  let Types.{min_x; min_y; max_x; max_y} = Positioning.dimensions paper in
   let width = float_of_int (substrate.max_x + 1)
   and height = float_of_int (substrate.max_y + 1)
   in
