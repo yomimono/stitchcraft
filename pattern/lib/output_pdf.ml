@@ -145,27 +145,6 @@ let number_page number =
       Op_Q;
     ])
 
-let scale n = (float_of_int n) /. 255.0
-
-(* relative luminance calculation is as described in Web Content
-   Accessibility Guidelines (WCAG) 2.0, retrieved from
-   https://www.w3.org/TR/2008/REC-WCAG20-20081211/#relativeluminancedef *)
-let relative_luminance (r, g, b) : float =
-  let r_srgb = scale r
-  and g_srgb = scale g
-  and b_srgb = scale b
-  in
-  let adjust n = if n <= 0.03928 then n /. 12.92 else Float.pow ((n +. 0.055) /. 1.055) 2.4 in
-  0.2126 *. (adjust r_srgb) +. 0.7152 *. (adjust g_srgb) +. 0.0722 *. (adjust b_srgb)
-
-(* to get a contrast ratio, calculate (RL of the lighter color + 0.05) / (RL of the darker color + 0.05). W3C wants that ratio to be at least 4.5:1. *)
-let contrast_ratio a b =
-  let cr lighter darker = (lighter +. 0.05) /. (darker +. 0.05) in
-  let a_rl = relative_luminance a
-  and b_rl = relative_luminance b
-  in
-  if a_rl >= b_rl then cr a_rl b_rl else cr b_rl a_rl
-
 let key_and_symbol s = match s.Stitchy.Symbol.pdf with
   | `Zapf symbol -> zapf_key, symbol
   | `Symbol symbol -> symbol_key, symbol
@@ -189,7 +168,7 @@ let paint_backstitch ~pdf_x ~pdf_y ~px stitch r g b =
   in
   Pdfops.([
       Op_q;
-      Op_RG (scale r, scale g, scale b);
+      Op_RG (Colors.scale r, Colors.scale g, Colors.scale b);
       Op_w backstitch_thickness;
       Op_m (start_x, start_y);
       Op_l (fin_x, fin_y);
@@ -208,8 +187,9 @@ let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
        by which it is inset *)
   let (font_key, symbol) = key_and_symbol symbol in
   let font_stroke, font_paint =
-    if contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
-      Pdfops.Op_RG (scale r, scale g, scale b), Pdfops.Op_rg (scale r, scale g, scale b)
+    if Colors.contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
+      Pdfops.Op_RG (Colors.scale r, Colors.scale g, Colors.scale b),
+      Pdfops.Op_rg (Colors.scale r, Colors.scale g, Colors.scale b)
     else
       (* TODO: check the background as well and make sure this won't fade in there *)
       Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
@@ -278,6 +258,55 @@ let symbolpage ~font_size paper symbols =
   let content = [ Pdfops.stream_of_ops @@ snd (symbol_table ~font_size symbols) ] in
   {(Pdfpage.blankpage paper) with content; resources = font_resources;}
 
+let paint_stitch doc page ~font_size pattern (x, y) =
+  (* position is based on x and y relative to the range expressed on this page *)
+  let open Types in
+  let (x_pos, y_pos) = Positioning.find_upper_left doc (x - (fst page.x_range)) (y - (fst page.y_range)) in
+  let paint_repr = function
+  | Symbol ((r, g, b), symbol) ->
+      paint_pixel ~font_size ~x_pos ~y_pos
+        ~pixel_size:(float_of_int doc.pixel_size)
+        r g b symbol
+  | Line ((r, g, b), stitch) ->
+    Coverpage.paint_backstitch ~backstitch_thickness ~pdf_x:x_pos ~pdf_y:y_pos ~px:(float_of_int doc.pixel_size) r g b stitch
+  in
+  List.map paint_repr (get_representation pattern doc.symbols x y) |> List.flatten
+
+let paint_stitches ~font_size pattern doc page =
+  (* x and y are the relative offsets within the page. *)
+  (* (so, even if this is page 3 and the grid that's painted over this will be
+     stitches 100-200 (x) and 50-70 (y), x and y will count up from 0 here.
+     we will add the correct offset to get the right color when indexing into
+     the image.)
+     the location math is based on this page-relative counting - so, the pixel
+     at the third square down and fourth to the right from the upper-left hand
+     corner is at the same location regardless of whether it represents (100, 50) from
+     the original image, or (50, 25), or (1024, 768). *)
+  let rec aux x y l =
+    (* if we've advanced beyond the horizontal edge, start over on the left edge of the next row *)
+    if x >= (snd page.Types.x_range) then aux (fst page.Types.x_range) (y+1) l
+    (* if we've advanced beyond the vertical edge, time to stop *)
+    else if y >= (snd page.y_range) then l
+    (* otherwise, let's paint the pixel *)
+    else begin
+      let this_pixel = paint_stitch doc page ~font_size pattern (x, y) in
+      aux (x+1) y (this_pixel @ l)
+    end
+  in
+  aux (fst page.x_range) (fst page.y_range) []
+
+let assign_symbols (layers : Stitchy.Types.layer list )=
+  let next = function
+    | [] -> (Stitchy.Symbol.default, [])
+    | hd::tl -> (hd, tl)
+  in
+  let threads = List.map (fun layer -> layer.Stitchy.Types.thread) layers |> List.sort_uniq Stitchy.DMC.Thread.compare in
+  let color_map = Stitchy.Types.SymbolMap.empty in
+  List.fold_left (fun (freelist, map) thread ->
+      let symbol, freelist = next freelist in
+      (freelist, Stitchy.Types.SymbolMap.add thread symbol map))
+  (Stitchy.Symbol.printable_symbols, color_map) threads
+
 let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
   let xpp = x_per_page ~pixel_size:doc.pixel_size
   and ypp = y_per_page ~pixel_size:doc.pixel_size
@@ -308,3 +337,18 @@ let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixel
      ])
   }
 
+let pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
+  let open Stitchy.Types in
+  let xpp = x_per_page ~pixel_size
+  and ypp = y_per_page ~pixel_size
+  in
+  let width = pattern.substrate.max_x + 1 and height = pattern.substrate.max_y + 1 in
+  let doc = { Types.paper_size; pixel_size; fat_line_interval; symbols; } in
+  let pixels = paint_stitches ~font_size pattern in
+  let rec page x y n l =
+    let l = make_page doc ~watermark ~first_x:x ~first_y:y ~width ~height n pixels :: l in
+    if (x + xpp) >= width && (y + ypp) >= height then l    
+    else if (y + ypp) >= height then page (x+xpp) 0 (n+1) l
+    else page x (y + ypp) (n+1) l
+  in
+  List.rev @@ page 0 0 1 []

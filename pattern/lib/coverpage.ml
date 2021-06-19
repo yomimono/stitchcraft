@@ -1,3 +1,30 @@
+let paint_backstitch ~backstitch_thickness ~pdf_x ~pdf_y ~px r g b stitch =
+  let ((start_x, start_y), (fin_x, fin_y)) = begin
+    match stitch with
+    | Stitchy.Types.Top ->
+      ((pdf_x, pdf_y +. px),
+       (pdf_x +. px, pdf_y +. px))
+    | Left ->
+      ((pdf_x, pdf_y +. px),
+       (pdf_x, pdf_y))
+    | Right ->
+      ((pdf_x +. px, pdf_y +. px),
+       (pdf_x +. px, pdf_y))
+    | Bottom ->
+      ((pdf_x, pdf_y),
+       (pdf_x +. px, pdf_y))
+  end
+  in
+  Pdfops.([
+      Op_q;
+      Op_RG (Colors.scale r, Colors.scale g, Colors.scale b);
+      Op_w backstitch_thickness;
+      Op_m (start_x, start_y);
+      Op_l (fin_x, fin_y);
+      Op_s;
+      Op_Q;
+    ])
+
 (* generate a preview image *)
 let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
   let Types.{min_x; min_y; max_x; max_y} = Positioning.dimensions paper in
@@ -11,7 +38,7 @@ let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
   in
   let fill_color =
     let (r, g, b) = substrate.background in
-    Pdfops.Op_rg (Output_pdf.scale r, Output_pdf.scale g, Output_pdf.scale b)
+    Pdfops.Op_rg (Colors.scale r, Colors.scale g, Colors.scale b)
   in
   (* draw the background image *)
   (* TODO: really need some centering logic here *)
@@ -35,37 +62,13 @@ let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
       Pdfops.([
           Op_q;
           Op_m (0., 0.);
-          Op_rg (Output_pdf.scale r, Output_pdf.scale g, Output_pdf.scale b);
+          Op_rg (Colors.scale r, Colors.scale g, Colors.scale b);
           Op_re (pdf_x, pdf_y, px, px);
           Op_f;
           Op_Q;
         ])
     | Stitchy.Types.Back stitch ->
-      let ((start_x, start_y), (fin_x, fin_y)) = begin
-        match stitch with
-        | Top ->
-          ((pdf_x, pdf_y +. px),
-           (pdf_x +. px, pdf_y +. px))
-        | Left ->
-          ((pdf_x, pdf_y +. px),
-           (pdf_x, pdf_y))
-        | Right ->
-          ((pdf_x +. px, pdf_y +. px),
-           (pdf_x +. px, pdf_y))
-        | Bottom ->
-          ((pdf_x, pdf_y),
-           (pdf_x +. px, pdf_y))
-      end
-      in
-      Pdfops.([
-          Op_q;
-          Op_RG (Output_pdf.scale r, Output_pdf.scale g, Output_pdf.scale b);
-          Op_w Output_pdf.backstitch_thickness;
-          Op_m (start_x, start_y);
-          Op_l (fin_x, fin_y);
-          Op_s;
-          Op_Q;
-        ]);
+      paint_backstitch ~backstitch_thickness:3.0 ~pdf_x ~pdf_y ~px r g b stitch
   in
   let paint_layer (layer : Stitchy.Types.layer) =
     Stitchy.Types.CoordinateSet.fold (fun pixel ops ->
@@ -78,5 +81,6 @@ let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
      content = [
        Pdfops.stream_of_ops background;
        Pdfops.stream_of_ops pixels;
-     ]} in
+     ]}
+  in
   page
