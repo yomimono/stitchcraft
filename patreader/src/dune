@@ -1,0 +1,4 @@
+(executable
+  (public_name patreader)
+  (libraries angstrom-lwt-unix angstrom-unix cmdliner lwt lwt.unix patreader stitchy)
+  )
