@@ -23,26 +23,6 @@
         ]
       },
       "stitch": [
-        "Back",
-        [
-          "Top"
-        ]
-      ],
-      "stitches": [
-	      [1, 51]
-      ]
-    },
-    {
-      "thread": {
-        "name": "Snow White",
-        "identifier": "B5200",
-        "rgb": [
-          255,
-          255,
-          255
-        ]
-      },
-      "stitch": [
         "Cross",
         [
           "Full"

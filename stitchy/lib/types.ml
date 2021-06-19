@@ -13,12 +13,7 @@ type cross_stitch =
   | Reverse_comma (* mirrored , (lower right quadrant) *)
 [@@deriving eq, yojson]
 
-type back_stitch =
-  | Left | Right | Top | Bottom
-[@@deriving eq, yojson]
-
 type stitch = | Cross of cross_stitch
-              | Back of back_stitch
 [@@deriving eq, yojson]
 
 let pp_cross_stitch fmt = function
@@ -30,15 +25,8 @@ let pp_cross_stitch fmt = function
   | Reverse_backtick -> Format.fprintf fmt "'"
   | Reverse_comma -> Format.fprintf fmt "."
 
-let pp_back_stitch fmt = function
-  | Bottom -> Format.fprintf fmt "_"
-  | Top -> Format.fprintf fmt "▔"
-  | Left -> Format.fprintf fmt "▏"
-  | Right -> Format.fprintf fmt "▕"
-
 let pp_stitch fmt = function
   | Cross stitch -> pp_cross_stitch fmt stitch
-  | Back stitch -> pp_back_stitch fmt stitch
 
 type thread = DMC.Thread.t
 [@@deriving eq, yojson]
@@ -68,11 +56,12 @@ let pp_substrate fmt {grid; background; _} =
   Format.fprintf fmt "%a aida cloth, color %a" pp_grid grid RGB.pp background
 
 type coordinates = int * int [@@deriving yojson]
+type segment = coordinates * coordinates [@@deriving yojson]
 
 module Coordinates = struct
   type t = coordinates [@@deriving yojson]
   let compare (x1, y1) (x2, y2) =
-    if compare x1 x2 == 0 then compare y1 y2 else compare x1 x2
+    if compare x1 x2 = 0 then compare y1 y2 else compare x1 x2
 end
 module CoordinateSet = struct
   include Set.Make(Coordinates)
@@ -85,6 +74,24 @@ module CoordinateSet = struct
     | Ok coords -> Ok (of_list coords)
 end
 
+module Segment = struct
+  type t = segment [@@deriving yojson]
+  let compare (s1c1, s1c2) (s2c1, s2c2) =
+    if Coordinates.compare s1c1 s2c1 = 0
+    then Coordinates.compare s1c2 s2c2
+    else compare s1c1 s2c1
+end
+module SegmentSet = struct
+  include Set.Make(Segment)
+  type segment_list = segment list [@@deriving yojson]
+  let to_yojson set =
+    segment_list_to_yojson @@ elements set
+  let of_yojson set =
+    match segment_list_of_yojson set with
+    | Error e -> Error e
+    | Ok segments -> Ok (of_list segments)
+end
+
 type layer = {
   thread : thread; 
   stitch : stitch;
@@ -93,16 +100,22 @@ type layer = {
 
 type layers = layer list [@@deriving eq, yojson]
 
+type backstitch_layer = {
+  thread : thread;
+  stitches : SegmentSet.t;
+} [@@deriving eq, yojson]
+
 type pattern = {
   substrate : substrate;
-  layers : layer list;
+  layers : layer list; [@default []]
+  backstitch_layers : backstitch_layer list; [@default []]
 } [@@deriving eq, yojson]
 
 let stitches_at pattern coordinate =
-  List.find_all (fun layer -> CoordinateSet.mem coordinate layer.stitches) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
+  List.find_all (fun (layer : layer) -> CoordinateSet.(mem coordinate layer.stitches)) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
 
 let submap ~x_off ~y_off ~width ~height layers =
-  let only_stitches_in_submap layer =
+  let only_stitches_in_submap (layer : layer) =
     let stitches =
       CoordinateSet.filter (fun (x, y)-> x < x_off + width && y < y_off + height) layer.stitches
     in
@@ -110,9 +123,8 @@ let submap ~x_off ~y_off ~width ~height layers =
   in
   List.map only_stitches_in_submap layers
 
-let pp_pattern = fun fmt {substrate; layers} ->
+let pp_pattern = fun fmt {substrate; layers; backstitch_layers} ->
   Format.fprintf fmt "@[background: %a; full size %d x %d@]@." pp_substrate substrate (substrate.max_x + 1) (substrate.max_y + 1);
-  (* we'd really like for stitches to be a list of lists, but alas *)
   if substrate.max_x > 80 || substrate.max_y > 100 then
     (* too wide for utop, probably *)
     Format.fprintf fmt "pattern with %d layers" (List.length layers)
@@ -121,7 +133,7 @@ let pp_pattern = fun fmt {substrate; layers} ->
     for y = 0 to substrate.max_y do
       Format.fprintf fmt "@[";
       for x = 0 to substrate.max_x do
-        match stitches_at {substrate; layers} (x, y) with
+        match stitches_at {substrate; layers; backstitch_layers } (x, y) with
         | (stitch, _)::_-> Format.fprintf fmt "%a" pp_stitch stitch
         | [] -> Format.fprintf fmt " "
       done;
