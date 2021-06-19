@@ -238,7 +238,6 @@ let paint_stitch doc page ~font_size pattern (x, y) =
       paint_pixel ~font_size ~x_pos ~y_pos
         ~pixel_size r g b symbol
   | Line (color, stitch) ->
-    Printf.printf "found a line\n%!";
     (* if the contrast ratio of the actual color is too low, force the color to black *)
     let (r, g, b) =
       if Colors.contrast_ratio color (255, 255, 255) < 4.5 then
@@ -246,7 +245,6 @@ let paint_stitch doc page ~font_size pattern (x, y) =
       else color
     in
     let pdf_y = y_pos -. pixel_size in
-    Printf.printf "going to paint it (%d, %d, %d)\n%!" r g b;
     Coverpage.paint_backstitch ~backstitch_thickness ~pdf_x:x_pos ~pdf_y ~px:pixel_size r g b stitch
   in
   List.map paint_repr (get_representation pattern doc.symbols x y) |> List.flatten
