@@ -1,6 +1,6 @@
 open Types
 
-let backstitch_thickness = 1.5
+let backstitch_thickness = 3.0
 let thick_line_thickness = 1.
 let thin_line_thickness = 0.5
 
@@ -149,42 +149,12 @@ let key_and_symbol s = match s.Stitchy.Symbol.pdf with
   | `Zapf symbol -> zapf_key, symbol
   | `Symbol symbol -> symbol_key, symbol
 
-let paint_backstitch ~pdf_x ~pdf_y ~px stitch r g b =
-  let ((start_x, start_y), (fin_x, fin_y)) = begin
-    match stitch with
-    | Stitchy.Types.Top ->
-      ((pdf_x, pdf_y +. px),
-       (pdf_x +. px, pdf_y +. px))
-    | Left ->
-      ((pdf_x, pdf_y +. px),
-       (pdf_x, pdf_y))
-    | Right ->
-      ((pdf_x +. px, pdf_y +. px),
-       (pdf_x +. px, pdf_y))
-    | Bottom ->
-      ((pdf_x, pdf_y),
-       (pdf_x +. px, pdf_y))
-  end
-  in
-  Pdfops.([
-      Op_q;
-      Op_RG (Colors.scale r, Colors.scale g, Colors.scale b);
-      Op_w backstitch_thickness;
-      Op_m (start_x, start_y);
-      Op_l (fin_x, fin_y);
-      Op_s;
-      Op_Q;
-    ])
-
 (* note that this paints *only* the pixels - the grid lines should be added later *)
 (* (otherwise we end up with a lot of tiny segments when we could have just one through-line,
    and also we can more easily do thicker lines on grid intervals when we put them all in at once) *)
 (* x_pos and y_pos are the position of the upper left-hand corner of the pixel on the page *)
 let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
   let stroke_width = 3. in (* TODO this should be relative to the thickness of fat lines *)
-  (* the color now needs to come in a bit from the grid sides, since
-       we're doing a border rather than a fill; this is the constant
-       by which it is inset *)
   let (font_key, symbol) = key_and_symbol symbol in
   let font_stroke, font_paint =
     if Colors.contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
@@ -262,13 +232,22 @@ let paint_stitch doc page ~font_size pattern (x, y) =
   (* position is based on x and y relative to the range expressed on this page *)
   let open Types in
   let (x_pos, y_pos) = Positioning.find_upper_left doc (x - (fst page.x_range)) (y - (fst page.y_range)) in
+  let pixel_size = float_of_int doc.pixel_size in
   let paint_repr = function
   | Symbol ((r, g, b), symbol) ->
       paint_pixel ~font_size ~x_pos ~y_pos
-        ~pixel_size:(float_of_int doc.pixel_size)
-        r g b symbol
-  | Line ((r, g, b), stitch) ->
-    Coverpage.paint_backstitch ~backstitch_thickness ~pdf_x:x_pos ~pdf_y:y_pos ~px:(float_of_int doc.pixel_size) r g b stitch
+        ~pixel_size r g b symbol
+  | Line (color, stitch) ->
+    Printf.printf "found a line\n%!";
+    (* if the contrast ratio of the actual color is too low, force the color to black *)
+    let (r, g, b) =
+      if Colors.contrast_ratio color (255, 255, 255) < 4.5 then
+        (0, 0, 0)
+      else color
+    in
+    let pdf_y = y_pos -. pixel_size in
+    Printf.printf "going to paint it (%d, %d, %d)\n%!" r g b;
+    Coverpage.paint_backstitch ~backstitch_thickness ~pdf_x:x_pos ~pdf_y ~px:pixel_size r g b stitch
   in
   List.map paint_repr (get_representation pattern doc.symbols x y) |> List.flatten
 
