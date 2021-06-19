@@ -1,12 +1,3 @@
-let input =
-  let doc = "file from which to read"
-  and docv = "FILE" in
-  Cmdliner.Arg.(value & pos_all string [] & info [] ~doc ~docv)
-
-let info =
-  let doc = "read .pat files" in
-  Cmdliner.Term.info "patreader" ~doc
-
 let match_thread palette_entry =
   let manufacturer = palette_entry.Patreader.scheme |> String.trim in
   if String.compare manufacturer "DMCDMC" = 0 then begin
@@ -58,30 +49,41 @@ let layers_of_cross_stitches threads stitches =
           add_stitches acc thread stitch [(x, y)]
     ) (Ok []) stitches
 
+(* the position numbers *appear* to be:
+ 1  2  3
+ 4  5  6
+ 7  8  9 *)
+
 let backstitch_of_position_pair backstitch =
   let open Patreader in
   match backstitch.start_position, backstitch.end_position with
-  | (1, 3) | (3, 1) -> Ok Stitchy.Types.Top
-  | (1, 7) | (7, 1) -> Ok Stitchy.Types.Left
-  | (3, 9) | (9, 3) -> Ok Stitchy.Types.Right
-  | (7, 9) | (9, 7) -> Ok Stitchy.Types.Bottom
-  | (1, 1) -> if backstitch.start_y == backstitch.end_y then Ok Stitchy.Types.Top else Ok Stitchy.Types.Left
-  | (7, 7) -> if backstitch.start_y == backstitch.end_y then Ok Stitchy.Types.Bottom else Ok Stitchy.Types.Left
-  | (3, 3) -> if backstitch.start_y == backstitch.end_y then Ok Stitchy.Types.Top else Ok Stitchy.Types.Right
-  | (9, 9) -> if backstitch.start_y == backstitch.end_y then Ok Stitchy.Types.Bottom else Ok Stitchy.Types.Right
-  | _ -> Ok Stitchy.Types.Top (* TODO: this is obviously wrong *)
-  (* | (x, y) -> Error (`Msg (Format.asprintf "unrepresentable backstitch %d, %d" x y)) *)
+  | (1, 3) | (3, 1) when backstitch.start_y = backstitch.end_y -> Ok Stitchy.Types.Top
+  | (1, 1) | (3, 3) when backstitch.start_y = backstitch.end_y -> Ok Stitchy.Types.Top
+  | (7, 9) | (9, 7) when backstitch.start_y = backstitch.end_y -> Ok Stitchy.Types.Bottom
+  | (7, 7) | (9, 9) when backstitch.start_y = backstitch.end_y -> Ok Stitchy.Types.Bottom
+  | (1, 7) | (7, 1) when backstitch.start_x = backstitch.end_x -> Ok Stitchy.Types.Left
+  | (1, 1) | (3, 3) when backstitch.start_x = backstitch.end_x -> Ok Stitchy.Types.Left
+  | (3, 9) | (9, 3) when backstitch.start_x = backstitch.end_x -> Ok Stitchy.Types.Right
+  | (7, 7) | (9, 9) when backstitch.start_x = backstitch.end_x -> Ok Stitchy.Types.Right
+  | _ -> Error (`Msg (Format.asprintf "unrepresentable backstitch %a" pp_backstitch backstitch))
 
 let stitches_of_backstitch backstitch =
   let open Rresult.R in
   let open Patreader in
-  let diff one two = (max one two) + 1 - (min one two) in
+  let extra_stitch = match backstitch.start_position, backstitch.end_position with
+    | (1, 3) | (3, 1) -> 1
+    | (1, 7) | (7, 1) -> 1
+    | (3, 9) | (9, 3) -> 1
+    | (7, 9) | (9, 7) -> 1
+    | _ -> 0
+  in
+  let diff one two = (abs (two - one)) + extra_stitch in
   let horizontal backstitch =
     let range = diff backstitch.end_x backstitch.start_x in
-    List.init range (fun more_x -> (backstitch.start_x + more_x, backstitch.start_y)) 
+    List.init range (fun more_x -> (backstitch.start_x - 1 + more_x, backstitch.start_y - 1))
   and vertical backstitch =
     let range = diff backstitch.end_y backstitch.start_y in
-    List.init range (fun more_y -> (backstitch.start_x , backstitch.start_y + more_y)) 
+    List.init range (fun more_y -> (backstitch.start_x - 1, backstitch.start_y - 1 + more_y)) 
   in
   backstitch_of_position_pair backstitch >>| function
   | Top -> Stitchy.Types.Back Top, horizontal backstitch
@@ -98,9 +100,17 @@ let layers_of_backstitches threads backstitches =
       match (List.nth threads (backstitch.Patreader.color_index - 1)) with
       | None -> Error (`Msg "unknown thread")
       | Some thread ->
-        stitches_of_backstitch backstitch >>= fun (stitch, stitches) ->
-        add_stitches layers thread stitch stitches >>= fun layers ->
-        Ok layers
+        match stitches_of_backstitch backstitch with
+        | Ok (stitch, stitches) ->
+          Format.eprintf "interpreting backstitch %a as stitch %a for coords\n%a\n%!"
+            Patreader.pp_backstitch backstitch
+            Stitchy.Types.pp_stitch stitch
+            Fmt.(list @@ parens @@ pair ~sep:Fmt.comma int int) stitches;
+          add_stitches layers thread stitch stitches >>= fun layers ->
+          Ok layers
+        | Error (`Msg s) ->
+          Format.eprintf "%s\n%!" s;
+          acc
   in
   List.fold_left one_backstitch (Ok []) backstitches
 
@@ -119,49 +129,3 @@ let to_stitches (_fabric, _metadata, palette, stitches, backstitches) =
   layers_of_backstitches threads backstitches >>= fun backstitch_layers ->
   Ok (stitch_layers @ backstitch_layers)
 
-let read_one input =
-  let open Lwt.Infix in
-  Lwt_io.open_file ~mode:Input input >>= fun input ->
-  Angstrom_lwt_unix.parse Patreader.file input >>= fun (_, result) ->
-  match result with
-  | Error e -> Lwt.return @@ Error (`Msg e)
-  | Ok (fabric, metadata, palette, stitches, extras, knots, backstitches) ->
-    Format.eprintf "metadata: %a\n%!" Patreader.pp_metadata metadata;
-    Format.eprintf "fabric: %a\n%!" Patreader.pp_fabric fabric;
-    Format.eprintf "palette: %a\n%!" Patreader.pp_palette palette;
-    Format.eprintf "got %d extras\n%!" @@ List.length extras;
-    Format.eprintf "got %d knots\n%!" @@ List.length knots;
-    Format.eprintf "got %d backstitches\n%!" @@ List.length backstitches;
-    let substrate = to_substrate fabric in
-    (* TODO: this is probably not strictly correct; I think some entries in the
-     * stitch list can be half, 3/4, etc stitches *)
-    let stitches = List.map (fun (coords, color, _stitch) ->
-        coords, color, (Stitchy.Types.Cross Full)) stitches in
-    match to_stitches (fabric, metadata, palette, stitches, backstitches) with
-    | Error e -> Lwt.return @@ Error e
-    | Ok layers -> begin
-      let pattern = {Stitchy.Types.substrate = substrate;
-                     layers } in
-      Format.printf "%s" (Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string);
-      Lwt.return (Ok ())
-    end
-
-let main inputs =
-  List.fold_left (fun acc input ->
-      let res = Lwt_main.run @@ read_one input in
-      match acc, res with
-      | e, Ok () -> e
-      | Ok (), e -> e
-      | Error (`Msg e1), Error (`Msg e2) -> Error (`Msg (e1 ^ "\n" ^ input ^ ": " ^ e2))
-    ) (Ok ()) inputs
-
-let read_t = Cmdliner.Term.(const main $ input)
-
-let () =
-  Cmdliner.Term.eval (read_t, info) |> function
-  | `Ok (Error (`Msg s)) ->
-    Format.eprintf "%s\n%!" s; exit 1
-  | `Ok (Ok ()) ->
-    exit 0
-  | `Error _ -> exit 1
-  | e -> Cmdliner.Term.exit e
