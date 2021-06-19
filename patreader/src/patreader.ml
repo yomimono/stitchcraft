@@ -28,16 +28,24 @@ let to_substrate fabric =
   let max_x, max_y = fabric.Patreader.width - 1, fabric.Patreader.height - 1 in
   Stitchy.Types.{ grid; background = (r, g, b); max_x; max_y }
 
-let to_stitches (_fabric, _metadata, palette, stitches) =
-  (* We can map the palette entries to threads, but not to layers,
-   * because each stitch carries its own stitch type (full cross-stitch,
-   * half-stitch, etc), so one entry in the palette list may correspond
-   * to multiple layers.
-   *
-   * We can still use the thread map to look up the stitch indices, 
-   * so it's worth doing that mapping once for the pattern and then
-   * referring to it later. *)
-  let threads = List.map match_thread palette in
+let eq_layers_disregarding_stitch_set layer stitch thread =
+  Stitchy.Types.(equal_stitch layer.stitch stitch) &&
+  Stitchy.DMC.Thread.compare layer.thread thread = 0
+
+let add_stitches layers thread stitch new_stitches =
+  match List.partition (fun layer ->
+      eq_layers_disregarding_stitch_set layer stitch thread) layers with
+  | layer::_, other_layers ->
+    let stitches =
+      Stitchy.Types.CoordinateSet.(union layer.stitches @@ of_list new_stitches) in
+    Ok ({ layer with stitches } :: other_layers)
+  | [], other_layers ->
+    let layer = Stitchy.Types.{
+        thread; stitch; stitches = CoordinateSet.of_list new_stitches
+      } in
+    Ok (layer :: other_layers)
+
+let layers_of_cross_stitches threads stitches =
   List.fold_left (fun acc ((x, y), color_index, stitch) ->
       match acc, color_index with 
       | Error s, _ -> Error s
@@ -47,17 +55,69 @@ let to_stitches (_fabric, _metadata, palette, stitches) =
         match (List.nth threads (color_index - 1)) with
         | None -> Error (`Msg "unknown thread")
         | Some thread ->
-          match List.partition (fun layer ->
-              Stitchy.Types.(equal_stitch layer.stitch stitch) &&
-              Stitchy.DMC.Thread.compare layer.thread thread = 0) acc with
-          | layer::_, other_layers ->
-            Ok ({ layer with stitches = Stitchy.Types.CoordinateSet.add (x, y) layer.stitches } :: other_layers)
-          | [], other_layers ->
-            let layer = Stitchy.Types.{
-                thread; stitch; stitches = CoordinateSet.singleton (x, y)
-              } in
-            Ok (layer :: other_layers)
+          add_stitches acc thread stitch [(x, y)]
     ) (Ok []) stitches
+
+let backstitch_of_position_pair backstitch =
+  let open Patreader in
+  match backstitch.start_position, backstitch.end_position with
+  | (1, 3) | (3, 1) -> Ok Stitchy.Types.Top
+  | (1, 7) | (7, 1) -> Ok Stitchy.Types.Left
+  | (3, 9) | (9, 3) -> Ok Stitchy.Types.Right
+  | (7, 9) | (9, 7) -> Ok Stitchy.Types.Bottom
+  | (1, 1) -> if backstitch.start_y == backstitch.end_y then Ok Stitchy.Types.Top else Ok Stitchy.Types.Left
+  | (7, 7) -> if backstitch.start_y == backstitch.end_y then Ok Stitchy.Types.Bottom else Ok Stitchy.Types.Left
+  | (3, 3) -> if backstitch.start_y == backstitch.end_y then Ok Stitchy.Types.Top else Ok Stitchy.Types.Right
+  | (9, 9) -> if backstitch.start_y == backstitch.end_y then Ok Stitchy.Types.Bottom else Ok Stitchy.Types.Right
+  | _ -> Ok Stitchy.Types.Top (* TODO: this is obviously wrong *)
+  (* | (x, y) -> Error (`Msg (Format.asprintf "unrepresentable backstitch %d, %d" x y)) *)
+
+let stitches_of_backstitch backstitch =
+  let open Rresult.R in
+  let open Patreader in
+  let diff one two = (max one two) + 1 - (min one two) in
+  let horizontal backstitch =
+    let range = diff backstitch.end_x backstitch.start_x in
+    List.init range (fun more_x -> (backstitch.start_x + more_x, backstitch.start_y)) 
+  and vertical backstitch =
+    let range = diff backstitch.end_y backstitch.start_y in
+    List.init range (fun more_y -> (backstitch.start_x , backstitch.start_y + more_y)) 
+  in
+  backstitch_of_position_pair backstitch >>| function
+  | Top -> Stitchy.Types.Back Top, horizontal backstitch
+  | Bottom -> Stitchy.Types.Back Bottom, (horizontal backstitch)
+  | Left -> Stitchy.Types.Back Left, (vertical backstitch)
+  | Right -> Stitchy.Types.Back Right, (vertical backstitch)
+
+let layers_of_backstitches threads backstitches =
+  let open Rresult.R in
+  let one_backstitch acc backstitch =
+    match acc with
+    | Error e -> Error e
+    | Ok layers ->
+      match (List.nth threads (backstitch.Patreader.color_index - 1)) with
+      | None -> Error (`Msg "unknown thread")
+      | Some thread ->
+        stitches_of_backstitch backstitch >>= fun (stitch, stitches) ->
+        add_stitches layers thread stitch stitches >>= fun layers ->
+        Ok layers
+  in
+  List.fold_left one_backstitch (Ok []) backstitches
+
+let to_stitches (_fabric, _metadata, palette, stitches, backstitches) =
+  let open Rresult.R in
+  (* We can map the palette entries to threads, but not to layers,
+   * because each stitch carries its own stitch type (full cross-stitch,
+   * half-stitch, etc), so one entry in the palette list may correspond
+   * to multiple layers.
+   *
+   * We can still use the thread map to look up the stitch indices, 
+   * so it's worth doing that mapping once for the pattern and then
+   * referring to it later. *)
+  let threads = List.map match_thread palette in
+  layers_of_cross_stitches threads stitches >>= fun stitch_layers ->
+  layers_of_backstitches threads backstitches >>= fun backstitch_layers ->
+  Ok (stitch_layers @ backstitch_layers)
 
 let read_one input =
   let open Lwt.Infix in
@@ -73,9 +133,11 @@ let read_one input =
     Format.eprintf "got %d knots\n%!" @@ List.length knots;
     Format.eprintf "got %d backstitches\n%!" @@ List.length backstitches;
     let substrate = to_substrate fabric in
+    (* TODO: this is probably not strictly correct; I think some entries in the
+     * stitch list can be half, 3/4, etc stitches *)
     let stitches = List.map (fun (coords, color, _stitch) ->
         coords, color, (Stitchy.Types.Cross Full)) stitches in
-    match to_stitches (fabric, metadata, palette, stitches) with
+    match to_stitches (fabric, metadata, palette, stitches, backstitches) with
     | Error e -> Lwt.return @@ Error e
     | Ok layers -> begin
       let pattern = {Stitchy.Types.substrate = substrate;
