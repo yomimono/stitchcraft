@@ -11,6 +11,20 @@
     "max_x": 48,
     "max_y": 59
   },
+  "backstitch_layers":[{
+      "thread": {
+        "name": "Snow White",
+        "identifier": "B5200",
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      "stitches": [
+	      [[0,0],[1,1]]
+      ]
+  }],
   "layers": [
     {
       "thread": {
