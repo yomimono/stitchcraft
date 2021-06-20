@@ -37,9 +37,6 @@ let get_representation pattern symbols x y =
       | Some symbol -> symbol
     in
     Symbol (color, symbol)
-  | (Stitchy.Types.Back stitch, thread) ->
-    let color = Stitchy.DMC.Thread.to_rgb thread in
-    Line (color, stitch)
   in
   List.map stitch_repr (Stitchy.Types.stitches_at pattern (x, y))
 
@@ -237,15 +234,7 @@ let paint_stitch doc page ~font_size pattern (x, y) =
   | Symbol ((r, g, b), symbol) ->
       paint_pixel ~font_size ~x_pos ~y_pos
         ~pixel_size r g b symbol
-  | Line (color, stitch) ->
-    (* if the contrast ratio of the actual color is too low, force the color to black *)
-    let (r, g, b) =
-      if Colors.contrast_ratio color (255, 255, 255) < 4.5 then
-        (0, 0, 0)
-      else color
-    in
-    let pdf_y = y_pos -. pixel_size in
-    Coverpage.paint_backstitch ~backstitch_thickness ~pdf_x:x_pos ~pdf_y ~px:pixel_size r g b stitch
+  | Line _ -> []
   in
   List.map paint_repr (get_representation pattern doc.symbols x y) |> List.flatten
 
@@ -277,7 +266,7 @@ let assign_symbols (layers : Stitchy.Types.layer list )=
     | [] -> (Stitchy.Symbol.default, [])
     | hd::tl -> (hd, tl)
   in
-  let threads = List.map (fun layer -> layer.Stitchy.Types.thread) layers |> List.sort_uniq Stitchy.DMC.Thread.compare in
+  let threads = List.map (fun (layer : Stitchy.Types.layer) -> layer.Stitchy.Types.thread) layers |> List.sort_uniq Stitchy.DMC.Thread.compare in
   let color_map = Stitchy.Types.SymbolMap.empty in
   List.fold_left (fun (freelist, map) thread ->
       let symbol, freelist = next freelist in

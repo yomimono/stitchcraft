@@ -1,20 +1,5 @@
-let paint_backstitch ~backstitch_thickness ~pdf_x ~pdf_y ~px r g b stitch =
-  let ((start_x, start_y), (fin_x, fin_y)) = begin
-    match stitch with
-    | Stitchy.Types.Top ->
-      ((pdf_x, pdf_y +. px),
-       (pdf_x +. px, pdf_y +. px))
-    | Left ->
-      ((pdf_x, pdf_y +. px),
-       (pdf_x, pdf_y))
-    | Right ->
-      ((pdf_x +. px, pdf_y +. px),
-       (pdf_x +. px, pdf_y))
-    | Bottom ->
-      ((pdf_x, pdf_y),
-       (pdf_x +. px, pdf_y))
-  end
-  in
+let paint_backstitch ~backstitch_thickness ~pdf_x:_ ~pdf_y:_ ~px:_ r g b segment =
+  let (start_x, start_y), (fin_x, fin_y) = segment in
   Pdfops.([
       Op_q;
       Op_RG (Colors.scale r, Colors.scale g, Colors.scale b);
@@ -26,7 +11,7 @@ let paint_backstitch ~backstitch_thickness ~pdf_x ~pdf_y ~px r g b stitch =
     ])
 
 (* generate a preview image *)
-let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
+let coverpage paper ({substrate; layers; _} : Stitchy.Types.pattern) =
   let Types.{min_x; min_y; max_x; max_y} = Positioning.dimensions paper in
   let width = float_of_int (substrate.max_x + 1)
   and height = float_of_int (substrate.max_y + 1)
@@ -67,8 +52,6 @@ let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
           Op_f;
           Op_Q;
         ])
-    | Stitchy.Types.Back stitch ->
-      paint_backstitch ~backstitch_thickness:3.0 ~pdf_x ~pdf_y ~px r g b stitch
   in
   let paint_layer (layer : Stitchy.Types.layer) =
     Stitchy.Types.CoordinateSet.fold (fun pixel ops ->
