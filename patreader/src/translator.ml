@@ -1,3 +1,20 @@
+let add_stitches layers thread stitch_type new_stitches =
+  let eq_layers_disregarding_stitch_set layer stitch_type thread =
+    Stitchy.Types.(equal_stitch layer.stitch stitch_type) &&
+    Stitchy.DMC.Thread.compare layer.thread thread = 0
+  in
+  match List.partition (fun layer ->
+      eq_layers_disregarding_stitch_set layer stitch_type thread) layers with
+  | layer::_, other_layers ->
+    let stitches =
+      Stitchy.Types.CoordinateSet.(union layer.stitches @@ of_list new_stitches) in
+    Ok ({ layer with stitches } :: other_layers)
+  | [], other_layers ->
+    let layer = Stitchy.Types.{
+        thread; stitch = stitch_type; stitches = CoordinateSet.of_list new_stitches
+      } in
+    Ok (layer :: other_layers)
+
 let match_thread palette_entry =
   let manufacturer = palette_entry.Patreader.scheme |> String.trim in
   if String.compare manufacturer "DMCDMC" = 0 then begin
@@ -29,10 +46,10 @@ let layers_of_cross_stitches threads stitches =
         match (List.nth threads (color_index - 1)) with
         | None -> Error (`Msg "unknown thread")
         | Some thread ->
-          Backstitch.add_stitches acc thread stitch [(x, y)]
+          add_stitches acc thread stitch [(x, y)]
     ) (Ok []) stitches
 
-let to_stitches (_fabric, _metadata, palette, stitches, backstitches) =
+let to_stitches (_fabric, _metadata, palette, stitches, _backstitches) =
   let open Rresult.R in
   (* We can map the palette entries to threads, but not to layers,
    * because each stitch carries its own stitch type (full cross-stitch,
@@ -44,6 +61,5 @@ let to_stitches (_fabric, _metadata, palette, stitches, backstitches) =
    * referring to it later. *)
   let threads = List.map match_thread palette in
   layers_of_cross_stitches threads stitches >>= fun stitch_layers ->
-  Backstitch.layers_of_backstitches threads backstitches >>= fun backstitch_layers ->
-  Ok (stitch_layers @ backstitch_layers)
+  Ok stitch_layers
 

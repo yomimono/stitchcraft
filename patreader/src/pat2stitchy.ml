@@ -29,6 +29,7 @@ let read_one input =
     | Error e -> Lwt.return @@ Error e
     | Ok layers -> begin
       let pattern = {Stitchy.Types.substrate = substrate;
+                     backstitch_layers = [];
                      layers } in
       Format.printf "%s" (Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string);
       Lwt.return (Ok ())
