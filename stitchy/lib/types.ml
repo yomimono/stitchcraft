@@ -105,6 +105,8 @@ type backstitch_layer = {
   stitches : SegmentSet.t;
 } [@@deriving eq, yojson]
 
+type backstitch_layers = backstitch_layer list [@@deriving eq, yojson]
+
 type pattern = {
   substrate : substrate;
   layers : layer list; [@default []]
