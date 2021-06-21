@@ -49,6 +49,8 @@ type layer = {
   stitches : CoordinateSet.t;
 } [@@deriving yojson]
 
+type layers = layer list [@@deriving yojson]
+
 type backstitch_layer = {
   thread : thread;
   stitches : SegmentSet.t;

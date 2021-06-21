@@ -225,17 +225,32 @@ let symbolpage ~font_size paper symbols =
   let content = [ Pdfops.stream_of_ops @@ snd (symbol_table ~font_size symbols) ] in
   {(Pdfpage.blankpage paper) with content; resources = font_resources;}
 
+let paint_backstitch ~x_pos ~y_pos ~pixel_size r g b ((src_x, src_y), (dst_x, dst_y)) =
+  (* TODO: handle case where segment crosses 1 or more page boundaries *)
+  (* TODO pretty sure this math is 0% right but ok *)
+  Pdfops.([
+      Op_q;
+      Op_RG (Colors.scale r, Colors.scale g, Colors.scale b);
+      Op_w backstitch_thickness;
+      Op_m (x_pos +. pixel_size *. (float_of_int src_x),
+            y_pos +. pixel_size *. (float_of_int src_y));
+      Op_l (x_pos +. pixel_size *. (float_of_int dst_x),
+            y_pos +. pixel_size *. (float_of_int dst_y));
+      Op_s;
+      Op_Q;
+    ])
+
 let paint_stitch doc page ~font_size pattern (x, y) =
   (* position is based on x and y relative to the range expressed on this page *)
   let open Types in
   let (x_pos, y_pos) = Positioning.find_upper_left doc (x - (fst page.x_range)) (y - (fst page.y_range)) in
   let pixel_size = float_of_int doc.pixel_size in
   let paint_repr = function
-  | Symbol ((r, g, b), symbol) ->
+    | Symbol ((r, g, b), symbol) ->
       paint_pixel ~font_size ~x_pos ~y_pos
         ~pixel_size r g b symbol
-  | Line ((r, g, b), segment ->
-          paint_backstitch ~x_pos ~y_pos ~pixel_size r g b segment
+    | Line ((r, g, b), segment) ->
+            paint_backstitch ~x_pos ~y_pos ~pixel_size r g b segment
   in
   List.map paint_repr (get_representation pattern doc.symbols x y) |> List.flatten
 
@@ -274,7 +289,7 @@ let assign_symbols (layers : Stitchy.Types.layer list )=
       (freelist, Stitchy.Types.SymbolMap.add thread symbol map))
   (Stitchy.Symbol.printable_symbols, color_map) threads
 
-let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixel_fn : doc -> page -> Pdfops.t list) (backstitch_fn : doc -> page -> Pdfops.t list) =
+let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixel_fn : doc -> page -> Pdfops.t list) =
   let xpp = x_per_page ~pixel_size:doc.pixel_size
   and ypp = y_per_page ~pixel_size:doc.pixel_size
   in
@@ -291,7 +306,7 @@ let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixel
   {(Pdfpage.blankpage doc.paper_size) with
    Pdfpage.content = [
      Pdfops.stream_of_ops @@ pixel_fn doc page;
-     Pdfops.stream_of_ops @@ backstitch_fn doc page;
+     (* Pdfops.stream_of_ops @@ backstitch_fn doc page; *)
      Pdfops.stream_of_ops @@ paint_grid_lines doc page;
      Pdfops.stream_of_ops @@ label_top_grid doc page;
      Pdfops.stream_of_ops @@ label_left_grid doc page;

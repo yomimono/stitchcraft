@@ -75,4 +75,4 @@ let stitch lookup textcolor background gridsize (phrase : string) interline =
   let thread = Colors.thread_of_color textcolor in
   let (phrase, max_x, max_y) = render_phrase lookup thread phrase interline in
   let substrate = make_substrate ~max_x ~max_y background gridsize in
-  {layers = [phrase]; substrate;}
+  {layers = [phrase]; substrate; backstitch_layers = []}

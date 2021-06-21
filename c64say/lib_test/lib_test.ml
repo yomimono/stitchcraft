@@ -22,7 +22,7 @@ let never_a_glpyh _ = None
 
 let one_glyph () =
   let layer, width, height = C64say.Assemble.render_phrase always_test_glyph thread " " 0 in
-  let pattern = {X.substrate; layers = [layer]} in
+  let pattern = {backstitch_layers = []; X.substrate; layers = [layer]} in
   Format.printf "%a\n" Stitchy.Types.pp_pattern pattern;
   Alcotest.(check int "phrase with one glyph has the right number of stitches"
               (X.CoordinateSet.cardinal test_glyph.stitches)
