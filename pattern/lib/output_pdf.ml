@@ -234,7 +234,8 @@ let paint_stitch doc page ~font_size pattern (x, y) =
   | Symbol ((r, g, b), symbol) ->
       paint_pixel ~font_size ~x_pos ~y_pos
         ~pixel_size r g b symbol
-  | Line _ -> []
+  | Line ((r, g, b), segment ->
+          paint_backstitch ~x_pos ~y_pos ~pixel_size r g b segment
   in
   List.map paint_repr (get_representation pattern doc.symbols x y) |> List.flatten
 
@@ -273,7 +274,7 @@ let assign_symbols (layers : Stitchy.Types.layer list )=
       (freelist, Stitchy.Types.SymbolMap.add thread symbol map))
   (Stitchy.Symbol.printable_symbols, color_map) threads
 
-let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
+let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixel_fn : doc -> page -> Pdfops.t list) (backstitch_fn : doc -> page -> Pdfops.t list) =
   let xpp = x_per_page ~pixel_size:doc.pixel_size
   and ypp = y_per_page ~pixel_size:doc.pixel_size
   in
@@ -289,8 +290,9 @@ let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixel
     } in
   {(Pdfpage.blankpage doc.paper_size) with
    Pdfpage.content = [
-     Pdfops.stream_of_ops @@ (pixels doc page);
-     Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
+     Pdfops.stream_of_ops @@ pixel_fn doc page;
+     Pdfops.stream_of_ops @@ backstitch_fn doc page;
+     Pdfops.stream_of_ops @@ paint_grid_lines doc page;
      Pdfops.stream_of_ops @@ label_top_grid doc page;
      Pdfops.stream_of_ops @@ label_left_grid doc page;
      Pdfops.stream_of_ops @@ add_watermark watermark;
