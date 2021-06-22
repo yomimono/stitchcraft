@@ -11,19 +11,6 @@ let y_per_page ~pixel_size =
   (* assume 9 usable inches after margins, axis labels, and page number *)
   (72 * 9) / pixel_size
 
-let get_representation pattern symbols x y =
-  let open Stitchy.Types in
-  let stitch_repr = function
-  | (Stitchy.Types.Cross _, thread) ->
-    let color = Stitchy.DMC.Thread.to_rgb thread in
-    let symbol = match SymbolMap.find_opt thread symbols with
-      | None -> Stitchy.Symbol.default
-      | Some symbol -> symbol
-    in
-    Symbol (color, symbol)
-  in
-  List.map stitch_repr (Stitchy.Types.stitches_at pattern (x, y))
-
 let add_watermark watermark =
   Pdfops.([
       Op_q;
@@ -49,6 +36,19 @@ let number_page number =
 let key_and_symbol s = match s.Stitchy.Symbol.pdf with
   | `Zapf symbol -> Consts.zapf_key, symbol
   | `Symbol symbol -> Consts.symbol_key, symbol
+
+let get_representation pattern symbols x y =
+  let open Stitchy.Types in
+  let stitch_repr = function
+  | (Stitchy.Types.Cross _, thread) ->
+    let color = Stitchy.DMC.Thread.to_rgb thread in
+    let symbol = match SymbolMap.find_opt thread symbols with
+      | None -> Stitchy.Symbol.default
+      | Some symbol -> symbol
+    in
+    Symbol (color, symbol)
+  in
+  List.map stitch_repr (Stitchy.Types.stitches_at pattern (x, y))
 
 (* note that this paints *only* the pixels - the grid lines should be added later *)
 (* (otherwise we end up with a lot of tiny segments when we could have just one through-line,
@@ -226,6 +226,14 @@ let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixel
   }
 
 let pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
+
+  (* TODO: this is a pretty ridiculous approach.
+   * we know from the substrate how big the field we'll be rendering,
+   * and therefore how many pages we need.
+   * we can get the list of stitches from each layer,
+   * render each of them based on what's there instead of exhaustively searching the whole grid,
+   * and have a much less convoluted set of drawing functions.
+   * Ideally it would just be (fun doc symbols pattern layer -> (page_number, ops) list). *)
   let open Stitchy.Types in
   let xpp = x_per_page ~pixel_size
   and ypp = y_per_page ~pixel_size
