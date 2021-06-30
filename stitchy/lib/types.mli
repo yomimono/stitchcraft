@@ -5,6 +5,7 @@ module UcharMap : Map.S with type key = Uchar.t
 
 type coordinates = int * int [@@deriving yojson]
 type segment = coordinates * coordinates [@@deriving yojson]
+module Coordinates : Map.OrderedType with type t = coordinates
 module CoordinateSet : Set.S with type elt = coordinates [@@deriving yojson]
 module SegmentSet : Set.S with type elt = segment [@@deriving yojson]
 
