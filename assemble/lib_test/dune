@@ -5,6 +5,7 @@
 
 (rule
  (alias runtest)
+ (deps stitch.json)
  (action
   (run %{exe:lib_test.exe})
  )

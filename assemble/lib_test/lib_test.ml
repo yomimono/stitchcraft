@@ -24,12 +24,31 @@ let mergeable_layers () =
   let only_layer = List.hd assembled.layers in
   Alcotest.(check int "merged layer has both stitches" 2 (X.CoordinateSet.cardinal only_layer.stitches))
 
+let thread_renaming () =
+  let thread = Yojson.Safe.from_file "stitch.json" in
+  match Stitchy.Types.pattern_of_yojson thread with
+  | Error s -> Alcotest.fail s
+  | Ok pattern ->
+    let open Stitchy.Types in
+    let threads = List.map (fun (layer : layer) -> layer.thread) pattern.layers in
+    let normalized_threads = List.map Assemble.normalize_thread threads in
+    List.iter (fun normalized ->
+        match Stitchy.DMC.Thread.to_string normalized |> String.split_on_char ':' with
+        | _::identifier::_ ->
+          let is_empty = String.(equal "" @@ trim identifier) in
+          Printf.eprintf "normalized name: %s\n%!" identifier;
+          Alcotest.(check bool "normalized string has a name" false is_empty); ()
+        | _ -> Alcotest.fail ("normalized thread name doesn't look like expected" ^ 
+                              Stitchy.DMC.Thread.to_string normalized)
+      ) normalized_threads
+
 let () =
   Alcotest.run "assemble" [
     ("all the tests", [
         ("empty list of layers", `Quick, empty_layers);
         ("disjoint layers are not merged", `Quick, disjoint_layers);
         ("layers that can be merged, are", `Quick, mergeable_layers);
+        ("thread normalization renaming works", `Quick, thread_renaming);
       ]
     )
   ]

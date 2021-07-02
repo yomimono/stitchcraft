@@ -20,6 +20,23 @@ let find_size layers =
       max_dimensions acc (biggest_dims layer)
     ) (0, 0) layers
 
+(* If we happen to know what this thread is, get the Stitchy description for it
+ * instead of relying on what the outputting program came up with.
+ * This is helpful with `ih`, which attaches only identifiers to its threads. *)
+let normalize_thread thread =
+  (* TODO this is a brittle solution that relies on the thread module's to_string logic.
+   * A better solution would have threads admit when they don't know who they are,
+   * or allow for a replace_name function or something. *)
+  match String.split_on_char ' ' @@ Stitchy.DMC.Thread.to_string thread with
+  | _::identifier::_ -> begin
+      let identifier = String.split_on_char ':' identifier |> List.hd
+                       |> String.lowercase_ascii |> String.capitalize_ascii in
+      match Stitchy.DMC.Thread.of_string @@ String.trim identifier with
+      | None -> thread
+      | Some t -> t
+    end
+  | _ -> thread
+
 (* humans usually like to supply "width, height" instead of
    "max_x", "max_y", so accommodate them preferentially. *)
 let stitch background width height gridsize (layers : Stitchy.Types.layer list)=
@@ -29,5 +46,8 @@ let stitch background width height gridsize (layers : Stitchy.Types.layer list)=
   in
   let substrate = make_substrate background gridsize ~width ~height in
   (* TODO: this is pokey enough that we should probably allow the user to bypass it *)
-  let layers = List.fold_left (fun merged layer -> Stitchy.Layers.merge_threads merged [layer]) [] layers in
+  let layers = List.fold_left (fun merged (layer : Stitchy.Types.layer) ->
+      let normalized_layer = {layer with thread = normalize_thread layer.thread} in
+      Stitchy.Layers.merge_threads merged [normalized_layer]
+    ) [] layers in
   {layers; substrate; backstitch_layers = []}
