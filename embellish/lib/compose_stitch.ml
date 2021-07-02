@@ -109,6 +109,20 @@ let rec hrepeat image = function
   | n when n <= 1 -> image
   | n -> hcat image (hrepeat image (n - 1))
 
+let rotate_ccw (pattern : pattern) =
+  let rotate (x, y) =
+    let rotated_x = x * -1 in
+    let transposed_x = rotated_x + pattern.substrate.max_x in
+    (y, transposed_x)
+  in
+  (* TODO yet again, backstitch *)
+  let (layers : layer list) = List.map (fun (layer : layer) ->
+      { layer with stitches = CoordinateSet.map rotate layer.stitches }
+    ) pattern.layers in
+  let substrate = {pattern.substrate with max_x = pattern.substrate.max_y;
+                                          max_y = pattern.substrate.max_x} in
+  { pattern with layers = layers; substrate = substrate }
+
 let (<->) = hcat
 let (<|>) = vcat
 
@@ -117,7 +131,7 @@ let empty base_substrate max_x max_y =
   let layers = [] in
   {layers; substrate; backstitch_layers = []}
 
-let embellish ~center ~corner ~top ~side =
+let embellish ~rotate_corners ~center ~corner ~top ~side =
   let open Compose in
   let horiz_border_reps = border_repetitions
       ~center:(center.substrate.max_x + 1)
@@ -133,6 +147,13 @@ let embellish ~center ~corner ~top ~side =
   in
   let side_border = hrepeat side vert_border_reps in
   let top_border = vrepeat top horiz_border_reps in
+  (* upper-left, upper-right, lower-right, lower-left *)
+  let ul, ur, lr, ll =
+    match rotate_corners with
+    | false -> corner, corner, corner, corner
+    | true -> corner, (rotate_ccw @@ rotate_ccw @@ rotate_ccw corner),
+              rotate_ccw @@ rotate_ccw corner, rotate_ccw corner
+  in
   let center =
     if center.substrate.max_x < top_border.substrate.max_x then begin
       let x_difference = top_border.substrate.max_x - center.substrate.max_x in
@@ -143,8 +164,8 @@ let embellish ~center ~corner ~top ~side =
     end else
       (side_border <|> center <|> side_border)
   in
-  (corner <|> top_border <|> corner)
+  (ul <|> top_border <|> ur)
   <->
   center
   <->
-  (corner <|> top_border <|> corner)
+  (ll <|> top_border <|> lr)

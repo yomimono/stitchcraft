@@ -1,8 +1,13 @@
 open Cmdliner
 
 let corner =
-  let doc = "Corner border image (oriented to upper-left corner).  Will be flipped (not rotated) as appropriate for other corners." in
+  let doc = "Corner border image (oriented to upper-left corner)." in
   Arg.(value & opt file "corner.json" & info ["corner"] ~docv:"CORNER" ~doc)
+
+let rotate_corners =
+  let doc = "Rotate the corner image 90 degrees clockwise for each corner \
+    going clockwise from the upper left." in
+  Arg.(value & flag & info ["rotate"] ~docv:"ROTATE" ~doc)
 
 let top =
   let doc = "top border image (oriented horizontally).  Will be flipped (not rotated) for the bottom border." in
@@ -28,7 +33,7 @@ let spoo output json =
   if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
   else Yojson.Safe.to_file output json
 
-let go corner top side center output =
+let go rotate_corners corner top side center output =
   let (corner, top, side, center) = try
       Yojson.Safe.(from_file corner, from_file top, from_file side, from_file center)
     with
@@ -39,11 +44,11 @@ let go corner top side center output =
                        pattern_of_yojson side,
                        pattern_of_yojson center) with
   | Ok corner, Ok top, Ok side, Ok center ->
-    Compose_stitch.embellish ~center ~corner ~top ~side
+    Compose_stitch.embellish ~rotate_corners ~center ~corner ~top ~side
     |> Stitchy.Types.pattern_to_yojson
     |> spoo output
   | _, _, _, _ -> failwith (Printf.sprintf "failed to parse input json")
 
-let compose_t = Term.(const go $ corner $ top $ side $ center $ output)
+let compose_t = Term.(const go $ rotate_corners $ corner $ top $ side $ center $ output)
 
 let () = Term.exit @@ Term.eval (compose_t, info)
