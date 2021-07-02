@@ -35,7 +35,6 @@ let uchar_of_cross_stitch = function
 
 let uchar_of_stitch = function
   | Cross n -> uchar_of_cross_stitch n
-  | Back _ -> Uchar.of_char '?' (* TODO: obviously not, but I don't know what to do here instead *)
 
 let symbol_of_thread symbols (stitch, thread) =
   match SymbolMap.find_opt thread symbols with
@@ -106,10 +105,11 @@ let left_pane substrate (width, height) =
   let width = width * 2 / 3 in
   subdivide_left_pane ~left_pane_width:width ~left_pane_height:height substrate
 
-let show_left_pane {substrate; layers} symbol_map view left_pane =
+let show_left_pane {substrate; layers; backstitch_layers} symbol_map view left_pane =
   let open Notty.Infix in
   let background = Notty.A.(bg @@ color_map substrate.background) in
-  let c x y = match Stitchy.Types.stitches_at {substrate; layers} (x + view.Controls.x_off, y + view.y_off) with
+  let c x y = match Stitchy.Types.stitches_at {substrate; layers; backstitch_layers}
+                      (x + view.Controls.x_off, y + view.y_off) with
     | [] -> (* no stitch here *)
       (* TODO: column/row display? *)
       Notty.I.char background ' ' 1 1
@@ -154,14 +154,14 @@ let totals_pane (total_cost, total_seconds) =
   <->
   Notty.I.strf "time: %.02G hours" ((float_of_int total_seconds) /. 3600.)
 
-let main_view {substrate; layers} view totals (width, height) =
+let main_view {substrate; layers; backstitch_layers;} view totals (width, height) =
   let open Notty.Infix in
-  let symbol_map = symbol_map @@ List.map (fun layer -> layer.thread) layers in
+  let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
   let left_pane = left_pane substrate (width, height) in
-  let stitch_grid = show_left_pane {substrate; layers} symbol_map view left_pane in
+  let stitch_grid = show_left_pane {substrate; layers; backstitch_layers;} symbol_map view left_pane in
   let colors = colors ~x_off:view.x_off ~y_off:view.y_off
       ~width:left_pane.stitch_grid.width ~height:left_pane.stitch_grid.height
-      {substrate; layers}
+      {substrate; layers; backstitch_layers;}
   in
   let color_key = color_key substrate symbol_map view colors in
   (stitch_grid <|> (color_key <-> (totals_pane totals)))

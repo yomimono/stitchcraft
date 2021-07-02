@@ -14,7 +14,8 @@ let print_glyph fmt (glyph : Stitchy.Types.glyph) =
     max_x = glyph.width - 1;
     max_y = glyph.height - 1;
   } in
-  let pattern : Stitchy.Types.pattern = { layers = [layer]; substrate; } in
+  let pattern : Stitchy.Types.pattern = { layers = [layer]; substrate;
+                                          backstitch_layers = [];} in
   Format.fprintf fmt "%a\n%!" Stitchy.Types.pp_pattern pattern
 
 module type INTERPRETER = sig

@@ -1,5 +1,5 @@
-let merge_threads layers_a layers_b =
-  let is_mergeable a b = 
+let merge_threads (layers_a : Types.layer list) layers_b =
+  let is_mergeable (a : Types.layer) (b : Types.layer) = 
     DMC.Thread.equal a.Types.thread b.Types.thread &&
     Types.equal_stitch a.stitch b.stitch
   in  

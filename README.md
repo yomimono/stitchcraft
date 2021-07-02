@@ -12,7 +12,7 @@ This is "stitchcraft", a collection of interoperable tools for generating cross-
 
 `dune build` in the top-level directory of your cloned repository and follow any directions given in the `Error` lines until the build succeeds.  Once that happens, you should be able to `dune exec` the individual programs from the project's top-level directory.
 
-Installation via `opam` is not currently supported for version treadmill reasons; watch this space.
+Pinning the package with `opam pin` and then installing should work as well.
 
 ### If you are not familiar with this toolstack:
 
@@ -22,7 +22,7 @@ A better user experience for such folks is coming someday.
 
 # How can I use it?
 
-Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in the current directory, which stores raster font information; if this file is missing, you're gonna have a bad time.  You can create entries for it with `otb2stitchfont`.
+Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in /tmp (location customizable with `--db`), which stores raster font information; if this file is missing, you're gonna have a bad time.  You can create entries for it with `otb2stitchfont`, or use the version distributed in this git repository.
 
 ## Pattern Generation and Manipulation
 
@@ -36,7 +36,7 @@ Stitchcraft bundles several executables for command-line use.  Many assume the p
 ## Pattern Viewing
 
 * notty_canvas , for displaying patterns in the terminal
-* pattern , for converting patterns to PDFs
+* stitchpattern , for converting patterns to PDFs
 
 ## Example Compositions
 
@@ -54,26 +54,29 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 
 * tries its best to not fuck up when confronted with unicode
 * looks cool on your terminal
+* generates usable PDFs
 
 # Future Features
 
-* pattern import from a raster-image-to-pattern program (likely one of those recommended below)
 * nicer `listing` preview graphics
 * Etsy API integration in `listing` (blocked on nice OAuth2 library :( )
 * Zoom in `notty_canvas`
 * sensible names or possibly subcommands
-* prettier PDFs, including an optional "how to cross-stitch" page
-* nicer installation and versioning story
 * autorefresh in notty_canvas
+* ingestion of traditional pattern software files
+* more full-featured composition binaries
 
 # Anti-features / out-of-scope stuff
 
-* taking raster images and converting them to patterns. There are many, many programs that already do this well. I recommend [kxstitch](https://kde.org/applications/graphics/kxstitch/) or [cstitch](https://github.com/kleintom/cstitch) but I'm sure there are other good ones out there that will fit well into your workflow.
+* taking raster images and converting them to patterns. `ih` does a great job and can interoperate with `stitchcraft`.
+* vector font scaling and rasterization. `kxstitch` does this well.
 
 # Acknowledgements
 
-Most work on this software was done at the [Recurse Center](https://recurse.com), and supported financially by a fellowship from that organization. I am deeply grateful to RC for all its support in the past, present, and future.
+Most early work on this software was done at the [Recurse Center](https://recurse.com), and supported financially by a fellowship from that organization. I am deeply grateful to RC for all its support in the past, present, and future.
 
 The fonts included with this software were originally packaged by VileR and are available in their entirety at [https://int10h.org](https://int10h.org). VileR has kindly packaged these fonts and provided them under a [CC-BY-SA](http://creativecommons.org/licenses/by-sa/4.0/) license.
 
 This software depends heavily on [notty](https://github.com/pqwy/notty), [camlpdf](https://github.com/johnwhitington/camlpdf), and various small and useful libraries from [erratique.ch](https://erratique.ch/software).
+
+Lastly, the authors and maintainers of the OCaml langauge and its tooling have made an environment that I find joyful to work in. Thank you for helping me make things!

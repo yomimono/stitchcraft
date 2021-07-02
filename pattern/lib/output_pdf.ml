@@ -1,26 +1,7 @@
-type borders = {
-  max_x : float;
-  max_y : float;
-  min_x : float;
-  min_y : float;
-}
+open Types
 
-let dimensions paper =
-
-  let get_points = Pdfunits.convert 72. Pdfpaper.(unit paper) Pdfunits.PdfPoint in
-  let margin_points = Pdfunits.convert 72. Pdfunits.Inch Pdfunits.PdfPoint 0.5 in
-
-  let max_x = (get_points Pdfpaper.(width paper)) -. margin_points
-  and max_y = (get_points Pdfpaper.(height paper)) -. margin_points
-  and min_x = margin_points
-  and min_y = margin_points
-  in
-  { max_y;
-    max_x;
-    min_y;
-    min_x;
-  }
-
+let thick_line_thickness = 1.
+let thin_line_thickness = 0.5
 
 let t1_font name =
   Pdf.(Dictionary
@@ -36,39 +17,22 @@ let symbol_key = "/F0"
 and zapf_key = "/F1"
 and helvetica_key = "/F2"
 
-type doc = {
-  symbols : Stitchy.Symbol.t Stitchy.Types.SymbolMap.t;
-  pixel_size : int;
-  paper_size : Pdfpaper.t;
-  fat_line_interval : int;
-}
-
-type page = {
-  x_range : int * int;
-  y_range : int * int;
-  page_number : int;
-}
-
-
 (* TODO both of these should be parameterized by the paper info *)
-let x_per_page ~pixel_size =
+let x_per_page ~paper:_ ~pixel_size =
   (* assume 7 usable inches after margins and axis labels *)
   (72 * 7) / pixel_size
 
-let y_per_page ~pixel_size =
+let y_per_page ~paper:_ ~pixel_size =
   (* assume 9 usable inches after margins, axis labels, and page number *)
   (72 * 9) / pixel_size
 
-let find_upper_left doc x y =
-  let {min_x; max_y; _} = dimensions doc.paper_size in
-  (* on the page, find the right upper-left-hand corner for this pixel
-     given the x and y coordinates and `t` representing this page *)
-  let left_adjust = x * doc.pixel_size
-  and top_adjust = y * doc.pixel_size in
-  (min_x +. (float_of_int left_adjust), max_y -. (float_of_int top_adjust))
+let symbol_of_color symbols thread =
+  match Stitchy.Types.SymbolMap.find_opt thread symbols with
+    | None -> Stitchy.Symbol.default
+    | Some symbol -> symbol
 
 let paint_grid_lines (doc : doc) (page : page) =
-  let thickness n = if n mod doc.fat_line_interval = 0 then 2. else 1. in
+  let thickness n = if n mod doc.fat_line_interval = 0 then thick_line_thickness else thin_line_thickness in
   let paint_line ~thickness (x1, y1) (x2, y2) =
     Pdfops.([
         Op_q;
@@ -80,13 +44,13 @@ let paint_grid_lines (doc : doc) (page : page) =
       ])
   in
   let paint_horizontal_line y =
-    let (left_pt_x, y_pt) = find_upper_left doc 0 y in
-    let (right_pt_x, _) = find_upper_left doc (snd page.x_range - fst page.x_range) y in
+    let (left_pt_x, y_pt) = Positioning.find_upper_left doc 0 y in
+    let (right_pt_x, _) = Positioning.find_upper_left doc (snd page.x_range - fst page.x_range) y in
     paint_line ~thickness:(thickness (y + fst page.y_range)) (left_pt_x, y_pt) (right_pt_x, y_pt)
   in
   let paint_vertical_line x =
-    let (x_pt, top_y_pt) = find_upper_left doc x 0 in
-    let (_, bottom_y_pt) = find_upper_left doc x (snd page.y_range - fst page.y_range) in
+    let (x_pt, top_y_pt) = Positioning.find_upper_left doc x 0 in
+    let (_, bottom_y_pt) = Positioning.find_upper_left doc x (snd page.y_range - fst page.y_range) in
     paint_line ~thickness:(thickness (x + fst page.x_range)) (x_pt, top_y_pt) (x_pt, bottom_y_pt)
   in
   let rec paint_horizontal_lines n l =
@@ -114,14 +78,14 @@ let make_grid_label ~text_size n n_x_pos n_y_pos =
 
 let label_top_line doc page n =
   (* label n goes where the nth pixel would go, just nudged up a bit *)
-  let (n_x_pos, n_y_pos) = find_upper_left doc (n - (fst page.x_range)) 0 in
+  let (n_x_pos, n_y_pos) = Positioning.find_upper_left doc (n - (fst page.x_range)) 0 in
   make_grid_label ~text_size:(float_of_int doc.pixel_size) n n_x_pos (n_y_pos +. (float_of_int doc.pixel_size))
 
 let label_left_line doc page n =
   (* label n goes where the nth pixel would go, just nudged left a bit *)
   (* TODO: it would be good to right-justify this; it's weird-looking with different-width labels *)
   (* is there a way to right-justify this bad boy? *)
-  let (n_x_pos, n_y_pos) = find_upper_left doc 0 (n - (fst page.y_range)) in
+  let (n_x_pos, n_y_pos) = Positioning.find_upper_left doc 0 (n - (fst page.y_range)) in
   make_grid_label ~text_size:(float_of_int doc.pixel_size) n (n_x_pos -. (float_of_int (doc.pixel_size * 2))) n_y_pos
 
 let label_top_grid doc page =
@@ -157,7 +121,6 @@ let add_watermark watermark =
       Op_Q;
     ])
 
-
 let number_page number =
   Pdfops.([
       Op_q;
@@ -169,27 +132,6 @@ let number_page number =
       Op_Q;
     ])
 
-let scale n = (float_of_int n) /. 255.0
-
-(* relative luminance calculation is as described in Web Content
-   Accessibility Guidelines (WCAG) 2.0, retrieved from
-   https://www.w3.org/TR/2008/REC-WCAG20-20081211/#relativeluminancedef *)
-let relative_luminance (r, g, b) : float =
-  let r_srgb = scale r
-  and g_srgb = scale g
-  and b_srgb = scale b
-  in
-  let adjust n = if n <= 0.03928 then n /. 12.92 else Float.pow ((n +. 0.055) /. 1.055) 2.4 in
-  0.2126 *. (adjust r_srgb) +. 0.7152 *. (adjust g_srgb) +. 0.0722 *. (adjust b_srgb)
-
-(* to get a contrast ratio, calculate (RL of the lighter color + 0.05) / (RL of the darker color + 0.05). W3C wants that ratio to be at least 4.5:1. *)
-let contrast_ratio a b =
-  let cr lighter darker = (lighter +. 0.05) /. (darker +. 0.05) in
-  let a_rl = relative_luminance a
-  and b_rl = relative_luminance b
-  in
-  if a_rl >= b_rl then cr a_rl b_rl else cr b_rl a_rl
-
 let key_and_symbol s = match s.Stitchy.Symbol.pdf with
   | `Zapf symbol -> zapf_key, symbol
   | `Symbol symbol -> symbol_key, symbol
@@ -200,13 +142,11 @@ let key_and_symbol s = match s.Stitchy.Symbol.pdf with
 (* x_pos and y_pos are the position of the upper left-hand corner of the pixel on the page *)
 let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
   let stroke_width = 3. in (* TODO this should be relative to the thickness of fat lines *)
-  (* the color now needs to come in a bit from the grid sides, since
-       we're doing a border rather than a fill; this is the constant
-       by which it is inset *)
   let (font_key, symbol) = key_and_symbol symbol in
   let font_stroke, font_paint =
-    if contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
-      Pdfops.Op_RG (scale r, scale g, scale b), Pdfops.Op_rg (scale r, scale g, scale b)
+    if Colors.contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
+      Pdfops.Op_RG (Colors.scale r, Colors.scale g, Colors.scale b),
+      Pdfops.Op_rg (Colors.scale r, Colors.scale g, Colors.scale b)
     else
       (* TODO: check the background as well and make sure this won't fade in there *)
       Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
@@ -275,79 +215,81 @@ let symbolpage ~font_size paper symbols =
   let content = [ Pdfops.stream_of_ops @@ snd (symbol_table ~font_size symbols) ] in
   {(Pdfpage.blankpage paper) with content; resources = font_resources;}
 
-(* generate a preview image *)
-let coverpage paper ({substrate; layers} : Stitchy.Types.pattern) =
-  let {min_x; min_y; max_x; max_y} = dimensions paper in
-  let width = float_of_int (substrate.max_x + 1)
-  and height = float_of_int (substrate.max_y + 1)
+let page_of_stitch ~pixel_size ~paper (x, y) =
+  let xpp = x_per_page ~paper ~pixel_size
+  and ypp = y_per_page ~paper ~pixel_size
   in
-  let px =
-    if substrate.max_x < substrate.max_y
-    then (max_y -. min_y) /. height
-    else (max_x -. min_x) /. width
+  let page_row = x / xpp
+  and page_column = y / ypp
+  and pagewise_x = x mod xpp
+  and pagewise_y = y mod ypp
   in
-  let fill_color =
-    let (r, g, b) = substrate.background in
-    Pdfops.Op_rg (scale r, scale g, scale b)
-  in
-  (* draw the background image *)
-  (* TODO: really need some centering logic here *)
-  let background = Pdfops.([
-      Op_q;
-      Op_w 0.;
-      fill_color;
-      Op_re (min_x, (max_y -. (px *. height)), (px *. width), (px *. height));
-      Op_f ; (* fill path *)
-      Op_Q;
-    ]) in
-  let paint_pixel thread _stitch (x, y) =
-    let r, g, b = Stitchy.DMC.Thread.to_rgb thread in
-    (* x and y have their origin in the upper left, but pdf wants to address from the lower left *)
-    (* x coordinates need no transposition, but y do *)
-    let pdf_x = min_x +. ((float_of_int x) *. px)
-    and pdf_y = max_y -. ((float_of_int (y + 1)) *. px)
-    in
-    Pdfops.([
-        Op_q;
-        Op_m (0., 0.);
-        Op_rg (scale r, scale g, scale b);
-        Op_re (pdf_x, pdf_y, px, px);
-        Op_f;
-        Op_Q;
-      ])
-  in
-  let paint_layer (layer : Stitchy.Types.layer) =
-    Stitchy.Types.CoordinateSet.fold (fun pixel ops ->
-        ops @ paint_pixel layer.thread layer.stitch pixel) layer.stitches []
-  in
-  let pixels = List.fold_left (fun ops layer -> ops @ paint_layer layer) [] layers in
-  let page =
-    let open Pdfpage in
-    {(blankpage paper) with
-     content = [
-       Pdfops.stream_of_ops background;
-       Pdfops.stream_of_ops pixels;
-     ]} in
-  page
+  (page_row, page_column, pagewise_x, pagewise_y)
 
-let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
-  let xpp = x_per_page ~pixel_size:doc.pixel_size
-  and ypp = y_per_page ~pixel_size:doc.pixel_size
+let pdfops_of_stitch ~font_size ~doc ~(layer : Stitchy.Types.layer) (x, y) =
+  let open Stitchy.Types in
+  let page_row, page_column, pagewise_x, pagewise_y = page_of_stitch ~pixel_size:doc.pixel_size ~paper:doc.paper_size (x, y) in
+  let r, g, b = Stitchy.DMC.Thread.to_rgb layer.thread in
+  (* x_pos and y_pos are the PDF-oriented coordinates of the upper left pixel on the
+   * specific page, expressed as points *)
+  let x_pos, y_pos = Positioning.find_upper_left doc pagewise_x pagewise_y in
+  let symbol = symbol_of_color doc.symbols layer.thread in
+  let pdfops = paint_pixel ~font_size ~pixel_size:(float_of_int doc.pixel_size)
+      ~x_pos ~y_pos r g b symbol in
+  (page_row, page_column, pdfops)
+
+let assign_symbols (layers : Stitchy.Types.layer list )=
+  let next = function
+    | [] -> (Stitchy.Symbol.default, [])
+    | hd::tl -> (hd, tl)
   in
-  let last_x =
-    if width < first_x + xpp then width else first_x + xpp
-  and last_y =
-    if height < first_y + ypp then height else first_y + ypp
+  let threads = List.map (fun (layer : Stitchy.Types.layer) -> layer.Stitchy.Types.thread) layers |> List.sort_uniq Stitchy.DMC.Thread.compare in
+  let color_map = Stitchy.Types.SymbolMap.empty in
+  List.fold_left (fun (freelist, map) thread ->
+      let symbol, freelist = next freelist in
+      (freelist, Stitchy.Types.SymbolMap.add thread symbol map))
+  (Stitchy.Symbol.printable_symbols, color_map) threads
+
+module PageMap = Map.Make(Stitchy.Types.Coordinates)
+
+let add_pdfops_to_pagemap map (page_row, page_column, pdfops) =
+  match PageMap.find_opt (page_row, page_column) map with
+  | None -> PageMap.add (page_row, page_column) (pdfops::[]) map
+  | Some l -> PageMap.add (page_row, page_column) (pdfops::l) map
+
+let add_layer_to_pagemap map ~doc ~font_size (layer : Stitchy.Types.layer) =
+  let open Stitchy.Types in
+  CoordinateSet.fold (fun (x, y) acc ->
+      let page_x, page_y, pdfops = pdfops_of_stitch ~doc ~font_size ~layer (x, y) in
+      add_pdfops_to_pagemap acc (page_x, page_y, pdfops)
+    ) layer.stitches map
+
+let populate_pagemap ~doc ~font_size pattern =
+  let map = PageMap.empty in
+  List.fold_left (fun map layer -> add_layer_to_pagemap map ~doc ~font_size layer)
+    map pattern.Stitchy.Types.layers
+
+(* page_x and page_y are the pages' position in a supergrid.
+ * i.e. if you were to lay out all the pages of the chart, page (0, 0) should go
+ * at the upper left, (0, 1) immediately to its right, (1, 0) immediately below it. *)
+let pdfpage_of_page ~substrate ~page_number ~doc ~watermark (page_x, page_y) pdfops =
+  let xpp = x_per_page ~paper:doc.paper_size ~pixel_size:doc.pixel_size
+  and ypp = y_per_page ~paper:doc.paper_size ~pixel_size:doc.pixel_size
   in
+  let first_x page_x = page_x * xpp
+  and first_y page_y = page_y * ypp
+  in
+  let last_x page_x = min (substrate.Stitchy.Types.max_x + 1) @@ first_x (page_x + 1) in
+  let last_y page_y = min (substrate.Stitchy.Types.max_y + 1) @@ first_y (page_y + 1) in
   let page = {
     page_number;
-    x_range = (first_x, last_x);
-    y_range = (first_y, last_y);
+    x_range = first_x page_x, last_x page_x;
+    y_range = first_y page_y, last_y page_y;
     } in
   {(Pdfpage.blankpage doc.paper_size) with
    Pdfpage.content = [
-     Pdfops.stream_of_ops @@ (pixels doc page);
-     Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
+     Pdfops.stream_of_ops pdfops;
+     Pdfops.stream_of_ops @@ paint_grid_lines doc page;
      Pdfops.stream_of_ops @@ label_top_grid doc page;
      Pdfops.stream_of_ops @@ label_left_grid doc page;
      Pdfops.stream_of_ops @@ add_watermark watermark;
@@ -360,3 +302,32 @@ let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixel
      ])
   }
 
+let pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
+  let open Stitchy.Types in
+  let xpp = x_per_page ~paper:paper_size ~pixel_size
+  and ypp = y_per_page ~paper:paper_size ~pixel_size
+  in
+  let max_page_x = pattern.substrate.max_x / xpp in
+  let max_page_y = pattern.substrate.max_y / ypp in
+  let doc = { Types.paper_size; pixel_size; fat_line_interval; symbols; } in
+  let pagemap = populate_pagemap ~doc ~font_size pattern in
+  (* if there are any pages that didn't have any stitches on them, they won't be represented in the page map.
+   * but we want to make an empty grid for those, even though it doesn't convey
+   * much information -- it's really confusing when a page is just "missing" from
+   * your pattern, even if the page numbers are contiguous. *)
+  let rec page x y n l =
+    if x > max_page_x && y >= max_page_y then List.rev l
+    else if x > max_page_x then page 0 (y+1) n l
+    else begin
+      let p =
+        let pdfops = 
+          match PageMap.find_opt (x, y) pagemap with
+          | None -> []
+          | Some p -> List.flatten p
+        in
+        pdfpage_of_page ~substrate:pattern.substrate ~page_number:n ~doc ~watermark (x, y) pdfops
+      in
+      page (x + 1) y (n + 1) (p::l)
+    end
+  in
+  page 0 0 1 []

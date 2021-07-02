@@ -19,13 +19,13 @@ module Patterns = struct
   let smol =
     let substrate = white_bg 2 1 in
     let layer = {blackstitch with stitches = CoordinateSet.singleton (1, 1)} in
-    { substrate; layers = layer::[]}
+    { substrate; backstitch_layers = []; layers = layer::[]}
 
   let big =
     let substrate = white_bg 20 10 in
     let layer = {blackstitch with stitches =
                                     CoordinateSet.of_list [(0, 0); (20, 10)]} in
-    { substrate; layers = layer::[]}
+    { substrate; layers = layer::[]; backstitch_layers = []; }
 
 end
 
@@ -71,14 +71,15 @@ let second_needs_padding_hcat () =
 let shift_stitch_down () =
         let displaced_down = Compose_stitch.shift_stitches_down ~amount:1 (List.hd Patterns.smol.layers) in
         Alcotest.(check int) "only one stitch after shifting down" (CoordinateSet.cardinal displaced_down.stitches) 1;
-        let displaced_pattern = {layers = [displaced_down]; substrate = Patterns.big.substrate } in
+        (* TODO: this doesn't test backstitch *)
+        let displaced_pattern = {layers = [displaced_down]; substrate = Patterns.big.substrate; backstitch_layers = []} in
         has_stitch ~name:"displaced single smol stitch" displaced_pattern (1, 2);
         n_stitches 1 displaced_pattern
 
 let shift_stitch_right () =
         let displaced_right = Compose_stitch.shift_stitches_right ~amount:1 (List.hd Patterns.smol.layers) in
         Alcotest.(check int) "only one stitch after shifting right" (CoordinateSet.cardinal displaced_right.stitches) 1;
-        let displaced_pattern = {layers = [displaced_right]; substrate = Patterns.big.substrate } in
+        let displaced_pattern = {layers = [displaced_right]; substrate = Patterns.big.substrate; backstitch_layers = [] } in
         has_stitch ~name:"displaced single smol stitch" displaced_pattern (2, 1);
         n_stitches 1 displaced_pattern
 
@@ -118,7 +119,7 @@ let unmergeable_vcat () =
   let orange_thread = List.nth Stitchy.DMC.Thread.basic 2 in
   let orange_layer = { Patterns.blackstitch with thread = orange_thread } in
   let unmergeable_layer = {orange_layer with stitches = CoordinateSet.singleton (0, 0)} in
-  let left_pattern = {layers = [unmergeable_layer]; substrate = Patterns.smol.substrate} in
+  let left_pattern = {layers = [unmergeable_layer]; substrate = Patterns.smol.substrate; backstitch_layers = []} in
   let vcatted = Compose_stitch.vcat left_pattern Patterns.smol in
   n_stitches 2 vcatted;
   substrate_size (5, 1) vcatted;

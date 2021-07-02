@@ -4,7 +4,10 @@
 module UcharMap : Map.S with type key = Uchar.t
 
 type coordinates = int * int [@@deriving yojson]
+type segment = coordinates * coordinates [@@deriving yojson]
+module Coordinates : Map.OrderedType with type t = coordinates
 module CoordinateSet : Set.S with type elt = coordinates [@@deriving yojson]
+module SegmentSet : Set.S with type elt = segment [@@deriving yojson]
 
 type cross_stitch =
   | Full (* X *) (* full stitch *)
@@ -18,12 +21,7 @@ type cross_stitch =
   | Reverse_comma (* mirrored , (lower right quadrant) *)
 [@@deriving eq, yojson]
 
-type back_stitch =
-  | Left | Right | Top | Bottom
-[@@deriving eq, yojson]
-
 type stitch = | Cross of cross_stitch
-              | Back of back_stitch
 [@@deriving eq, yojson]
 
 val pp_stitch : Format.formatter -> stitch -> unit [@@ocaml.toplevel_printer]
@@ -54,9 +52,15 @@ type layer = {
 
 type layers = layer list [@@deriving yojson]
 
+type backstitch_layer = {
+  thread : thread;
+  stitches : SegmentSet.t;
+} [@@deriving yojson]
+
 type pattern = {
   substrate : substrate;
-  layers : layer list;
+  layers : layer list; [@default []]
+  backstitch_layers : backstitch_layer list; [@default []]
 } [@@deriving yojson]
 
 val stitches_at: pattern -> (int * int) -> (stitch * thread) list
