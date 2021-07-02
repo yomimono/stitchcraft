@@ -76,6 +76,12 @@ let pp_metadata fmt metadata =
   Format.fprintf fmt "instructions: %a\n" Fmt.(option string) metadata.instructions;
   Format.fprintf fmt "keywords: %a\n" Fmt.(option string) metadata.keywords
 
+let pp_backstitch fmt backstitch =
+  Format.fprintf fmt "(%d, %d):%d to (%d, %d):%d , color index %a"
+    backstitch.start_x backstitch.start_y backstitch.start_position
+    backstitch.end_x backstitch.end_y backstitch.end_position
+    pp_dechex backstitch.color_index
+
 let magic = string "PCStitch "
 let version = any_char
 let more_magic = string " Pattern File"

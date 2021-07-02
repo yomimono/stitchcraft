@@ -20,5 +20,4 @@ type page = {
 
 type representation =
   | Symbol of Stitchy.RGB.t * Stitchy.Symbol.t
-  | Line of Stitchy.RGB.t * Stitchy.Types.back_stitch
-
+  | Line of Stitchy.RGB.t * Stitchy.Types.segment

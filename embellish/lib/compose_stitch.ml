@@ -44,21 +44,22 @@ let hcat_with_substrate substrate (upper : pattern) (lower : pattern) =
   | `None ->
     (* displace the lower stitches downward; leave the upper ones as is *)
     let lowered_layers = List.map (shift_stitches_down ~amount:(upper.substrate.max_y + 1) ) lower.layers in
+    (* TODO: ugh, backstitch *)
     let layers = Stitchy.Layers.merge_threads upper.layers lowered_layers in
-    { substrate; layers}
+    { substrate; layers; backstitch_layers = []}
   | `First ->
     (* push the lower stitches down by upper.max_y *)
     let lowered_layers = List.map (shift_stitches_down ~amount:(upper.substrate.max_y + 1) ) lower.layers in
     let left_shifted_layers = List.map (shift_stitches_right ~amount:(left_padding)) upper.layers in
     let layers = Stitchy.Layers.merge_threads lowered_layers left_shifted_layers in
-    { substrate; layers }
+    { substrate; layers; backstitch_layers = []}
   | `Second ->
     (* the lower stitches have to be both displaced down and displaced right *)
     let shifted_lower_layers = List.map (fun layer ->
         shift_stitches_down ~amount:(upper.substrate.max_y + 1) layer |>
         shift_stitches_right ~amount:left_padding) lower.layers in
     let layers = Stitchy.Layers.merge_threads shifted_lower_layers upper.layers in
-    { substrate; layers}
+    { substrate; layers; backstitch_layers = []}
 
 (** [hcat upper lower] concatenates two patterns around a horizontal axis.
     If the substrates differ in background color, grid, or block size,
@@ -75,14 +76,15 @@ let vcat_with_substrate substrate left right =
   match which_to_pad with
   | `None ->
     let shifted_layers = List.map (shift_stitches_right ~amount:(left.substrate.max_x + 1)) right.layers in
-    {substrate; layers = Stitchy.Layers.merge_threads left.layers shifted_layers}
+    {substrate; layers = Stitchy.Layers.merge_threads left.layers shifted_layers;
+     backstitch_layers = []}
   | `First ->
     (* shift the left-side elements down to center stuff vertically,
        and also shift the right-side elements right *)
     let downshifted_left_side = List.map (shift_stitches_down ~amount:top_pad) left.layers in
     let rightshifted_right_side = List.map (shift_stitches_right ~amount:(left.substrate.max_x + 1)) right.layers in
     let layers = Stitchy.Layers.merge_threads downshifted_left_side rightshifted_right_side in
-    { substrate; layers}
+    { substrate; layers; backstitch_layers = []}
   | `Second ->
     (* left side stays as is, but right side is both shifted right (for concatenation)
        and shifted down (for vertical centering) *)
@@ -90,7 +92,8 @@ let vcat_with_substrate substrate left right =
       List.map (fun layer -> shift_stitches_down ~amount:top_pad layer |>
                              shift_stitches_right ~amount:(left.substrate.max_x + 1))
         right.layers in
-    {substrate; layers = Stitchy.Layers.merge_threads left.layers displaced_right_side}
+    {substrate; layers = Stitchy.Layers.merge_threads left.layers displaced_right_side
+    ; backstitch_layers = []}
 
 (** [vcat left right] joins two patterns along a vertical axis.
     If the substrates differ in background color, grid, or block size,
@@ -112,7 +115,7 @@ let (<|>) = vcat
 let empty base_substrate max_x max_y =
   let substrate = {base_substrate with max_x; max_y } in
   let layers = [] in
-  { substrate; layers}
+  {layers; substrate; backstitch_layers = []}
 
 let embellish ~center ~corner ~top ~side =
   let open Compose in
@@ -124,13 +127,19 @@ let embellish ~center ~corner ~top ~side =
       ~center:(center.substrate.max_y + 1)
       ~side:(side.substrate.max_y + 1)
   in
+  let divide_space amount =
+    if amount mod 2 == 0 then (amount / 2, amount / 2)
+    else (amount / 2 + 1, amount / 2)
+  in
   let side_border = hrepeat side vert_border_reps in
   let top_border = vrepeat top horiz_border_reps in
   let center =
     if center.substrate.max_x < top_border.substrate.max_x then begin
-      let empty_corner_x = (top_border.substrate.max_x - center.substrate.max_x) / 2 in
-      let empty_corner = empty center.substrate (empty_corner_x - 1) 1 in
-      (side_border <|> empty_corner <|> center <|> empty_corner <|> side_border)
+      let x_difference = top_border.substrate.max_x - center.substrate.max_x in
+      let left_pad, right_pad = divide_space x_difference in
+      let empty_corner_left = empty center.substrate (left_pad - 1) 1 in
+      let empty_corner_right = empty center.substrate (right_pad - 1) 1 in
+      (side_border <|> empty_corner_left <|> center <|> empty_corner_right <|> side_border)
     end else
       (side_border <|> center <|> side_border)
   in

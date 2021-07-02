@@ -30,4 +30,4 @@ let stitch background width height gridsize (layers : Stitchy.Types.layer list)=
   let substrate = make_substrate background gridsize ~width ~height in
   (* TODO: this is pokey enough that we should probably allow the user to bypass it *)
   let layers = List.fold_left (fun merged layer -> Stitchy.Layers.merge_threads merged [layer]) [] layers in
-  {layers; substrate;}
+  {layers; substrate; backstitch_layers = []}

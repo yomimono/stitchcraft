@@ -1,6 +1,5 @@
 open Types
 
-let backstitch_thickness = 3.0
 let thick_line_thickness = 1.
 let thin_line_thickness = 0.5
 
@@ -19,29 +18,18 @@ and zapf_key = "/F1"
 and helvetica_key = "/F2"
 
 (* TODO both of these should be parameterized by the paper info *)
-let x_per_page ~pixel_size =
+let x_per_page ~paper:_ ~pixel_size =
   (* assume 7 usable inches after margins and axis labels *)
   (72 * 7) / pixel_size
 
-let y_per_page ~pixel_size =
+let y_per_page ~paper:_ ~pixel_size =
   (* assume 9 usable inches after margins, axis labels, and page number *)
   (72 * 9) / pixel_size
 
-let get_representation pattern symbols x y =
-  let open Stitchy.Types in
-  let stitch_repr = function
-  | (Stitchy.Types.Cross _, thread) ->
-    let color = Stitchy.DMC.Thread.to_rgb thread in
-    let symbol = match SymbolMap.find_opt thread symbols with
-      | None -> Stitchy.Symbol.default
-      | Some symbol -> symbol
-    in
-    Symbol (color, symbol)
-  | (Stitchy.Types.Back stitch, thread) ->
-    let color = Stitchy.DMC.Thread.to_rgb thread in
-    Line (color, stitch)
-  in
-  List.map stitch_repr (Stitchy.Types.stitches_at pattern (x, y))
+let symbol_of_color symbols thread =
+  match Stitchy.Types.SymbolMap.find_opt thread symbols with
+    | None -> Stitchy.Symbol.default
+    | Some symbol -> symbol
 
 let paint_grid_lines (doc : doc) (page : page) =
   let thickness n = if n mod doc.fat_line_interval = 0 then thick_line_thickness else thin_line_thickness in
@@ -133,7 +121,6 @@ let add_watermark watermark =
       Op_Q;
     ])
 
-
 let number_page number =
   Pdfops.([
       Op_q;
@@ -190,11 +177,18 @@ let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
     ])
 
 let symbol_table ~font_size color_to_symbol =
-  let paint_symbol description s n =
+  let paint_symbol (r, g, b) description s n =
     let font_key, symbol = key_and_symbol s in
+    let r, g, b = Colors.scale r, Colors.scale g, Colors.scale b in
     let vertical_offset = 1. *. 72. in
     let vertical_step n = (font_size + 4) * n |> float_of_int in
+    let swatch_x_offset = 72. -. vertical_step 1 in
     Pdfops.[
+      Op_q;
+      Op_rg (r, g, b);
+      Op_re (swatch_x_offset, vertical_offset +. vertical_step n, vertical_step 1, vertical_step 1);
+      Op_f;
+      Op_Q;
       Op_q;
       Op_cm
         (Pdftransform.matrix_of_transform
@@ -213,7 +207,8 @@ let symbol_table ~font_size color_to_symbol =
   in
   Stitchy.Types.SymbolMap.fold (fun thread symbol (placement, ops) ->
       let description = Stitchy.DMC.Thread.to_string thread in
-      let ops = paint_symbol description symbol placement @ ops in
+      let color = Stitchy.DMC.Thread.to_rgb thread in
+      let ops = paint_symbol color description symbol placement @ ops in
       (placement + 1, ops)
     ) color_to_symbol (0, [])
 
@@ -228,82 +223,81 @@ let symbolpage ~font_size paper symbols =
   let content = [ Pdfops.stream_of_ops @@ snd (symbol_table ~font_size symbols) ] in
   {(Pdfpage.blankpage paper) with content; resources = font_resources;}
 
-let paint_stitch doc page ~font_size pattern (x, y) =
-  (* position is based on x and y relative to the range expressed on this page *)
-  let open Types in
-  let (x_pos, y_pos) = Positioning.find_upper_left doc (x - (fst page.x_range)) (y - (fst page.y_range)) in
-  let pixel_size = float_of_int doc.pixel_size in
-  let paint_repr = function
-  | Symbol ((r, g, b), symbol) ->
-      paint_pixel ~font_size ~x_pos ~y_pos
-        ~pixel_size r g b symbol
-  | Line (color, stitch) ->
-    Printf.printf "found a line\n%!";
-    (* if the contrast ratio of the actual color is too low, force the color to black *)
-    let (r, g, b) =
-      if Colors.contrast_ratio color (255, 255, 255) < 4.5 then
-        (0, 0, 0)
-      else color
-    in
-    let pdf_y = y_pos -. pixel_size in
-    Printf.printf "going to paint it (%d, %d, %d)\n%!" r g b;
-    Coverpage.paint_backstitch ~backstitch_thickness ~pdf_x:x_pos ~pdf_y ~px:pixel_size r g b stitch
+let page_of_stitch ~pixel_size ~paper (x, y) =
+  let xpp = x_per_page ~paper ~pixel_size
+  and ypp = y_per_page ~paper ~pixel_size
   in
-  List.map paint_repr (get_representation pattern doc.symbols x y) |> List.flatten
+  let page_row = x / xpp
+  and page_column = y / ypp
+  and pagewise_x = x mod xpp
+  and pagewise_y = y mod ypp
+  in
+  (page_row, page_column, pagewise_x, pagewise_y)
 
-let paint_stitches ~font_size pattern doc page =
-  (* x and y are the relative offsets within the page. *)
-  (* (so, even if this is page 3 and the grid that's painted over this will be
-     stitches 100-200 (x) and 50-70 (y), x and y will count up from 0 here.
-     we will add the correct offset to get the right color when indexing into
-     the image.)
-     the location math is based on this page-relative counting - so, the pixel
-     at the third square down and fourth to the right from the upper-left hand
-     corner is at the same location regardless of whether it represents (100, 50) from
-     the original image, or (50, 25), or (1024, 768). *)
-  let rec aux x y l =
-    (* if we've advanced beyond the horizontal edge, start over on the left edge of the next row *)
-    if x >= (snd page.Types.x_range) then aux (fst page.Types.x_range) (y+1) l
-    (* if we've advanced beyond the vertical edge, time to stop *)
-    else if y >= (snd page.y_range) then l
-    (* otherwise, let's paint the pixel *)
-    else begin
-      let this_pixel = paint_stitch doc page ~font_size pattern (x, y) in
-      aux (x+1) y (this_pixel @ l)
-    end
-  in
-  aux (fst page.x_range) (fst page.y_range) []
+let pdfops_of_stitch ~font_size ~doc ~(layer : Stitchy.Types.layer) (x, y) =
+  let open Stitchy.Types in
+  let page_row, page_column, pagewise_x, pagewise_y = page_of_stitch ~pixel_size:doc.pixel_size ~paper:doc.paper_size (x, y) in
+  let r, g, b = Stitchy.DMC.Thread.to_rgb layer.thread in
+  (* x_pos and y_pos are the PDF-oriented coordinates of the upper left pixel on the
+   * specific page, expressed as points *)
+  let x_pos, y_pos = Positioning.find_upper_left doc pagewise_x pagewise_y in
+  let symbol = symbol_of_color doc.symbols layer.thread in
+  let pdfops = paint_pixel ~font_size ~pixel_size:(float_of_int doc.pixel_size)
+      ~x_pos ~y_pos r g b symbol in
+  (page_row, page_column, pdfops)
 
 let assign_symbols (layers : Stitchy.Types.layer list )=
   let next = function
     | [] -> (Stitchy.Symbol.default, [])
     | hd::tl -> (hd, tl)
   in
-  let threads = List.map (fun layer -> layer.Stitchy.Types.thread) layers |> List.sort_uniq Stitchy.DMC.Thread.compare in
+  let threads = List.map (fun (layer : Stitchy.Types.layer) -> layer.Stitchy.Types.thread) layers |> List.sort_uniq Stitchy.DMC.Thread.compare in
   let color_map = Stitchy.Types.SymbolMap.empty in
   List.fold_left (fun (freelist, map) thread ->
       let symbol, freelist = next freelist in
       (freelist, Stitchy.Types.SymbolMap.add thread symbol map))
   (Stitchy.Symbol.printable_symbols, color_map) threads
 
-let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixels : doc -> page -> Pdfops.t list) =
-  let xpp = x_per_page ~pixel_size:doc.pixel_size
-  and ypp = y_per_page ~pixel_size:doc.pixel_size
+module PageMap = Map.Make(Stitchy.Types.Coordinates)
+
+let add_pdfops_to_pagemap map (page_row, page_column, pdfops) =
+  match PageMap.find_opt (page_row, page_column) map with
+  | None -> PageMap.add (page_row, page_column) (pdfops::[]) map
+  | Some l -> PageMap.add (page_row, page_column) (pdfops::l) map
+
+let add_layer_to_pagemap map ~doc ~font_size (layer : Stitchy.Types.layer) =
+  let open Stitchy.Types in
+  CoordinateSet.fold (fun (x, y) acc ->
+      let page_x, page_y, pdfops = pdfops_of_stitch ~doc ~font_size ~layer (x, y) in
+      add_pdfops_to_pagemap acc (page_x, page_y, pdfops)
+    ) layer.stitches map
+
+let populate_pagemap ~doc ~font_size pattern =
+  let map = PageMap.empty in
+  List.fold_left (fun map layer -> add_layer_to_pagemap map ~doc ~font_size layer)
+    map pattern.Stitchy.Types.layers
+
+(* page_x and page_y are the pages' position in a supergrid.
+ * i.e. if you were to lay out all the pages of the chart, page (0, 0) should go
+ * at the upper left, (0, 1) immediately to its right, (1, 0) immediately below it. *)
+let pdfpage_of_page ~substrate ~page_number ~doc ~watermark (page_x, page_y) pdfops =
+  let xpp = x_per_page ~paper:doc.paper_size ~pixel_size:doc.pixel_size
+  and ypp = y_per_page ~paper:doc.paper_size ~pixel_size:doc.pixel_size
   in
-  let last_x =
-    if width < first_x + xpp then width else first_x + xpp
-  and last_y =
-    if height < first_y + ypp then height else first_y + ypp
+  let first_x page_x = page_x * xpp
+  and first_y page_y = page_y * ypp
   in
+  let last_x page_x = min (substrate.Stitchy.Types.max_x + 1) @@ first_x (page_x + 1) in
+  let last_y page_y = min (substrate.Stitchy.Types.max_y + 1) @@ first_y (page_y + 1) in
   let page = {
     page_number;
-    x_range = (first_x, last_x);
-    y_range = (first_y, last_y);
+    x_range = first_x page_x, last_x page_x;
+    y_range = first_y page_y, last_y page_y;
     } in
   {(Pdfpage.blankpage doc.paper_size) with
    Pdfpage.content = [
-     Pdfops.stream_of_ops @@ (pixels doc page);
-     Pdfops.stream_of_ops @@ paint_grid_lines doc page ;
+     Pdfops.stream_of_ops pdfops;
+     Pdfops.stream_of_ops @@ paint_grid_lines doc page;
      Pdfops.stream_of_ops @@ label_top_grid doc page;
      Pdfops.stream_of_ops @@ label_left_grid doc page;
      Pdfops.stream_of_ops @@ add_watermark watermark;
@@ -318,16 +312,30 @@ let make_page doc ~watermark ~first_x ~first_y page_number ~width ~height (pixel
 
 let pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
   let open Stitchy.Types in
-  let xpp = x_per_page ~pixel_size
-  and ypp = y_per_page ~pixel_size
+  let xpp = x_per_page ~paper:paper_size ~pixel_size
+  and ypp = y_per_page ~paper:paper_size ~pixel_size
   in
-  let width = pattern.substrate.max_x + 1 and height = pattern.substrate.max_y + 1 in
+  let max_page_x = pattern.substrate.max_x / xpp in
+  let max_page_y = pattern.substrate.max_y / ypp in
   let doc = { Types.paper_size; pixel_size; fat_line_interval; symbols; } in
-  let pixels = paint_stitches ~font_size pattern in
+  let pagemap = populate_pagemap ~doc ~font_size pattern in
+  (* if there are any pages that didn't have any stitches on them, they won't be represented in the page map.
+   * but we want to make an empty grid for those, even though it doesn't convey
+   * much information -- it's really confusing when a page is just "missing" from
+   * your pattern, even if the page numbers are contiguous. *)
   let rec page x y n l =
-    let l = make_page doc ~watermark ~first_x:x ~first_y:y ~width ~height n pixels :: l in
-    if (x + xpp) >= width && (y + ypp) >= height then l    
-    else if (y + ypp) >= height then page (x+xpp) 0 (n+1) l
-    else page x (y + ypp) (n+1) l
+    if x > max_page_x && y >= max_page_y then List.rev l
+    else if x > max_page_x then page 0 (y+1) n l
+    else begin
+      let p =
+        let pdfops = 
+          match PageMap.find_opt (x, y) pagemap with
+          | None -> []
+          | Some p -> List.flatten p
+        in
+        pdfpage_of_page ~substrate:pattern.substrate ~page_number:n ~doc ~watermark (x, y) pdfops
+      in
+      page (x + 1) y (n + 1) (p::l)
+    end
   in
-  List.rev @@ page 0 0 1 []
+  page 0 0 1 []
