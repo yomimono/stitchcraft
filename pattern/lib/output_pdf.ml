@@ -1,6 +1,5 @@
 open Types
 
-let backstitch_thickness = 3.0
 let thick_line_thickness = 1.
 let thin_line_thickness = 0.5
 
@@ -31,19 +30,6 @@ let symbol_of_color symbols thread =
   match Stitchy.Types.SymbolMap.find_opt thread symbols with
     | None -> Stitchy.Symbol.default
     | Some symbol -> symbol
-
-let get_representation pattern symbols x y =
-  let open Stitchy.Types in
-  let stitch_repr = function
-  | (Stitchy.Types.Cross _, thread) ->
-    let color = Stitchy.DMC.Thread.to_rgb thread in
-    let symbol = match SymbolMap.find_opt thread symbols with
-      | None -> Stitchy.Symbol.default
-      | Some symbol -> symbol
-    in
-    Symbol (color, symbol)
-  in
-  List.map stitch_repr (Stitchy.Types.stitches_at pattern (x, y))
 
 let paint_grid_lines (doc : doc) (page : page) =
   let thickness n = if n mod doc.fat_line_interval = 0 then thick_line_thickness else thin_line_thickness in

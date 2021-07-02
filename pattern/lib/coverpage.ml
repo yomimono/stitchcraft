@@ -1,15 +1,3 @@
-let paint_backstitch ~backstitch_thickness ~pdf_x:_ ~pdf_y:_ ~px:_ r g b segment =
-  let (start_x, start_y), (fin_x, fin_y) = segment in
-  Pdfops.([
-      Op_q;
-      Op_RG (Colors.scale r, Colors.scale g, Colors.scale b);
-      Op_w backstitch_thickness;
-      Op_m (start_x, start_y);
-      Op_l (fin_x, fin_y);
-      Op_s;
-      Op_Q;
-    ])
-
 (* generate a preview image *)
 let coverpage paper ({substrate; layers; _} : Stitchy.Types.pattern) =
   let Types.{min_x; min_y; max_x; max_y} = Positioning.dimensions paper in
