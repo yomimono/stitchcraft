@@ -30,8 +30,8 @@ let normalize_thread thread =
   match String.split_on_char ' ' @@ Stitchy.DMC.Thread.to_string thread with
   | _::identifier::_ -> begin
       let identifier = String.split_on_char ':' identifier |> List.hd
-                       |> String.lowercase_ascii |> String.capitalize_ascii in
-      match Stitchy.DMC.Thread.of_string @@ String.trim identifier with
+                       |> String.lowercase_ascii |> String.capitalize_ascii |> String.trim in
+      match Stitchy.DMC.Thread.of_string identifier with
       | None -> thread
       | Some t -> t
     end

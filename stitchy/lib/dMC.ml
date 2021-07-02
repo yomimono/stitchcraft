@@ -27,6 +27,7 @@ end = struct
   let (rgb_map, id_map) =
     let rgb = RGBMap.empty and id = StringMap.empty in
     let (rgb, id) = add_thread rgb id "Blanc" "White" (252, 251, 248) in
+    let (rgb, id) = add_thread rgb id "White" "White" (252, 251, 248) in
     let (rgb, id) = add_thread rgb id "B5200" "Snow White" (255, 255, 255) in
     let (rgb, id) = add_thread rgb id "Ecru" "Ecru" (240, 234, 218) in
     let (rgb, id) = add_thread rgb id "150" "Dusty Rose Ult Vy Dk" (171, 2, 73) in
