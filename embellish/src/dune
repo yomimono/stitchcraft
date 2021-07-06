@@ -13,3 +13,18 @@
  (modules vcat)
  (libraries compose_stitch cmdliner stitchy))
 
+(executable
+ (public_name repeat_corner)
+ (modules repeat_corner)
+ (libraries compose_stitch cmdliner stitchy))
+
+(data_only_dirs test)
+
+(rule (alias runtest)
+ (deps test/corner.json test/center.json test/border.json)
+ (action
+  (progn
+   (run repeat_corner -o repeated_corners.json --border test/border.json --center test/center.json --corner test/corner.json)
+   (run stitchpattern -w "TEST IMAGE from https://github.com/yomimono/stitchcraft" -o repeated_corners.pdf -i repeated_corners.json)
+   (run evince repeated_corners.pdf)
+)))
