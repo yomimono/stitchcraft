@@ -483,13 +483,33 @@ end = struct
     let (rgb, id) = add_thread rgb id "3866" "Mocha Brn Ult Vy Lt" (250, 246, 240) in
     (rgb, id)
 
-  let basic = [
-    StringMap.find "310" id_map; (* black *)
-    StringMap.find "816" id_map; (* garnet *)
-    StringMap.find "900" id_map; (* orange *)
-    StringMap.find "743" id_map; (* yellow *)
-    StringMap.find "166" id_map; (* green *)
-  ]
+  (* the "basic" colors are those you can buy in 500g cones. *)
+  let basic =
+    let lookup s = StringMap.find s id_map in
+    [
+      "310"; (* black *)
+      "666"; (* \m/ RED \m/ *)
+      "321"; (* lighter, but still vibrant, red *)
+      "699"; (* a WICKED dark green *)
+      "700"; (* dark green *)
+      "702"; (* a light green *)
+      "740"; (* ocaml orange *)
+      "208"; (* darkish purple *)
+      "210"; (* lighter purple *)
+      "307"; (* yellow *)
+      "809"; (* baby blue *)
+      "820"; (* navy *)
+      "823"; (* the ol' blueberry. it looks dark af in the screenshot *)
+      "995"; (* electric blue *)
+      "3799"; (* dark gray-green *)
+      "415"; (* light gray *)
+      "White";
+      "Ecru";
+      "B5200"; (* whiter than white *)
+      "351"; (* dullish peachy orange *)
+      "433"; (* brown *)
+      "605"; (* pink *)
+    ] |> List.map lookup
 
   let of_rgb color = RGBMap.find_opt color rgb_map
 
