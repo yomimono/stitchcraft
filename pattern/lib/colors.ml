@@ -18,3 +18,7 @@ let contrast_ratio a b =
   and b_rl = relative_luminance b
   in
   if a_rl >= b_rl then cr a_rl b_rl else cr b_rl a_rl
+
+let ensure_contrast_on_white (r, g, b) =
+  if contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then (scale r, scale g, scale b)
+  else 0., 0., 0.

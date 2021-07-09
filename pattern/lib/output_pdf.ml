@@ -144,12 +144,8 @@ let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
   let stroke_width = 3. in (* TODO this should be relative to the thickness of fat lines *)
   let (font_key, symbol) = key_and_symbol symbol in
   let font_stroke, font_paint =
-    if Colors.contrast_ratio (r, g, b) (255, 255, 255) >= 4.5 then
-      Pdfops.Op_RG (Colors.scale r, Colors.scale g, Colors.scale b),
-      Pdfops.Op_rg (Colors.scale r, Colors.scale g, Colors.scale b)
-    else
-      (* TODO: check the background as well and make sure this won't fade in there *)
-      Pdfops.Op_RG (0., 0., 0.), Pdfops.Op_rg (0., 0., 0.)
+    let r, g, b = Colors.ensure_contrast_on_white (r, g, b) in
+      Pdfops.Op_RG (r, g, b), Pdfops.Op_rg (r, g, b)
   in
   let font_location =
     (* y_transform gives us the offset to draw our character in a vertically centered location *)
@@ -263,8 +259,8 @@ let pdfops_of_backstitch ~doc layer segment =
   let pagewise_backstitches = pages_of_backstitch ~pixel_size:doc.pixel_size
       ~paper:doc.paper_size segment
   in
-  let r, g, b = Stitchy.DMC.Thread.to_rgb layer.Stitchy.Types.thread in
-  let line_color = Pdfops.Op_RG (Colors.scale r, Colors.scale g, Colors.scale b) in
+  let r, g, b = Stitchy.DMC.Thread.to_rgb layer.Stitchy.Types.thread
+                |> Colors.ensure_contrast_on_white in
   List.map (fun (page_grid_x, page_grid_y, ((src_x, src_y), (dst_x, dst_y))) ->
       let pdf_src_x, pdf_src_y = Positioning.find_upper_left doc src_x src_y
       and pdf_dst_x, pdf_dst_y = Positioning.find_upper_left doc dst_x dst_y
@@ -272,7 +268,7 @@ let pdfops_of_backstitch ~doc layer segment =
       (page_grid_x, page_grid_y, Pdfops.([
            Op_q;
            Op_w 3.; (* TODO a pretty magic number here *)
-           line_color;
+           Op_RG (r, g, b);
            Op_m (pdf_src_x, pdf_src_y);
            Op_l (pdf_dst_x, pdf_dst_y);
            Op_s;
