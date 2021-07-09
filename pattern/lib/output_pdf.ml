@@ -230,6 +230,29 @@ let page_of_stitch ~pixel_size ~paper (x, y) =
   in
   (page_grid_x, page_grid_y, pagewise_x, pagewise_y)
 
+(* TODO: this needs to know max_x and max_y from the substrate,
+ * in order to not accidentally make extra pages when there are
+ * backstitches on the last possible point and it coincides with the
+ * maximum x/y on a page *)
+let rec pagination ~xpp ~ypp ((src_x, src_y), (dst_x, dst_y)) =
+  let on_same_page =
+    src_x / xpp = dst_x / xpp && src_y / ypp = dst_y / ypp
+  and on_horizontal_pagebreak =
+    (src_y mod ypp = 0 && src_y <> 0) &&
+    (dst_y mod ypp = 0 && dst_y <> 0)
+  and on_vertical_pagebreak =
+    (src_x mod xpp = 0 && src_x <> 0) &&
+    (dst_x mod xpp = 0 && dst_x <> 0)
+  in
+  match on_same_page, on_horizontal_pagebreak, on_vertical_pagebreak with
+  | true, false, false -> `One_page (src_x / xpp, src_y / ypp)
+  | true, false, true -> `Straddles_vertical_pagebreak
+  | true, true, false -> `Straddles_horizontal_pagebreak
+  | false, _, _ ->
+    (* find the page break, break the backstitch into two segments
+     * one on each page, and recurse into this function for both of them *)
+  | _, _, _ -> `None
+
 (* a backstitch can cross multiple pages, even if it's only got a one gridpoint difference
  * (e.g. ((50, 1), (51, 1)) when there's a page break at x=50).
  * Even a reasonable backstitch might cross two if it's in a corner. *)
@@ -237,23 +260,25 @@ let pages_of_backstitch ~pixel_size ~paper ((src_x, src_y), (dst_x, dst_y)) =
   let xpp = x_per_page ~paper ~pixel_size
   and ypp = y_per_page ~paper ~pixel_size
   in
-  let on_one_page ((src_x, src_y), (dst_x, dst_y)) =
-    src_x / xpp = dst_x / xpp && src_y / ypp = dst_y / ypp &&
-    (src_x mod xpp <> 0 || src_x = 0) &&
-    (dst_x mod xpp <> 0 || dst_x = 0) &&
-    (src_y mod ypp <> 0 || src_y = 0) &&
-    (dst_y mod ypp <> 0 || dst_y = 0)
-  in
-  if on_one_page ((src_x, src_y), (dst_x, dst_y)) then
-    let page_grid_x = src_x / xpp
-    and page_grid_y = src_y / ypp
-    and pagewise_src_x = src_x mod xpp
-    and pagewise_src_y = src_y mod ypp
-    and pagewise_dst_x = dst_x mod xpp
-    and pagewise_dst_y = dst_y mod ypp
+  match pagination ~xpp ~ypp ((src_x, src_y), (dst_x, dst_y)) with
+  | `One_page (page_grid_x, page_grid_y) ->
+    let pagewise_src_x = src_x mod xpp and pagewise_src_y = src_y mod ypp
+    and pagewise_dst_x = dst_x mod xpp and pagewise_dst_y = dst_y mod ypp
     in
     (page_grid_x, page_grid_y, ((pagewise_src_x, pagewise_src_y), (pagewise_dst_x, pagewise_dst_y)))::[]
-  else []
+  | `Straddles_vertical_pagebreak ->
+    let right_page = src_x / xpp , src_y / ypp,
+                     ((src_x mod xpp, src_y mod ypp), (dst_x mod xpp, dst_y mod ypp))
+    and left_page = (src_x / xpp) - 1, src_y / ypp,
+                    ((xpp, src_y mod ypp), (xpp, dst_y mod ypp))
+    in [left_page; right_page]
+  | `Straddles_horizontal_pagebreak ->
+    let bottom_page = src_x / xpp , src_y / ypp,
+                     ((src_x mod xpp, src_y mod ypp), (dst_x mod xpp, dst_y mod ypp))
+    and top_page = src_x / xpp, (src_y / ypp) - 1, 
+                   ((src_x mod xpp, ypp), (dst_x mod xpp, ypp))
+    in [top_page; bottom_page]
+  | _ -> []
 
 let pdfops_of_backstitch ~doc layer segment =
   let pagewise_backstitches = pages_of_backstitch ~pixel_size:doc.pixel_size
