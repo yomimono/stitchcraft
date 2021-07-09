@@ -70,6 +70,7 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 
 * taking raster images and converting them to patterns. `ih` does a great job and can interoperate with `stitchcraft`.
 * vector font scaling and rasterization. `kxstitch` does this well.
+* backstitch support in `notty_canvas`. I anticipate any other `notty_canvas` users also hating backstitch.
 
 # Acknowledgements
 

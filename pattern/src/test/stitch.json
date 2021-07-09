@@ -24,7 +24,13 @@
       "stitches": [
 	      [[0,0],[1,1]]
       ]
-  }],
+  },
+  {"thread":{"name":"Blue",
+  "identifier":"995",
+  "rgb":[0, 0, 255]},"stitches":[
+	  [[0, 0], [1, 0]],
+	  [[0, 0], [0, 1]]
+  ]}  ],
   "layers": [
     {
       "thread": {
@@ -1511,7 +1517,7 @@
     },
     {
       "thread": {
-        "name": "floss3326",
+        "name": "Rose Light",
         "identifier": "3326",
         "rgb": [
           251,
@@ -3130,7 +3136,7 @@
     },
     {
       "thread": {
-        "name": "floss996",
+        "name": "Electric Blue Medium",
         "identifier": "996",
         "rgb": [
           48,
@@ -4749,7 +4755,7 @@
     },
     {
       "thread": {
-        "name": "flossWhite",
+        "name": "White",
         "identifier": "White",
         "rgb": [
           252,

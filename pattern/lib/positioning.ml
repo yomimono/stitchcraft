@@ -1,8 +1,9 @@
 open Types
 
 let dimensions paper =
-  let get_points = Pdfunits.convert 72. Pdfpaper.(unit paper) Pdfunits.PdfPoint in
-  let margin_points = Pdfunits.convert 72. Pdfunits.Inch Pdfunits.PdfPoint 0.5 in
+  let dpi = 72. in
+  let get_points = Pdfunits.convert dpi Pdfpaper.(unit paper) Pdfunits.PdfPoint in
+  let margin_points = Pdfunits.(convert dpi Inch PdfPoint 0.5) in
 
   let max_x = (get_points Pdfpaper.(width paper)) -. margin_points
   and max_y = (get_points Pdfpaper.(height paper)) -. margin_points

@@ -222,17 +222,62 @@ let font_resources =
 let symbolpage ~font_size paper symbols =
   let content = [ Pdfops.stream_of_ops @@ snd (symbol_table ~font_size symbols) ] in
   {(Pdfpage.blankpage paper) with content; resources = font_resources;}
-
+ 
 let page_of_stitch ~pixel_size ~paper (x, y) =
   let xpp = x_per_page ~paper ~pixel_size
   and ypp = y_per_page ~paper ~pixel_size
   in
-  let page_row = x / xpp
-  and page_column = y / ypp
+  let page_grid_x = x / xpp
+  and page_grid_y = y / ypp
   and pagewise_x = x mod xpp
   and pagewise_y = y mod ypp
   in
-  (page_row, page_column, pagewise_x, pagewise_y)
+  (page_grid_x, page_grid_y, pagewise_x, pagewise_y)
+
+(* a backstitch can cross multiple pages, even if it's only got a one gridpoint difference
+ * (e.g. ((50, 1), (51, 1)) when there's a page break at x=50).
+ * Even a reasonable backstitch might cross two if it's in a corner. *)
+let pages_of_backstitch ~pixel_size ~paper ((src_x, src_y), (dst_x, dst_y)) =
+  let xpp = x_per_page ~paper ~pixel_size
+  and ypp = y_per_page ~paper ~pixel_size
+  in
+  let on_one_page ((src_x, src_y), (dst_x, dst_y)) =
+    src_x / xpp = dst_x / xpp && src_y / ypp = dst_y / ypp &&
+    (src_x mod xpp <> 0 || src_x = 0) &&
+    (dst_x mod xpp <> 0 || dst_x = 0) &&
+    (src_y mod ypp <> 0 || src_y = 0) &&
+    (dst_y mod ypp <> 0 || dst_y = 0)
+  in
+  if on_one_page ((src_x, src_y), (dst_x, dst_y)) then
+    let page_grid_x = src_x / xpp
+    and page_grid_y = src_y / ypp
+    and pagewise_src_x = src_x mod xpp
+    and pagewise_src_y = src_y mod ypp
+    and pagewise_dst_x = dst_x mod xpp
+    and pagewise_dst_y = dst_y mod ypp
+    in
+    (page_grid_x, page_grid_y, ((pagewise_src_x, pagewise_src_y), (pagewise_dst_x, pagewise_dst_y)))::[]
+  else []
+
+let pdfops_of_backstitch ~doc layer segment =
+  let pagewise_backstitches = pages_of_backstitch ~pixel_size:doc.pixel_size
+      ~paper:doc.paper_size segment
+  in
+  let r, g, b = Stitchy.DMC.Thread.to_rgb layer.Stitchy.Types.thread in
+  let line_color = Pdfops.Op_RG (Colors.scale r, Colors.scale g, Colors.scale b) in
+  List.map (fun (page_grid_x, page_grid_y, ((src_x, src_y), (dst_x, dst_y))) ->
+      let pdf_src_x, pdf_src_y = Positioning.find_upper_left doc src_x src_y
+      and pdf_dst_x, pdf_dst_y = Positioning.find_upper_left doc dst_x dst_y
+      in
+      (page_grid_x, page_grid_y, Pdfops.([
+           Op_q;
+           Op_w 3.; (* TODO a pretty magic number here *)
+           line_color;
+           Op_m (pdf_src_x, pdf_src_y);
+           Op_l (pdf_dst_x, pdf_dst_y);
+           Op_s;
+           Op_Q;
+         ]))) pagewise_backstitches
 
 let pdfops_of_stitch ~font_size ~doc ~(layer : Stitchy.Types.layer) (x, y) =
   let open Stitchy.Types in
@@ -272,10 +317,18 @@ let add_layer_to_pagemap map ~doc ~font_size (layer : Stitchy.Types.layer) =
       add_pdfops_to_pagemap acc (page_x, page_y, pdfops)
     ) layer.stitches map
 
+let add_backstitch_layer_to_pagemap map ~doc (backstitch_layer : Stitchy.Types.backstitch_layer) =
+  let open Stitchy.Types in
+  SegmentSet.fold (fun segment acc ->
+      let l = pdfops_of_backstitch ~doc backstitch_layer segment in
+      List.fold_left add_pdfops_to_pagemap acc l
+    ) backstitch_layer.stitches map
+
 let populate_pagemap ~doc ~font_size pattern =
-  let map = PageMap.empty in
-  List.fold_left (fun map layer -> add_layer_to_pagemap map ~doc ~font_size layer)
-    map pattern.Stitchy.Types.layers
+  let map = List.fold_left (fun map layer -> add_layer_to_pagemap map ~doc ~font_size layer)
+    PageMap.empty pattern.Stitchy.Types.layers in
+  List.fold_left (fun map backstitch_layer -> add_backstitch_layer_to_pagemap map ~doc backstitch_layer)
+    map pattern.Stitchy.Types.backstitch_layers
 
 (* page_x and page_y are the pages' position in a supergrid.
  * i.e. if you were to lay out all the pages of the chart, page (0, 0) should go
