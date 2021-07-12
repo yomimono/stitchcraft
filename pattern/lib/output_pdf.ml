@@ -234,7 +234,7 @@ let page_of_stitch ~pixel_size ~paper (x, y) =
  * in order to not accidentally make extra pages when there are
  * backstitches on the last possible point and it coincides with the
  * maximum x/y on a page *)
-let rec pagination ~xpp ~ypp ((src_x, src_y), (dst_x, dst_y)) =
+let pagination ~xpp ~ypp ((src_x, src_y), (dst_x, dst_y)) =
   let on_same_page =
     src_x / xpp = dst_x / xpp && src_y / ypp = dst_y / ypp
   and on_horizontal_pagebreak =
@@ -248,9 +248,7 @@ let rec pagination ~xpp ~ypp ((src_x, src_y), (dst_x, dst_y)) =
   | true, false, false -> `One_page (src_x / xpp, src_y / ypp)
   | true, false, true -> `Straddles_vertical_pagebreak
   | true, true, false -> `Straddles_horizontal_pagebreak
-  | false, _, _ ->
-    (* find the page break, break the backstitch into two segments
-     * one on each page, and recurse into this function for both of them *)
+  | false, false, false -> `Page_break
   | _, _, _ -> `None
 
 (* a backstitch can cross multiple pages, even if it's only got a one gridpoint difference
@@ -278,7 +276,7 @@ let pages_of_backstitch ~pixel_size ~paper ((src_x, src_y), (dst_x, dst_y)) =
     and top_page = src_x / xpp, (src_y / ypp) - 1, 
                    ((src_x mod xpp, ypp), (dst_x mod xpp, ypp))
     in [top_page; bottom_page]
-  | _ -> []
+  | _ -> [] 
 
 let pdfops_of_backstitch ~doc layer segment =
   let pagewise_backstitches = pages_of_backstitch ~pixel_size:doc.pixel_size
