@@ -49,7 +49,39 @@ let layers_of_cross_stitches threads stitches =
           add_stitches acc thread stitch [(x, y)]
     ) (Ok []) stitches
 
-let to_stitches (_fabric, _metadata, palette, stitches, _backstitches) =
+let stitchyfy backstitch =
+  let open Patreader in
+  (* given a position on the pixel grid (which consists of the gaps formed by the grid)
+   * and a "position" 1-9, assign a position on the backstitch grid. *)
+  (* nb that "x" and "y" here are from a 1-indexed pixel grid,
+   * which we're translating to a 0-indexed vertex grid.
+   * If both grids had the same index, position 1 would require
+   * no adjustment. *)
+  let corner_position (x, y) = function
+    | 1 -> Some (x - 1, y - 1)
+    | 3 -> Some (x, y - 1)
+    | 7 -> Some (x - 1, y)
+    | 9 -> Some (x, y)
+    | _ -> None
+  in
+  let src = corner_position (backstitch.start_x, backstitch.start_y) backstitch.start_position
+  and dst = corner_position (backstitch.end_x, backstitch.end_y) backstitch.end_position
+  in
+  match src, dst with
+  | Some src, Some dst -> Some (backstitch.color_index, src, dst)
+  | _, _ -> None
+
+let backstitch_layers_of_backstitches threads backstitches =
+  let translated_backstitches = List.filter_map stitchyfy backstitches in
+  let layerfy (color_index, src, dst) =
+    match (List.nth threads (color_index - 1)) with
+    | None -> None
+    | Some thread ->
+      Some {Stitchy.Types.thread; stitches = Stitchy.Types.SegmentSet.singleton (src, dst)}
+  in
+  Ok (List.filter_map layerfy translated_backstitches)
+
+let to_stitches (_fabric, _metadata, palette, stitches, backstitches) =
   let open Rresult.R in
   (* We can map the palette entries to threads, but not to layers,
    * because each stitch carries its own stitch type (full cross-stitch,
@@ -61,5 +93,6 @@ let to_stitches (_fabric, _metadata, palette, stitches, _backstitches) =
    * referring to it later. *)
   let threads = List.map match_thread palette in
   layers_of_cross_stitches threads stitches >>= fun stitch_layers ->
-  Ok stitch_layers
+  backstitch_layers_of_backstitches threads backstitches >>= fun backstitch_layers ->
+  Ok (stitch_layers, backstitch_layers)
 

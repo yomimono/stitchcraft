@@ -44,7 +44,7 @@ let go rotate_corners corner top side center output =
                        pattern_of_yojson side,
                        pattern_of_yojson center) with
   | Ok corner, Ok top, Ok side, Ok center ->
-    Compose_stitch.embellish ~rotate_corners ~center ~corner ~top ~side
+    Borders.embellish ~rotate_corners ~center ~corner ~top ~side
     |> Stitchy.Types.pattern_to_yojson
     |> spoo output
   | _, _, _, _ -> failwith (Printf.sprintf "failed to parse input json")

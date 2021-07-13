@@ -2,3 +2,14 @@
   (public_name pat2stitchy)
   (libraries angstrom-lwt-unix angstrom-unix cmdliner lwt lwt.unix patreader rresult stitchy)
   )
+
+(data_only_dirs test)
+
+(rule (alias runtest)
+  (deps test/test.pat)
+  (action (progn
+    (with-stdout-to out.json (run pat2stitchy test/test.pat))
+    (run stitchpattern -i out.json -o out.pdf)
+    (run evince out.pdf)
+  ))
+)

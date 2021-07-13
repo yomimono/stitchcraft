@@ -1,10 +1,4 @@
 (library
- (name compose)
- (modules compose)
-)
-
-(library
- (name compose_stitch)
- (modules compose_stitch)
- (libraries compose stitchy)
+ (name borders)
+ (libraries stitchy)
 )

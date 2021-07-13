@@ -1,9 +1,7 @@
 open Stitchy.Types
-
-(* TODO: a few tests here just exercise merge_threads, and should be moved over to the stitchy library *)
+module Operations = Stitchy.Operations
 
 module Patterns = struct
-
   let blackstitch =
     { stitch = Cross Full;
       thread = List.hd Stitchy.DMC.Thread.basic;
@@ -55,21 +53,21 @@ let no_padding ~f () =
   | `None, first,second  -> Alcotest.(check @@ pair int int) "vpadding for 2x same should be 0" (0, 0) (first, second)
   | _ -> Alcotest.fail "vpadding for 2x same shouldn't return that someone needs to pad"
 
-let no_vpadding = no_padding ~f:Compose_stitch.vpadding
-let no_hpadding = no_padding ~f:Compose_stitch.hpadding
+let no_vpadding = no_padding ~f:Operations.vpadding
+let no_hpadding = no_padding ~f:Operations.hpadding
 
 let first_needs_padding_hcat () =
-        match Compose_stitch.hpadding Patterns.smol Patterns.big with
+        match Operations.hpadding Patterns.smol Patterns.big with
         | `First, left, right -> Alcotest.(check @@ pair int int) "correct hcat padding for a small top item" (9, 9) (left, right)
         | _ -> Alcotest.fail "hcat padding for smol, large should pad smol"
 
 let second_needs_padding_hcat () =
-        match Compose_stitch.hpadding Patterns.big Patterns.smol with
+        match Operations.hpadding Patterns.big Patterns.smol with
         | `Second, left, right -> Alcotest.(check @@ pair int int) "correct hcat padding for a small bottom item" (9, 9) (left, right)
         | _ -> Alcotest.fail "hcat padding for large, smol should pad smol"
 
 let shift_stitch_down () =
-        let displaced_down = Compose_stitch.shift_stitches_down ~amount:1 (List.hd Patterns.smol.layers) in
+        let displaced_down = Operations.displace_layer (Down 1) (List.hd Patterns.smol.layers) in
         Alcotest.(check int) "only one stitch after shifting down" (CoordinateSet.cardinal displaced_down.stitches) 1;
         (* TODO: this doesn't test backstitch *)
         let displaced_pattern = {layers = [displaced_down]; substrate = Patterns.big.substrate; backstitch_layers = []} in
@@ -77,7 +75,7 @@ let shift_stitch_down () =
         n_stitches 1 displaced_pattern
 
 let shift_stitch_right () =
-        let displaced_right = Compose_stitch.shift_stitches_right ~amount:1 (List.hd Patterns.smol.layers) in
+        let displaced_right = Operations.displace_layer (Right 1) (List.hd Patterns.smol.layers) in
         Alcotest.(check int) "only one stitch after shifting right" (CoordinateSet.cardinal displaced_right.stitches) 1;
         let displaced_pattern = {layers = [displaced_right]; substrate = Patterns.big.substrate; backstitch_layers = [] } in
         has_stitch ~name:"displaced single smol stitch" displaced_pattern (2, 1);
@@ -96,7 +94,7 @@ let merge_mergeable_layers () =
         Alcotest.(check int) "stitches in merged layer" 3 (CoordinateSet.cardinal (List.hd merged).stitches)
 
 let check_vcat () =
-  let vcat_smol = Compose_stitch.vcat Patterns.smol Patterns.smol in
+  let vcat_smol = Operations.vcat Patterns.smol Patterns.smol in
   substrate_size (5,1) vcat_smol;
   has_stitch ~name:"left stitches present" vcat_smol (1, 1);
   has_stitch ~name:"right stitches present" vcat_smol (4, 1);
@@ -104,9 +102,9 @@ let check_vcat () =
 
 let check_multiple_vcat () =
   Format.printf "%a" Stitchy.Types.pp_pattern Patterns.smol;
-  let vcat_twosmol = Compose_stitch.vcat Patterns.smol Patterns.smol in
+  let vcat_twosmol = Operations.vcat Patterns.smol Patterns.smol in
   Format.printf "%a" Stitchy.Types.pp_pattern vcat_twosmol;
-  let vcat_moar = Compose_stitch.vcat vcat_twosmol Patterns.smol in
+  let vcat_moar = Operations.vcat vcat_twosmol Patterns.smol in
   substrate_size (8, 1) vcat_moar;
   Format.printf "%a" Stitchy.Types.pp_pattern vcat_moar;
   has_stitch ~name:"far left stitches present" vcat_moar (1, 1);
@@ -120,7 +118,7 @@ let unmergeable_vcat () =
   let orange_layer = { Patterns.blackstitch with thread = orange_thread } in
   let unmergeable_layer = {orange_layer with stitches = CoordinateSet.singleton (0, 0)} in
   let left_pattern = {layers = [unmergeable_layer]; substrate = Patterns.smol.substrate; backstitch_layers = []} in
-  let vcatted = Compose_stitch.vcat left_pattern Patterns.smol in
+  let vcatted = Operations.vcat left_pattern Patterns.smol in
   n_stitches 2 vcatted;
   substrate_size (5, 1) vcatted;
   (
@@ -144,16 +142,16 @@ let unmergeable_vcat () =
 
 
 let check_hcat () =
-  let hcat_smol = Compose_stitch.hcat Patterns.smol Patterns.smol in
+  let hcat_smol = Operations.hcat Patterns.smol Patterns.smol in
   substrate_size (2, 3) hcat_smol;
   has_stitch ~name:"top stitches present" hcat_smol (1, 1);
   has_stitch ~name:"bottom stitches present" hcat_smol (1, 3);
   n_stitches 2 hcat_smol
 
 let check_multiple_hcat () =
-  let hcat_smol = Compose_stitch.hcat Patterns.smol Patterns.smol in
+  let hcat_smol = Operations.hcat Patterns.smol Patterns.smol in
   Format.printf "%a" Stitchy.Types.pp_pattern hcat_smol;
-  let hcat_moar = Compose_stitch.hcat hcat_smol Patterns.smol in
+  let hcat_moar = Operations.hcat hcat_smol Patterns.smol in
   Format.printf "%a" Stitchy.Types.pp_pattern hcat_moar;
   substrate_size (2, 5) hcat_moar;
   has_stitch ~name:"far down stitches present" hcat_moar (1, 5);
@@ -161,13 +159,13 @@ let check_multiple_hcat () =
   has_stitch ~name:"middle stitches present" hcat_moar (1, 3)
 
 let bs_vcat () =
-  let vcatted = Compose_stitch.vcat Patterns.smol Patterns.big in
+  let vcatted = Operations.vcat Patterns.smol Patterns.big in
   substrate_size (23, 10) vcatted;
   List.iter (has_stitch vcatted) [(1,6); (3,0); (23,10)];
   n_stitches 3 vcatted
 
 let bs_hcat () =
-  let hcatted = Compose_stitch.hcat Patterns.smol Patterns.big in
+  let hcatted = Operations.hcat Patterns.smol Patterns.big in
   substrate_size (20, 12) hcatted;
   List.iter (has_stitch hcatted) [(10, 1); (0, 2); (20, 12)];
   n_stitches 3 hcatted

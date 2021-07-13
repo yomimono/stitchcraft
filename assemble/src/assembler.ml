@@ -36,7 +36,7 @@ let go input _grid width height background output =
       Stitchy.Files.stdout_or_file (Stitchy.Types.pattern_to_yojson pattern) output
 
 let info =
-  let doc = "Assemble layer information and substrate information into a pattern." in
+  let doc = "Assemble layer information and substrate specification into a pattern. NB no attempt to handle backstitch, french knots, etc is made." in
   Cmdliner.Term.info doc
 
 let go_t = Cmdliner.Term.(const go $ input $ grid $ width $ height $ background $ output)
