@@ -28,51 +28,74 @@ let better_embellish ~corner ~top ~center =
   and right_border = rotate_ccw @@ rotate_ccw left_border
   in
   (* the straight, repeated borders *)
+  let corner_long_side = corner.substrate.max_x + 1 in
+  let corner_short_side = corner.substrate.max_y + 1 in
+  let top_border_width = top_border.substrate.max_x + 1 in
   let borders = [
-    shift_layers_right ~amount:(corner.substrate.max_x + 1) top_border.layers;
-    shift_layers_down ~amount:(corner.substrate.max_x + 1) @@
-      shift_layers_right ~amount:(corner.substrate.max_x + 1 + top_border.substrate.max_x + 1) right_border.layers;
-    shift_layers_right ~amount:(corner.substrate.max_y + 1) @@
-      shift_layers_down ~amount:(corner.substrate.max_x + 1 + left_border.substrate.max_y + 1) bottom_border.layers;
-    shift_layers_down ~amount:(corner.substrate.max_y + 1) left_border.layers;
-  ] |> List.flatten in
+    (* top border just needs to move over to make room for the upper left-hand corner *)
+    displace_pattern (Right corner_long_side) top_border;
+    (* right-hand border needs to move to the right side,
+     * and also to move down to make room for the upper right-hand corner *)
+    displace_pattern (RightAndDown (corner_long_side + top_border_width,
+                                    corner_long_side))
+      right_border; 
+    (* bottom border needs to move to the right to make room for the lower left-
+     * hand corner (on the short side), and to go to the bottom of the pattern *)
+    displace_pattern (RightAndDown (corner_short_side,
+                                    corner_long_side + left_border.substrate.max_y + 1))
+      bottom_border;
+    (* the left border is already on the left side, and just needs to shift down
+     * to make room for the upper left-hand corner's short side *)
+    displace_pattern (Down corner_short_side) left_border;
+  ] in
   (* the corners *)
   let corners = [
-    corner.layers; (* upper left *)
-    shift_layers_right ~amount:(corner.substrate.max_x + 1 + top_border.substrate.max_x + 1) (rotate_ccw @@ rotate_ccw @@ rotate_ccw corner).layers; (* upper right *)
-    shift_layers_right ~amount:(top_border.substrate.max_x + 1 + corner.substrate.max_y + 1) @@
-    shift_layers_down ~amount:(left_border.substrate.max_y + 1 + corner.substrate.max_x + 1) (rotate_ccw @@ rotate_ccw corner).layers; (* lower right *)
-    shift_layers_down ~amount:(corner.substrate.max_y + 1 + left_border.substrate.max_y + 1) (rotate_ccw corner).layers; (* lower left *)
-  ] |> List.flatten in
+    (* upper left is just what we were passed *)
+    corner;
+    (* upper right is upper left rotated clockwise 90 degrees,
+     * then shoved over to the right edge *)
+    rotate_ccw @@ rotate_ccw @@ rotate_ccw corner |>
+    displace_pattern (Right (corner_long_side + top_border_width));
+    (* lower right is upper left rotated 180 degrees,
+     * then displaced to the right of the bottom border
+     * and below the right-side border *)
+    rotate_ccw @@ rotate_ccw corner |>
+    displace_pattern (RightAndDown (top_border_width + corner_short_side,
+                                    corner_long_side + left_border.substrate.max_y + 1));
+    (* lower left is rotated counter-clockwise 90 degrees,
+     * then shifted down past the short end of the upper-left corner and the
+     * whole left-side border. *)
+    rotate_ccw corner |>
+    displace_pattern (Down (corner_short_side + left_border.substrate.max_y + 1));
+  ] in
+  let substrate = { center.Stitchy.Types.substrate with
+                    max_x = corner.substrate.max_x + 1 +
+                            top_border.substrate.max_x + 1 +
+                            corner.substrate.max_y;
+                    max_y = left_border.substrate.max_y + 1 +
+                            corner.substrate.max_x + 1 +
+                            corner.substrate.max_y;
+                  } in
   let center_shifted =
-    let left_padding = ((top_border.substrate.max_x + corner.substrate.max_y)
-                        - center.substrate.max_x) / 2 in
-    let top_padding = ((left_border.substrate.max_y + corner.substrate.max_y)
-                       - center.substrate.max_y) / 2 in
-    shift_layers_down ~amount:(corner.substrate.max_y + 1 + top_padding + 1) @@ 
-    shift_layers_right ~amount:(left_border.substrate.max_x + 1 + left_padding + 1) center.layers
+    (* the center will be smaller than the borders,
+     * so not only does it need to move down and to the right
+     * to avoid the borders, it also needs to (potentially)
+     * move down and to the right to center itself within them. *)
+    let left_padding = (substrate.max_x - center.substrate.max_x) / 2
+    and top_padding = (substrate.max_y - center.substrate.max_y) / 2
+    in
+    displace_pattern (RightAndDown (left_padding, top_padding)) center
   in
-  let layers =
-    Stitchy.Layers.(merge_threads (center_shifted @
-                                   corners @ borders) [])
-  in
-  let new_substrate = { center.Stitchy.Types.substrate with
-                        max_x = corner.substrate.max_x + 1 +
-                                top_border.substrate.max_x + 1 +
-                                corner.substrate.max_y + 1;
-                        max_y = left_border.substrate.max_y + 1 +
-                                corner.substrate.max_x + 1 +
-                                corner.substrate.max_y + 1;
-                      } in
-  { substrate = new_substrate; layers; backstitch_layers = [] }
+  List.fold_left (merge_patterns ~substrate) center_shifted (corners @ borders)
 
 let embellish ~rotate_corners ~center ~corner ~top ~side =
-  let open Compose in
-  let horiz_border_reps = border_repetitions
+  let open Stitchy.Types in
+  let open Stitchy.Operations in
+  let horiz_border_reps = Compose.border_repetitions
       ~center:(center.substrate.max_x + 1)
       ~side:(top.substrate.max_x + 1)
   in
-  let vert_border_reps = border_repetitions
+  let vert_border_reps = Compose.border_repetitions
       ~center:(center.substrate.max_y + 1)
       ~side:(side.substrate.max_y + 1)
   in

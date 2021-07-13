@@ -1,22 +1,22 @@
 (executable
  (public_name embellish_stitch)
  (modules embellish_stitch)
- (libraries compose_stitch cmdliner stitchy))
+ (libraries borders cmdliner stitchy))
 
 (executable
  (public_name hcat)
  (modules hcat)
- (libraries compose_stitch cmdliner stitchy))
+ (libraries cmdliner stitchy))
 
 (executable
  (public_name vcat)
  (modules vcat)
- (libraries compose_stitch cmdliner stitchy))
+ (libraries cmdliner stitchy))
 
 (executable
  (public_name repeat_corner)
  (modules repeat_corner)
- (libraries compose_stitch cmdliner stitchy))
+ (libraries borders cmdliner stitchy))
 
 (data_only_dirs test)
 

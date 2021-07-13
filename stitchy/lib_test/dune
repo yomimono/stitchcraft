@@ -1,6 +1,6 @@
 (executable
  (name stitch_test)
- (libraries alcotest compose_stitch stitchy)
+ (libraries alcotest stitchy)
 )
 
 (rule

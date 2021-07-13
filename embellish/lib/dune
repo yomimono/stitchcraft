@@ -1,4 +1,4 @@
 (library
- (name compose_stitch)
+ (name borders)
  (libraries stitchy)
 )

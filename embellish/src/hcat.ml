@@ -22,7 +22,7 @@ let go files output =
   let bigpattern patterns =
     List.fold_left (fun bigpattern next -> match bigpattern with
         | None -> Some next
-        | Some bigpattern -> Some (Compose_stitch.hcat bigpattern next))
+        | Some bigpattern -> Some (Stitchy.Operations.hcat bigpattern next))
       None patterns
   in
   match files with

@@ -106,7 +106,7 @@ let go corner border center output =
     | a, b when compare a b <> 0 ->
       failwith (Printf.sprintf "Corner and border images must have the height")
     | _, _ ->
-      Compose_stitch.better_embellish ~center ~corner ~top
+      Borders.better_embellish ~center ~corner ~top
       |> Stitchy.Types.pattern_to_yojson
       |> spoo output
     end
