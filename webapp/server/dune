@@ -1,0 +1,17 @@
+(rule (alias runserver)
+  (deps
+   ../client/grid.js
+   ../client/index.html
+   config.ml
+   dispatch.ml
+   (source_tree tls))
+  (action
+   (progn
+    (run mkdir -p client-fs)
+    (run cp ../client/grid.js client-fs/grid.js)
+    (run cp ../client/index.html client-fs/index.html)
+    (run mirage configure -t unix --net=socket -l
+     database:debug,irmin.sync:debug,git.sync:debug)
+    (run mirage build)
+    (run sudo ./main.native)
+   )))
