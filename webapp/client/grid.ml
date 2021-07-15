@@ -6,7 +6,7 @@ module Js = Js_of_ocaml.Js
 module CSS = Js_of_ocaml.CSS
 module Dom = Js_of_ocaml.Dom
 
-type tool = | Block of thread * cross_stitch
+type tool = | Block of thread * stitch
             | Eraser
 
 type editor = {
@@ -26,7 +26,7 @@ let init =
     max_x = 9;
     max_y = 9;
   }
-  and editor = { tool = Block (default_thread, Full) }
+  and editor = { tool = Block (default_thread, Cross Full) }
   in
   editor, ({ substrate; layers = []; backstitch_layers = [] })
 
@@ -39,6 +39,13 @@ let create_canvas size =
   c##.height := size;
   c
 
+let act_click state editor x y =
+  match editor.tool with
+  | Block (thread, stitch) ->
+    Edit.add_stitch state thread stitch (Canvas.which_block state.substrate x y)
+  | Eraser ->
+    Edit.remove_stitch state (Canvas.which_block state.substrate x y)
+
 let make_toolbar () =
   let d = Html.window##.document in
   let textbutton s = Html.createButton ~_type:(Js.string "text") ~name:(Js.string s) d in
@@ -49,7 +56,6 @@ let make_toolbar () =
   and upload = textbutton "upload"
   in
   Dom.appendChild eraser (d##createTextNode (Js.string "eraser"));
-  Dom.appendChild save_png (d##createTextNode (Js.string "save to png"));
   Dom.appendChild make_json (d##createTextNode (Js.string "display json"));
   Dom.appendChild upload (d##createTextNode (Js.string "save to server"));
 
@@ -90,7 +96,7 @@ let make_colorbar editor =
       Dom.appendChild button_color (d##createTextNode (Js.string "X"));
       Dom.appendChild colorbar button_color;
       button_color##.onclick := Html.handler (fun _ ->
-          editor := { tool = Block (thread, Full) };
+          editor := { tool = Block (thread, Cross Full) };
           Js._false
         );
     ) threads
@@ -169,8 +175,8 @@ let start _event =
   let (eraser, save, json, upload) = make_toolbar () in
   Lwt.ignore_result @@ show_library ();
   let () = make_colorbar editor in
-  drawbox##.onclick := Html.handler (fun _event ->
-      (* state := act_click !state !editor event##.clientX event##.clientY; *)
+  drawbox##.onclick := Html.handler (fun event ->
+      state := act_click !state !editor event##.clientX event##.clientY;
       Canvas.render canvas !state;
       Js._false
     );
