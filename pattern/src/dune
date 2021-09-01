@@ -12,5 +12,5 @@
   (progn
    (run stitchpattern -w "TEST IMAGE" -p20 -o ocaml.pdf -i test/stitch.json)
    (run pdfinfo ocaml.pdf)
-   (run evince ocaml.pdf)
+   (run xdg-open ocaml.pdf)
 )))
