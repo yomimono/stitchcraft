@@ -10,7 +10,8 @@ end = struct
            } [@@deriving yojson, eq]
 
   let to_rgb t = t.rgb
-  let to_string t = Format.sprintf "DMC %s: %s" t.identifier t.name
+  let pp fmt t = Format.fprintf fmt "DMC %s: %s" t.identifier t.name
+  let to_string t = Format.asprintf "%a" pp t
   let neighbors _ = []
 
   let compare a b = String.compare a.identifier b.identifier

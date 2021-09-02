@@ -3,6 +3,8 @@ module type S = sig
   (** abstract; should represent some sort of discrete physical object
         it's possible to embroider with. *)
 
+  val pp : Format.formatter -> t -> unit
+
   val to_rgb : t -> (int * int * int)
   (** representation of the thread in RGB color space for screen display.*)
 

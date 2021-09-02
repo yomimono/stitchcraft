@@ -39,15 +39,19 @@ let normalize_thread thread =
 
 (* humans usually like to supply "width, height" instead of
    "max_x", "max_y", so accommodate them preferentially. *)
-let stitch background width height gridsize (layers : Stitchy.Types.layer list)=
+let stitch background width height gridsize exclude (layers : Stitchy.Types.layer list)=
   let max_x, max_y = find_size layers in
   let width = max (max_x + 1) width
   and height = max (max_y + 1) height
   in
+  let is_excluded thread = List.exists (fun a -> 0 = Stitchy.DMC.Thread.compare a thread) exclude in
   let substrate = make_substrate background gridsize ~width ~height in
   (* TODO: this is pokey enough that we should probably allow the user to bypass it *)
   let layers = List.fold_left (fun merged (layer : Stitchy.Types.layer) ->
-      let normalized_layer = {layer with thread = normalize_thread layer.thread} in
-      Stitchy.Layers.merge_threads merged [normalized_layer]
+      let normalized_thread = normalize_thread layer.thread in
+        if is_excluded normalized_thread then merged else begin
+        let normalized_layer =  {layer with thread = normalized_thread} in
+        Stitchy.Layers.merge_threads merged [normalized_layer]
+      end
     ) [] layers in
   {layers; substrate; backstitch_layers = []}

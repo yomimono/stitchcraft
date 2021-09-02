@@ -16,6 +16,17 @@ let height =
   let doc = "height for the assembled pattern. If this is too small, it will be overridden with the smallest usable value." in
   Cmdliner.Arg.(value & opt int 0 & info ["h"; "height"] ~doc)
 
+let exclude =
+  let open Cmdliner.Arg in
+  let parse s : (Stitchy.DMC.Thread.t, [`Msg of string]) result = match Stitchy.DMC.Thread.of_string s with
+    | Some t -> Ok t
+    | None -> Error (`Msg ("Unknown thread " ^ s))
+  in
+  let print : Stitchy.DMC.Thread.t printer = Stitchy.DMC.Thread.pp in
+  let thread_conv : Stitchy.DMC.Thread.t conv = conv (parse, print) in
+  let doc = "thread identifiers to omit from the pattern. This is useful when consuming output from a program with no support for transparency - put stitch colors you expect to be the background here." in
+  Cmdliner.Arg.(value & opt_all thread_conv [] & info ["e"; "exclude"] ~doc)
+
 let input =
   let doc = "file to read layer data from. - for stdin (the default)." in
   Cmdliner.Arg.(value & opt string "-" & info ["i"; "input"] ~doc)
@@ -25,20 +36,20 @@ let output =
   Cmdliner.Arg.(value & opt string "-" & info ["o"; "output"] ~doc)
 
 (* TODO: don't disregard grid size here *)
-let go input _grid width height background output =
+let go input _grid width height background exclude output =
   match Stitchy.Files.stdin_or_file input with
   | Error s -> failwith s
   | Ok json ->
     match Stitchy.Types.layers_of_yojson json with
     | Error s -> failwith s
     | Ok layers ->
-      let pattern = Assemble.stitch background width height Fourteen layers in
+      let pattern = Assemble.stitch background width height Fourteen exclude layers in
       Stitchy.Files.stdout_or_file (Stitchy.Types.pattern_to_yojson pattern) output
 
 let info =
   let doc = "Assemble layer information and substrate specification into a pattern. NB no attempt to handle backstitch, french knots, etc is made." in
   Cmdliner.Term.info doc
 
-let go_t = Cmdliner.Term.(const go $ input $ grid $ width $ height $ background $ output)
+let go_t = Cmdliner.Term.(const go $ input $ grid $ width $ height $ background $ exclude $ output)
 
 let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (go_t, info)
