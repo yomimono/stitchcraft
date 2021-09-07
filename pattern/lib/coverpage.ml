@@ -2,14 +2,16 @@
 let coverpage paper ({substrate; layers; backstitch_layers} : Stitchy.Types.pattern) =
   let backstitch_thickness = 3. in (* TODO this is really arbitrary *)
   let Types.{min_x; min_y; max_x; max_y} = Positioning.dimensions paper in
-  let width = float_of_int (substrate.max_x + 1)
+  let width = float_of_int (substrate.max_x + 1) (* these dimensions are in points *)
   and height = float_of_int (substrate.max_y + 1)
   in
-  let px =
-    if substrate.max_x < substrate.max_y
-    then (max_y -. min_y) /. height
-    else (max_x -. min_x) /. width
-  in
+  (* determine how many points each square (or px, for pixel)
+   * representing a stitch should be,
+   * by looking at the largest dimension of the substrate
+   * and scaling that down to the smallest dimension of the paper size. *)
+  let smallest_paper_dimension = min (max_x -. min_x) (max_y -. min_y) in
+  let largest_substrate_dimension = max width height in
+  let px = smallest_paper_dimension /. largest_substrate_dimension in
   let pdf_x x = min_x +. ((float_of_int x) *. px)
   and pdf_y y = max_y -. ((float_of_int (y + 1)) *. px)
   in
