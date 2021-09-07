@@ -4,6 +4,7 @@ module type S = sig
         it's possible to embroider with. *)
 
   val pp : Format.formatter -> t -> unit
+  val parse : string -> (t, [`Msg of string]) result
 
   val to_rgb : t -> (int * int * int)
   (** representation of the thread in RGB color space for screen display.*)

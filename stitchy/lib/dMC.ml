@@ -515,4 +515,7 @@ end = struct
   let of_rgb color = RGBMap.find_opt color rgb_map
 
   let of_string s = StringMap.find_opt s id_map
+  let parse s = match of_string s with
+    | Some t -> Ok t
+    | None -> Error (`Msg ("Unknown thread " ^ s))
 end
