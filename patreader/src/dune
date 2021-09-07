@@ -10,6 +10,6 @@
   (action (progn
     (with-stdout-to out.json (run pat2stitchy test/test.pat))
     (run stitchpattern -i out.json -o out.pdf)
-    (run evince out.pdf)
+    (run xdg-open out.pdf)
   ))
 )
