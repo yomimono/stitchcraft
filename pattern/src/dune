@@ -4,13 +4,15 @@
  (libraries pattern cmdliner camlpdf stitchy)
 )
 
-(data_only_dirs test)
-
 (rule (alias runtest)
- (deps test/stitch.json)
  (action
   (progn
-   (run stitchpattern -w "TEST IMAGE" -p20 -o ocaml.pdf -i test/stitch.json)
-   (run pdfinfo ocaml.pdf)
-   (run xdg-open ocaml.pdf)
+   (with-stdout-to empty.pattern (run empty 61 64))
+   (with-stdout-to vertical_line.pattern (run rect 1 66))
+   (with-stdout-to horizontal_line.pattern (run rect 61 1))
+   (run hcat -o center.pattern horizontal_line.pattern empty.pattern horizontal_line.pattern)
+   (run vcat -o box.pattern vertical_line.pattern center.pattern vertical_line.pattern)
+   (run %{exe:stitchpattern.exe} -w "TEST IMAGE" -o box.pdf -i box.pattern)
+   (run pdfinfo box.pdf)
+   (run xdg-open box.pdf)
 )))

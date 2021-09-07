@@ -11,7 +11,5 @@
   (with-stdout-to horizontal_line.pattern (run %{exe:rect.exe} 61 1))
   (run hcat -o center.pattern horizontal_line.pattern empty.pattern horizontal_line.pattern)
   (run vcat -o box.pattern vertical_line.pattern center.pattern vertical_line.pattern)
-  (run stitchpattern -w "TEST IMAGE" -o box.pdf -i box.pattern)
-  (run xdg-open box.pdf)
  ))
 )
