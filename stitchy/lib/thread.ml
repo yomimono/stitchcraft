@@ -35,7 +35,10 @@ module type S = sig
 
   val basic : t list
   (** the most readily available threads from this vendor. If there's
-      a cheap starter set of threads, these are the threads in it. *)
+      a cheap starter set of threads, these are the threads in it.
+      Various tools use `List.hd basic` as a default thread color,
+      so `Not_found` exceptions may be caused by leaving this empty.
+  *)
 
   (* TODO: it would very likely be a good idea to have some kind of
      of_rgb_approximate available, likewise one can imagine of_rgb ~common_only:true, etc. *)
