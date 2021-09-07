@@ -1,5 +1,5 @@
 (executables
- (public_names empty rect backstitch)
+ (public_names empty rect)
  (libraries cmdliner primitives stitchy yojson)
 )
 
