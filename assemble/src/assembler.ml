@@ -18,12 +18,7 @@ let height =
 
 let exclude =
   let open Cmdliner.Arg in
-  let parse s : (Stitchy.DMC.Thread.t, [`Msg of string]) result = match Stitchy.DMC.Thread.of_string s with
-    | Some t -> Ok t
-    | None -> Error (`Msg ("Unknown thread " ^ s))
-  in
-  let print : Stitchy.DMC.Thread.t printer = Stitchy.DMC.Thread.pp in
-  let thread_conv : Stitchy.DMC.Thread.t conv = conv (parse, print) in
+  let thread_conv : Stitchy.DMC.Thread.t conv = conv Stitchy.DMC.Thread.(parse, pp) in
   let doc = "thread identifiers to omit from the pattern. This is useful when consuming output from a program with no support for transparency - put stitch colors you expect to be the background here." in
   Cmdliner.Arg.(value & opt_all thread_conv [] & info ["e"; "exclude"] ~doc)
 
