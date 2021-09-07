@@ -1,8 +1,8 @@
 open Stitchy.Types
 
-let empty background grid w h : pattern =
-  let substrate = { max_x = w - 1;
-                    max_y = h - 1;
+let empty background grid ~width ~height : pattern =
+  let substrate = { max_x = width - 1;
+                    max_y = height - 1;
                     grid;
                     background;
                   }

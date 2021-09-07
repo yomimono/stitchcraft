@@ -20,12 +20,12 @@ let gridsize =
   let doc = "size of aida cloth grid" in
   Cmdliner.Arg.(value & opt (enum grid_converter) Stitchy.Types.Fourteen & info ["g"; "gridsize"] ~doc)
 
-let empty height width bg gridsize =
-  let pattern = Primitives.empty bg gridsize height width in
+let empty width height bg gridsize =
+  let pattern = Primitives.empty bg gridsize ~width ~height in
   Yojson.Safe.to_channel stdout @@ Stitchy.Types.pattern_to_yojson pattern
 
 let empty_t = Cmdliner.Term.info "empty"
   
 let () =
-  let go = Cmdliner.Term.(const empty $ height $ width $ background $ gridsize) in
+  let go = Cmdliner.Term.(const empty $ width $ height $ background $ gridsize) in
   Cmdliner.Term.(exit @@ eval (go, empty_t))
