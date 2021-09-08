@@ -11,9 +11,13 @@ let aida_price_per_square_inch =
   in
   price_per_yard /. square_inches
 
+(* There is a thread length below which it's not possible to make meaningful stitches.
+* TODO this would properly take region continuity into account (confetti makes this problem worse) *)
+let minimum_thread_length = 6.
+
 (* TODO need some estimates on whether thread is divided into 3s or 2s; for now just assume we use 3 strands everywhere *)
 let strand_division_factor = 2. (* for each inch of six-strand embroidery floss we get two inches of three-strand embroidery floss *)
-let price_per_skein = 0.80 (* they're .77 on DMC's website and often around this in stores *)
+let price_per_skein = 1.00 (* they're .77 on DMC's website and often around this in stores but scarcity is lurking *)
 let skein_length_inches = 8.7 *. 36. *. strand_division_factor (* 8m (8.7 yd) according to the label *)
 
 let thread_fudge_factor = 1.2 (* extra thread for estimates, for anchoring etc *)
@@ -49,8 +53,9 @@ let pp_hoop_size fmt = function
   | `Scroll_frame size -> Format.fprintf fmt "a scroll frame with small dimension of %d inches" size
   | `Embroidery_hoop size -> Format.fprintf fmt "an embroidery hoop with diameter %d inches" size
 
-(* 2 * sqrt(2) + 2 is 4.8 which is close enough to 5 *)
-let stitch_length_units = 5
+(* 2 * sqrt(2) + 1 is 3.8 which is close enough to 4 *)
+(* logic: if the X crosses a unit square, the length from corner to corner is sqrt(1^2 + 1^2) = sqrt(2), and we do it twice, plus one stitch on a unit side to get us from one leg to the other. *)
+let stitch_length_units = 4
 
 (* TODO a better estimate would make some reference to region continuity --
    we need more thread for a bunch of unconnected stitches. for now, just
@@ -60,7 +65,8 @@ let length_of_thread stitch_count grid_size =
   let grid_size = count grid_size in
   (* this is in [grid_size]ths of an inch, so divide it to get the size in inches *)
   let l = stitch_length_units * stitch_count in
-  (float_of_int l) /. (float_of_int grid_size) *. thread_fudge_factor
+  let estimated = (float_of_int l) /. (float_of_int grid_size) *. thread_fudge_factor in
+  max estimated minimum_thread_length
 
 type thread_info = {
   thread : Stitchy.DMC.Thread.t;
@@ -81,7 +87,7 @@ let totals threads =
      (total_cost +. cost, total_seconds + seconds)) (0., 0) threads
 
 let print_thread_info {thread; amount; length; skeins; cost; seconds } =
-  Printf.printf "%s: %d stitches (%.02G linear inches, %.02G standard skeins, USD %G, ~%d seconds)\n%!"
+  Printf.printf "%s: %d stitches (%.02f linear inches, %.02f standard skeins, USD %.02f, ~%d seconds)\n%!"
     (Stitchy.DMC.Thread.to_string thread) amount length skeins cost seconds
 
 let thread_info grid (layer : layer) =
