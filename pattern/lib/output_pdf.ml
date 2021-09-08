@@ -3,6 +3,21 @@ open Types
 let thick_line_thickness = 1.
 let thin_line_thickness = 0.5
 
+let dpi = 72. (* TODO: not sure we can always count on this :/ *)
+
+let pointify paper measurement =
+  Pdfunits.convert dpi (Pdfpaper.unit paper) Pdfunits.PdfPoint measurement
+
+(* on each side *)
+let margin_size = pointify Pdfpaper.usletter 0.5
+
+(* this is the width of the left-side allowance
+ * for grid labels,
+ * and the height of the top-side allowance for the same.
+ * Accordingly it's quite large, because it's accommodating
+ * both dimensions. *)
+let grid_label_size = pointify Pdfpaper.usletter 0.5
+
 let t1_font name =
   Pdf.(Dictionary
          [("/Type", Name "/Font");
@@ -17,14 +32,18 @@ let symbol_key = "/F0"
 and zapf_key = "/F1"
 and helvetica_key = "/F2"
 
-(* TODO both of these should be parameterized by the paper info *)
-let x_per_page ~paper:_ ~pixel_size =
-  (* assume 7 usable inches after margins and axis labels *)
-  (72 * 7) / pixel_size
+let x_per_page ~paper ~pixel_size =
+  let pixel_size = float_of_int pixel_size in
+  let width = Pdfpaper.width paper in
+  (* we need to also leave a gutter for the unit labels *)
+  let width_in_points = (pointify paper width) -. (2. *. margin_size) -. grid_label_size in
+  int_of_float @@ width_in_points /. pixel_size
 
-let y_per_page ~paper:_ ~pixel_size =
-  (* assume 9 usable inches after margins, axis labels, and page number *)
-  (72 * 9) / pixel_size
+let y_per_page ~paper ~pixel_size =
+  let pixel_size = float_of_int pixel_size in
+  let height = Pdfpaper.height paper in
+  let height_in_points = (pointify paper height) -. (2. *. margin_size) -. grid_label_size in
+  int_of_float @@ height_in_points /. pixel_size
 
 let symbol_of_color symbols thread =
   match Stitchy.Types.SymbolMap.find_opt thread symbols with
@@ -65,6 +84,8 @@ let paint_grid_lines (doc : doc) (page : page) =
   in
   paint_horizontal_lines 0 [] @ paint_vertical_lines 0 []
 
+(* pretty wild that camlpdf doesn't have higher-level operators for this stuff.
+* Can that really even be true? *)
 let make_grid_label ~text_size n n_x_pos n_y_pos =
   Pdfops.([
       Op_q;
@@ -85,6 +106,8 @@ let label_left_line doc page n =
   (* label n goes where the nth pixel would go, just nudged left a bit *)
   (* TODO: it would be good to right-justify this; it's weird-looking with different-width labels *)
   (* is there a way to right-justify this bad boy? *)
+  (* So it seems from the PDF spec this is usually referred to as "quadding". There's a way to specify
+* it with a Q operator in some contexts, but of course our Pdfops.Op_Q is something different (that doesn't take an argument anyway). The context in which it's referred to is form-specific anyway :/ *)
   let (n_x_pos, n_y_pos) = Positioning.find_upper_left doc 0 (n - (fst page.y_range)) in
   make_grid_label ~text_size:(float_of_int doc.pixel_size) n (n_x_pos -. (float_of_int (doc.pixel_size * 2))) n_y_pos
 
