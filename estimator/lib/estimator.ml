@@ -12,7 +12,8 @@ let aida_price_per_square_inch =
   price_per_yard /. square_inches
 
 (* There is a thread length below which it's not possible to make meaningful stitches.
-* TODO this would properly take region continuity into account (confetti makes this problem worse) *)
+* TODO this would properly take the number of contiguous regions into account
+ * (confetti makes this problem worse) *)
 let minimum_thread_length = 6.
 
 (* TODO need some estimates on whether thread is divided into 3s or 2s; for now just assume we use 3 strands everywhere *)
