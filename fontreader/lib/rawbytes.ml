@@ -20,7 +20,7 @@ let to_bit_index_list byte =
 
 let read_row ~y row ~width =
   let rec aux bits row index =
-    if index >= width || Cstruct.len row = 0 then bits
+    if index >= width || Cstruct.length row = 0 then bits
     else begin
       let bit_list = to_bit_index_list (Cstruct.get_char row 0) in
       let new_bits = List.map (fun bit_number -> (bit_number + 8*index, y)) bit_list in
