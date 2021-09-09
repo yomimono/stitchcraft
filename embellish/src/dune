@@ -26,5 +26,5 @@
   (progn
    (run repeat_corner -o repeated_corners.json --border test/border.json --center test/center.json --corner test/corner.json)
    (run stitchpattern -w "TEST IMAGE from https://github.com/yomimono/stitchcraft" -o repeated_corners.pdf -i repeated_corners.json)
-   (run evince repeated_corners.pdf)
+   (run xdg-open repeated_corners.pdf)
 )))
