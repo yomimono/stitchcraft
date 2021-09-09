@@ -1,5 +1,12 @@
+let orientation substrate paper =
+  let open Stitchy.Types in
+  (* portrait by default and for images longer than they are wide;
+   * landscape for images wider than they are long *)
+  if substrate.max_x > substrate.max_y then Pdfpaper.landscape paper else paper
+
 (* generate a preview image *)
 let coverpage paper ({substrate; layers; backstitch_layers} : Stitchy.Types.pattern) =
+  let paper = orientation substrate paper in
   let backstitch_thickness = 3. in (* TODO this is really arbitrary *)
   let Types.{min_x; min_y; max_x; max_y} = Positioning.dimensions paper in
   let width = float_of_int (substrate.max_x + 1) (* these dimensions are in points *)
@@ -7,11 +14,20 @@ let coverpage paper ({substrate; layers; backstitch_layers} : Stitchy.Types.patt
   in
   (* determine how many points each square (or px, for pixel)
    * representing a stitch should be,
-   * by looking at the largest dimension of the substrate
-   * and scaling that down to the smallest dimension of the paper size. *)
+   * by looking at the size we have available in each dimension
+   * and choosing the smaller of the two. *)
   let smallest_paper_dimension = min (max_x -. min_x) (max_y -. min_y) in
+  let largest_paper_dimension = max (max_x -. min_x) (max_y -. min_y) in
+  let smallest_substrate_dimension = min width height in
   let largest_substrate_dimension = max width height in
-  let px = smallest_paper_dimension /. largest_substrate_dimension in
+  (* "smallest" and "largest" don't refer to the values in smallest_px and largest_px
+   * themselves. Rather, these numbers represent a ratio of points available
+   * on the PDF to pixels in the image,
+   * so smallest_px could well be a larger value than largest_px, if the image
+   * is less square than the paper is. *)
+  let smallest_px = smallest_paper_dimension /. smallest_substrate_dimension in
+  let largest_px = largest_paper_dimension /. largest_substrate_dimension in
+  let px = min smallest_px largest_px in
   let pdf_x x = min_x +. ((float_of_int x) *. px)
   and pdf_y y = max_y -. ((float_of_int (y + 1)) *. px)
   in
