@@ -6,7 +6,7 @@ let to_bit_list byte =
 
 let to_bit_stream bytes =
   let rec aux (l : bool list list) (bytes : Cstruct.t) =
-    if Cstruct.len bytes <= 0 then (List.rev l) |> List.flatten
+    if Cstruct.length bytes <= 0 then (List.rev l) |> List.flatten
     else aux ((to_bit_list (Cstruct.get_char bytes 0))::l) (Cstruct.shift bytes 1)
   in
   aux [] bytes
@@ -58,7 +58,7 @@ let get_chars _debug ~width ~height (all_bytes : Cstruct.t) =
   let rec aux (n, acc) =
     (* if we're out of buffer, stop *)
     let size_in_bytes = (width * height / 8) + if width * height mod 8 > 0 then 1 else 0 in
-    if (n + 1) * size_in_bytes > (Cstruct.len all_bytes) then (n, List.rev acc)
+    if (n + 1) * size_in_bytes > (Cstruct.length all_bytes) then (n, List.rev acc)
     else begin
       let bits = get_nth_char_bits ~width ~height all_bytes n in
       let stitches = stitches_of_bits ~width ~height bits in

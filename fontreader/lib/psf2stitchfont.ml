@@ -29,7 +29,7 @@ let pp_error fmt = function
 let parse_glyph_table ~width ~height table =
   let bytes_in_row = Rawbytes.bytes_in_row width in
   let rec next_glyph glyphs table =
-    if Cstruct.len table < bytes_in_row * height then glyphs
+    if Cstruct.length table < bytes_in_row * height then glyphs
     else begin
       let stitches = Rawbytes.read_rows table ~bytes_in_row ~height ~width [] 0 |> Stitchy.Types.CoordinateSet.of_list in
       let glyph : Stitchy.Types.glyph = {
@@ -58,7 +58,7 @@ let next_unicode_entry table =
   let chars = try_chunk [] in
   (* tell us how far you got! *)
   let cursor = Uutf.decoder_byte_count decoder in
-  if cursor >= Cstruct.len table then (chars, `End)
+  if cursor >= Cstruct.length table then (chars, `End)
   else (chars, `More_at cursor)
 
 let keep_getting_glyphs table =
@@ -72,7 +72,7 @@ let keep_getting_glyphs table =
 let read_unicode_glyphmap buffer =
   let glyphs_size = Int32.mul (get_psf2header_number_of_glyphs buffer) (get_psf2header_bytes_per_character buffer) in
   let unicode_start = Int32.add (get_psf2header_start_of_glyphs buffer) glyphs_size in
-  let unicode_length = (Cstruct.len buffer) - (Int32.to_int unicode_start) in
+  let unicode_length = (Cstruct.length buffer) - (Int32.to_int unicode_start) in
   let glyph_table = Cstruct.sub buffer (Int32.to_int (get_psf2header_start_of_glyphs buffer)) (Int32.to_int glyphs_size) in
   let unicode_table = Cstruct.shift buffer (Int32.to_int unicode_start) in
   if unicode_length < 0 then Error `No_unicode_info
@@ -96,7 +96,7 @@ let read_nonunicode_glyphmap buffer =
   Ok (List.combine glyphs unicode_map)
 
 let glyphmap_of_buffer _debug buffer =
-  if Cstruct.len buffer < 0x20 then Error `Too_short
+  if Cstruct.length buffer < 0x20 then Error `Too_short
   else if 0 <> Cstruct.compare psf2magic (get_psf2header_magic buffer)
   then Error (`Wrong_magic (get_psf2header_magic buffer))
   else if get_psf2header_flags buffer <> 0x01l

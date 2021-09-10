@@ -27,7 +27,7 @@ let second_page () =
   check_coords "end of second page" (1, 0, 49, 0) (get_coords (99, 0));
   check_coords "end of second page" (1, 0, 49, 63) (get_coords (99, 63))
 
-let second_row () = check_coords "second page" (0, 1, 0, 10) (get_coords (0, 74))
+let second_row () = check_coords "second page" (0, 1, 0, 6) (get_coords (0, 74))
 
 let () = Alcotest.run "pattern lib functions" [
     ("the grid", [
