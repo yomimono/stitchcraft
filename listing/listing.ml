@@ -8,7 +8,7 @@ let output =
   let doc = "png filename to output (note that - does NOT mean stdout)" in
   Cmdliner.Arg.(value & opt string "preview.png" & info ["o"; "output"] ~doc)
 
-(* because Etsy explicitly doesn't support transparency in PNGs,
+(* Etsy explicitly doesn't support transparency in PNGs,
    so when we first create this image, say we don't want an
    alpha channel set.  The background fill will be completely
    opaque as well. *)
@@ -37,7 +37,7 @@ let solve_for_four_to_three substrate =
   else
     `Just_right ((better_width - width), (better_height - height))
 
-let paint_pixel image adjustment (x, y) {thread; _} =
+let paint_pixel image adjustment thread (x, y) =
   let (r, g, b) = Stitchy.DMC.Thread.to_rgb thread in
   match adjustment with
   | `Widen extra_width ->
@@ -47,11 +47,24 @@ let paint_pixel image adjustment (x, y) {thread; _} =
   | _ ->
     Image.write_rgba image x y r g b alpha
 
+let paint_line _image _adjustment _thread (src_x, src_y) =
+  let _ = (src_x, src_y) in
+  ()
+
+let paint_layer image adjustment ({stitches; thread; _ } : layer) =
+  (* TODO: we currently treat all stitches as Full Cross; we shouldn't *)
+  CoordinateSet.iter (fun pixel -> paint_pixel image adjustment thread pixel) stitches
+
+let paint_backstitch_layer image adjustment ({stitches; thread; } : backstitch_layer) =
+  SegmentSet.iter (fun stitch -> paint_line image adjustment thread stitch) stitches
+
 let go input output =
   let open Rresult in
-  Files.stdin_or_file input
-  >>= state_of_yojson
-  >>= fun { stitches; substrate } ->
+  Stitchy.Files.stdin_or_file input
+  >>= pattern_of_yojson
+  >>= fun { layers; substrate; backstitch_layers; } ->
+  (* TODO: painting the backstitches might
+   * prompt us to adjust the size of the image we produce *)
   let adjustment = solve_for_four_to_three substrate in
   let image = match adjustment with
     | `Widen extra_width -> make_background ~extra_width substrate
@@ -64,14 +77,15 @@ let go input output =
   in
   let text_color = 0, 0, 0 in
   let orientation = match adjustment with
-    | `Widen margin -> `Vertical margin
-    | `Heighten margin -> `Horizontal margin
+    | `Widen margin -> `Vertical (margin / 2)
+    | `Heighten margin -> `Horizontal (margin / 2)
     | `Just_right _ -> (* arbitrarily, horizontal *)
       `Horizontal (snd Annotate.pdf_glyph_dims)
   in
   Annotate.add_pdf image ~orientation text_color;
-  Stitchy.Types.BlockMap.iter (paint_pixel image adjustment) stitches;
-  let _ = ImageLib.writefile output image in
+  List.iter (paint_layer image adjustment) layers;
+  List.iter (paint_backstitch_layer image adjustment) backstitch_layers;
+  let () = ImageLib_unix.writefile output image in
   Ok ()
 
 let reword input output =

@@ -32,28 +32,33 @@ let add_pdf image ~orientation (r, g, b) =
 
     (1, 4);
   ]
-  and width, height = pdf_glyph_dims
+  and glyph_width, glyph_height = pdf_glyph_dims
   in
   let glyphs = [p_glyph; d_glyph; f_glyph; bang] in
   let write ~start_x ~start_y ~orientation glyphs =
+    let translate_to_image_coordinates nth (x, y) = match orientation with
+      | `Horizontal _ -> ((start_x + x + nth * glyph_width), (y + start_y))
+      | `Vertical _ -> ((start_x + x), (nth * glyph_height) + (start_y + y))
+    in
     List.iteri (fun nth glyph ->
-        List.iter (fun (x, y) ->
-            let (x, y) = match orientation with
-              | `Horizontal _ -> ((start_x + x + nth * width), (y + start_y))
-              | `Vertical _ -> ((start_x + x), (nth * height) + (start_y + y))
-            in
+        List.iter (fun coords ->
+            let (x, y) = translate_to_image_coordinates nth coords in
             Image.write_rgb image x y r g b)
           glyph
       ) glyphs
   in
   match orientation with
-  | `Horizontal orig_min_y ->
-    let start_x = (image.width / 2) - (((List.length glyphs) / 2) * width)
-    and start_y = (image.height - orig_min_y) / 2
+  | `Horizontal top_edge ->
+    (* center the text horizontally *)
+    let start_x = (image.width / 2) - (((List.length glyphs) / 2) * glyph_width)
+    (* vertically, make sure it's above the original image *)
+    and start_y = max 0 (top_edge / 2 - glyph_height)
     in
     write ~start_x ~start_y ~orientation glyphs
-  | `Vertical orig_min_x ->
-    let start_x = (image.width - orig_min_x) / 2
-    and start_y = (image.height / 2) - (((List.length glyphs) / 2) * height)
+  | `Vertical left_edge ->
+    (* make sure the text is to the left of the original image *)
+    let start_x = max 0 (left_edge / 2 - glyph_width)
+    (* center the text vertically *)
+    and start_y = (image.height / 2) - (((List.length glyphs) / 2) * glyph_height)
     in
     write ~start_x ~start_y ~orientation glyphs
