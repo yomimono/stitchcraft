@@ -3,11 +3,11 @@ open Estimator
 
 let pattern =
   let doc = "pattern to analyze for materials and cost. default is stdin" in
-  Cmdliner.Arg.(value & pos 0 string "-" & info [] ~doc)
+  Cmdliner.Arg.(value & pos 0 string "-" & info [] ~doc ~docv:"PATTERN")
 
 let margin =
   let doc = "unstitched margin size in inches. For framing, at least 1 inch is recommended." in
-  Cmdliner.Arg.(value & opt float 1. & info ["margin";"m"] ~doc)
+  Cmdliner.Arg.(value & opt float 1. & info ["margin";"m"] ~doc ~docv:"MARGIN")
 
 let estimate file margin =
   match Stitchy.Files.stdin_or_file file with
@@ -31,6 +31,6 @@ let estimate file margin =
 
 let estimate_t = Cmdliner.Term.(const estimate $ pattern $ margin)
 
-let info = Cmdliner.Term.info "calculate materials required for this pattern and estimate their cost"
+let info = Cmdliner.Term.info "estimate"
 
 let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (estimate_t, info)
