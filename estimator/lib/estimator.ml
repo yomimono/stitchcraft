@@ -54,6 +54,40 @@ let pp_hoop_size fmt = function
   | `Scroll_frame size -> Format.fprintf fmt "a scroll frame with small dimension of %d inches" size
   | `Embroidery_hoop size -> Format.fprintf fmt "an embroidery hoop with diameter %d inches" size
 
+let smallest_frame ~margin_inches substrate =
+  let width_in, height_in = substrate_size_in_inches ~margin_inches substrate in
+  let biggest_dimension = max width_in height_in in
+  let smallest_dimension = min width_in height_in in
+  let fits (s, b) frame_small frame_large =
+    let proportions ratio_a ratio_b =
+      0 = compare (int_of_float ratio_a) (int_of_float ratio_b)
+    in
+    let small_prop = frame_small /. s
+    and large_prop = frame_large /. b
+    in
+    s < frame_small && b < frame_large && proportions small_prop large_prop
+  in
+  let frame s b = `Frame (s, b) in
+  (* custom frames are available in arbitrary sizes,
+   * but it can be convenient to know the smallest
+   * standard frame size a completed work
+   * will fit in. *)
+  match smallest_dimension, biggest_dimension with
+  | size when fits size 5. 7. -> frame 5. 7.
+  | size when fits size 8. 10. -> frame 8. 10.
+  | size when fits size 8.5 11. -> frame 8.5 11.
+  | size when fits size 11. 14. -> frame 11. 14.
+  | size when fits size 11. 17. -> frame 11. 17.
+  | size when fits size 16. 20. -> frame 16. 20.
+  | size when fits size 18. 24. -> frame 18. 24.
+  | size when fits size 20. 24. -> frame 20. 24.
+  | size when fits size 24. 36. -> frame 24. 36.
+  | size -> `Custom_frame size
+
+let pp_frame fmt = function
+  | `Frame (s, b) -> Format.fprintf fmt "standard %.1f x %.1f frame" s b
+  | `Custom_frame (s, b) -> Format.fprintf fmt "custom frame, of minimum size %.1f x %.1f" s b
+ 
 (* 2 * sqrt(2) + 1 is 3.8 which is close enough to 4 *)
 (* logic: if the X crosses a unit square, the length from corner to corner is sqrt(1^2 + 1^2) = sqrt(2), and we do it twice, plus one stitch on a unit side to get us from one leg to the other. *)
 let stitch_length_units = 4
@@ -127,8 +161,8 @@ let cross_thread_info grid (layer : layer) =
   let seconds = seconds_per_stitch * amount in
   {thread; amount; length; skeins; cost; seconds;}
 
-let materials pattern =
+let materials ~margin_inches pattern =
   let cross_threads = List.map (cross_thread_info pattern.substrate.grid) pattern.layers in
   let backstitch_threads = List.map (backstitch_thread_info pattern.substrate.grid) pattern.backstitch_layers in
   { threads = cross_threads @ backstitch_threads;
-    fabric = substrate_size_in_inches ~margin_inches:1. pattern.substrate }
+    fabric = substrate_size_in_inches ~margin_inches pattern.substrate }

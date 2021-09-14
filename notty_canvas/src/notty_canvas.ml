@@ -21,7 +21,10 @@ let disp input =
     | Ok pattern ->
       let open Lwt.Infix in
       let term = Notty_lwt.Term.create () in
-      let totals = Estimator.((materials pattern).threads |> totals) in
+      (* we don't care about the fabric part of the estimate,
+       * so it's OK to pass 0 for margin inches here *)
+      let totals = Estimator.((materials ~margin_inches:0.
+                                 pattern).threads |> totals) in
       Notty_lwt.Term.image term @@ main_view pattern start_view totals (Notty_lwt.Term.size term) >>= fun () ->
       let rec loop (pattern : pattern) (view : Canvas__Controls.view) =
         (Lwt_stream.last_new @@ Notty_lwt.Term.events term) >>= fun event ->
