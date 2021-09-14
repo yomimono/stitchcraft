@@ -12,7 +12,8 @@ let aida_price_per_square_inch =
   price_per_yard /. square_inches
 
 (* There is a thread length below which it's not possible to make meaningful stitches.
-* TODO this would properly take region continuity into account (confetti makes this problem worse) *)
+* TODO this would properly take the number of contiguous regions into account
+ * (confetti makes this problem worse) *)
 let minimum_thread_length = 6.
 
 (* TODO need some estimates on whether thread is divided into 3s or 2s; for now just assume we use 3 strands everywhere *)
@@ -61,12 +62,28 @@ let stitch_length_units = 4
    we need more thread for a bunch of unconnected stitches. for now, just
    multiply by a constant factor *)
 (* also TODO: this assumes every stitch is a full cross stitch *)
-let length_of_thread stitch_count grid_size =
+let full_cross_length stitch_count grid_size =
   let grid_size = count grid_size in
   (* this is in [grid_size]ths of an inch, so divide it to get the size in inches *)
   let l = stitch_length_units * stitch_count in
   let estimated = (float_of_int l) /. (float_of_int grid_size) *. thread_fudge_factor in
   max estimated minimum_thread_length
+
+(* give a maximum estimation of the amount of thread a person might reasonably use to make backstitches
+ * traversing the distance from src to dst.
+ * Notably this *isn't* a measure of distance from src to dst -
+ * it's the city-block distance (i.e., no diagonals), doubled to
+ * account for needing to do the "back" part of "backstitch". *)
+let backstitch_length (src_x, src_y) (dst_x, dst_y) =
+  let x_distance = abs (dst_x - src_x)
+  and y_distance = abs (dst_y - src_y)
+  in
+  2 * (x_distance + y_distance)
+
+let backstitch_layer_length (stitches : Stitchy.Types.SegmentSet.t) =
+  Stitchy.Types.SegmentSet.fold (fun (src, dst) acc  ->
+      acc + (backstitch_length src dst)
+    ) stitches 0
 
 type thread_info = {
   thread : Stitchy.DMC.Thread.t;
@@ -90,15 +107,28 @@ let print_thread_info {thread; amount; length; skeins; cost; seconds } =
   Printf.printf "%s: %d stitches (%.02f linear inches, %.02f standard skeins, USD %.02f, ~%d seconds)\n%!"
     (Stitchy.DMC.Thread.to_string thread) amount length skeins cost seconds
 
-let thread_info grid (layer : layer) =
+let backstitch_thread_info grid (layer : backstitch_layer) =
+  let thread = layer.thread in
+  let amount = backstitch_layer_length layer.stitches in
+  (* each unit accounted for in `amount` is (1/grid_size) inches, so divide by the grid size to get the
+   * length in inches *)
+  let length = (float_of_int amount) /. (float_of_int @@ count grid) in
+  let skeins = length /. skein_length_inches in
+  let cost = skeins *. price_per_skein in
+  let seconds = seconds_per_stitch * amount in
+  {thread; amount; length; skeins; cost; seconds;}
+
+let cross_thread_info grid (layer : layer) =
   let thread = layer.thread in
   let amount = CoordinateSet.cardinal layer.stitches in
-  let length = length_of_thread amount grid in
+  let length = full_cross_length amount grid in (* TODO: nope. there are lots of stitch types *)
   let skeins = length /. skein_length_inches in
   let cost = skeins *. price_per_skein in
   let seconds = seconds_per_stitch * amount in
   {thread; amount; length; skeins; cost; seconds;}
 
 let materials pattern =
-  { threads = List.map (thread_info pattern.substrate.grid) pattern.layers;
+  let cross_threads = List.map (cross_thread_info pattern.substrate.grid) pattern.layers in
+  let backstitch_threads = List.map (backstitch_thread_info pattern.substrate.grid) pattern.backstitch_layers in
+  { threads = cross_threads @ backstitch_threads;
     fabric = substrate_size_in_inches ~margin_inches:1. pattern.substrate }

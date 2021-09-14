@@ -35,9 +35,9 @@ let coverpage paper ({substrate; layers; backstitch_layers} : Stitchy.Types.patt
     let (r, g, b) = substrate.background in
     Pdfops.Op_rg (Colors.scale r, Colors.scale g, Colors.scale b)
   in
-  (* draw the background image *)
-  (* TODO: really need some centering logic here *)
-  (* TODO: this is coming out too wide on US letter *)
+  (* before we draw the individual pixels, draw a big ol' rectangle for the background *)
+  (* we don't explicitly set Z-levels, but luckily calling the pixel-drawing
+   * function after this seems to make sure that this ends up below them *)
   let background = Pdfops.([
       Op_q;
       Op_w 0.;
