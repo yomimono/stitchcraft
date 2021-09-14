@@ -4,9 +4,15 @@ let background =
   let doc = "color of background cloth" in
   Cmdliner.Arg.(value & opt (t3 int int int) (255, 255, 255) & info ["b";"bg";"background"] ~doc)
 
+let grid_enum = [
+  "14", Fourteen;
+  "16", Sixteen;
+  "18", Eighteen;
+]
+
 let grid =
   let doc = "Grid size of Aida cloth to use" in
-  Cmdliner.Arg.(value & opt int 14 & info ["g"; "grid"] ~doc)
+  Cmdliner.Arg.(value & opt (enum grid_enum) Fourteen & info ["g"; "grid"] ~doc)
 
 let width =
   let doc = "width for the assembled pattern. If this is too small, it will be overridden with the smallest usable value." in
@@ -30,19 +36,18 @@ let output =
   let doc = "output the assembled pattern here. - for stdout (the default)." in
   Cmdliner.Arg.(value & opt string "-" & info ["o"; "output"] ~doc)
 
-(* TODO: don't disregard grid size here *)
-let go input _grid width height background exclude output =
+let go input grid width height background exclude output =
   match Stitchy.Files.stdin_or_file input with
   | Error s -> failwith s
   | Ok json ->
     match Stitchy.Types.layers_of_yojson json with
     | Error s -> failwith s
     | Ok layers ->
-      let pattern = Assemble.stitch background width height Fourteen exclude layers in
+      let pattern = Assemble.stitch background width height grid exclude layers in
       Stitchy.Files.stdout_or_file (Stitchy.Types.pattern_to_yojson pattern) output
 
 let info =
-  let doc = "Assemble layer information and substrate specification into a pattern. NB no attempt to handle backstitch, french knots, etc is made." in
+  let doc = "assemble" in
   Cmdliner.Term.info doc
 
 let go_t = Cmdliner.Term.(const go $ input $ grid $ width $ height $ background $ exclude $ output)

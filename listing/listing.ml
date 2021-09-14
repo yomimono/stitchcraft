@@ -75,7 +75,12 @@ let go input output =
       in
       make_background ~extra_width ~extra_height substrate
   in
-  let text_color = 0, 0, 0 in
+  let text_color =
+    (* TODO: reuse the contrast math we have for the pdf generator *)
+    match substrate.background with
+    | 0, 0, 0 -> 255,255,255
+    | color -> color
+  in
   let orientation = match adjustment with
     | `Widen margin -> `Vertical (margin / 2)
     | `Heighten margin -> `Horizontal (margin / 2)
