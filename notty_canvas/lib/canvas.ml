@@ -142,11 +142,14 @@ let key_help view =
     | `Solid -> "ymbol view"
     | `Symbol -> "olid view"
   in
-  let nav_text = I.string highlight "←↑→↓" <|> I.string lowlight " to scroll"
+  let refresh = I.string highlight "R" <|> I.string lowlight "efresh"
+  and nav_text = I.string highlight "←↑→↓" <|> I.string lowlight " to scroll"
   and shift_text = I.string highlight "Shift + ←↑→↓" <|> I.string lowlight " to page"
   and quit = I.string highlight "Q" <|> I.string lowlight "uit"
-  and symbol = I.string highlight "S" <|> I.string lowlight symbol_text in
-  quit <|> I.void 1 1 <|> symbol <|> I.void 1 1 <|> nav_text <|> I.void 1 1 <|> shift_text
+  and symbol = I.string highlight "S" <|> I.string lowlight symbol_text
+  and sp = I.void 1 1
+  in
+  quit <|> sp <|> symbol <|> sp <|> refresh <|> sp <|> nav_text <|> sp <|> shift_text
 
 let totals_pane (total_cost, total_seconds) =
   let open Notty.Infix in
@@ -171,12 +174,13 @@ let main_view {substrate; layers; backstitch_layers;} view totals (width, height
 let step pattern view (width, height) event =
   let left_pane = left_pane pattern.substrate (width, height) in
   match event with
-  | `Resize _ | `Mouse _ | `Paste _ -> Some (pattern, view)
+  | `Resize _ | `Mouse _ | `Paste _ -> Some (false, view)
   | `Key (key, mods) -> begin
       match key, mods with
       | (`Escape, _) | (`ASCII 'q', _) -> None
-      | (`Arrow dir, l) when List.mem `Shift l -> Some (pattern, Controls.page pattern.substrate view left_pane dir)
-      | (`Arrow dir, _) -> Some (pattern, Controls.scroll pattern.substrate view dir)
-      | (`ASCII 's', _) -> Some (pattern, Controls.switch_view view)
-      | _ -> Some (pattern, view)
+      | (`Arrow dir, l) when List.mem `Shift l -> Some (false, Controls.page pattern.substrate view left_pane dir)
+      | (`Arrow dir, _) -> Some (false, Controls.scroll pattern.substrate view dir)
+      | (`ASCII 's', _) -> Some (false, Controls.switch_view view)
+      | (`ASCII 'r', _) -> Some (true, view)
+      | _ -> Some (false, view)
     end
