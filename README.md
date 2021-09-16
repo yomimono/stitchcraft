@@ -62,7 +62,6 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 * Etsy API integration in `listing` (blocked on nice OAuth2 library :( )
 * Zoom in `notty_canvas`
 * sensible names or possibly subcommands
-* autorefresh in notty_canvas
 * ingestion of traditional pattern software files
 * more full-featured composition binaries
 
