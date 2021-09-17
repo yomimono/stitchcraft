@@ -10,11 +10,11 @@ let rotate_corners =
   Arg.(value & flag & info ["rotate"] ~docv:"ROTATE" ~doc)
 
 let top =
-  let doc = "top border image (oriented horizontally).  Will be flipped (not rotated) for the bottom border." in
+  let doc = "top border image (oriented horizontally).  Will be transposed (not rotated) for the bottom border." in
   Arg.(value & opt file "top.pattern" & info ["top"] ~docv:"TOP" ~doc)
 
 let side =
-  let doc = "left side border image.  Will be flipped (not rotated) for the right border." in
+  let doc = "left side border image.  Will be transposed (not rotated) for the right border." in
   Arg.(value & opt file "side.pattern" & info ["side"] ~docv:"LEFT" ~doc)
 
 let center =
