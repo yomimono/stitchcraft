@@ -1,6 +1,7 @@
 open Stitchy.Operations
 
 (* TODO: this definitely needs a better name *)
+(* this is the guilloche-style corner-plus repeating border *)
 let better_embellish ~corner ~top ~center =
   let horizontal_repetitions =
     let open Stitchy.Types in
@@ -88,14 +89,23 @@ let better_embellish ~corner ~top ~center =
   in
   List.fold_left (merge_patterns ~substrate) center_shifted (corners @ borders)
 
-let embellish ~rotate_corners ~center ~corner ~top ~side =
+(* this is the simpler, corners-and-repeating-motif kind of repeating border *)
+let embellish ~rotate_corners ~center ~corner ~top ~fencepost =
   let open Stitchy.Types in
   let open Stitchy.Operations in
+  let side = rotate_ccw top in
+  let fencepost_w, fencepost_h = match fencepost with
+    | None -> 0, 0
+    | Some fencepost ->
+      fencepost.substrate.max_x + 1, fencepost.substrate.max_y + 1
+  in
   let horiz_border_reps = Compose.border_repetitions
+      ~fencepost:fencepost_w
       ~center:(center.substrate.max_x + 1)
       ~side:(top.substrate.max_x + 1)
   in
   let vert_border_reps = Compose.border_repetitions
+      ~fencepost:fencepost_h
       ~center:(center.substrate.max_y + 1)
       ~side:(side.substrate.max_y + 1)
   in
@@ -103,8 +113,16 @@ let embellish ~rotate_corners ~center ~corner ~top ~side =
     if amount mod 2 == 0 then (amount / 2, amount / 2)
     else (amount / 2 + 1, amount / 2)
   in
-  let side_border = hrepeat side vert_border_reps in
-  let top_border = vrepeat top horiz_border_reps in
+  let side_border = match fencepost with
+    | None -> hrepeat side vert_border_reps
+    | Some fencepost ->
+      hcat (hrepeat (hcat (rotate_ccw fencepost) side) vert_border_reps) (rotate_ccw fencepost)
+  in
+  let top_border = match fencepost with
+    | None -> vrepeat top horiz_border_reps
+    | Some fencepost ->
+      vcat (vrepeat (vcat fencepost top) horiz_border_reps) fencepost
+  in
   (* upper-left, upper-right, lower-right, lower-left *)
   let ul, ur, lr, ll =
     match rotate_corners with
