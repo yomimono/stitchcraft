@@ -10,7 +10,7 @@ let rotate_corners =
   Arg.(value & flag & info ["rotate"] ~docv:"ROTATE" ~doc)
 
 let top =
-  let doc = "top border pattern (oriented horizontally).  Will be repeated as necessary to fill the space needed, and transposed (not rotated) for the bottom border." in
+  let doc = "top border pattern (oriented horizontally).  Will be repeated as necessary to fill the space needed, and rotated to form the left, bottom, and right borders." in
   Arg.(value & opt file "top.pattern" & info ["top"] ~docv:"TOP" ~doc)
 
 let fencepost =

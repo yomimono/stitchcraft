@@ -138,10 +138,10 @@ let embellish ~rotate_corners ~center ~corner ~top ~fencepost =
       let empty_corner_right = empty center.substrate (right_pad - 1) 1 in
       (side_border <|> empty_corner_left <|> center <|> empty_corner_right <|> side_border)
     end else
-      (side_border <|> center <|> side_border)
+      (side_border <|> center <|> (rotate_ccw @@ rotate_ccw side_border))
   in
   (ul <|> top_border <|> ur)
   <->
   center
   <->
-  (ll <|> top_border <|> lr)
+  (ll <|> rotate_ccw @@ rotate_ccw top_border <|> lr)
