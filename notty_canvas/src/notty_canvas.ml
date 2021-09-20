@@ -32,7 +32,7 @@ let disp input =
     let create_streams = function
       | false -> Lwt.return user_input_stream
       | true ->
-        Lwt_inotify.add_watch inotify input Inotify.([S_Modify;S_Create;S_Close_write]) >>= fun _watch ->
+        Lwt_inotify.add_watch inotify input Inotify.([S_Close_write]) >>= fun _watch ->
         let file_watch_stream = Lwt_stream.map
             (fun _ -> `Pattern)
             (Lwt_stream.from @@ 
