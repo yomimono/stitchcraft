@@ -28,5 +28,3 @@ let rect substrate thread x y w h : pattern =
   let stitches = List.fold_left (fun cs y -> add_row cs y xs) CoordinateSet.empty ys in
   let layer = {thread; stitches; stitch = Cross Full} in
   { substrate; layers = [layer]; backstitch_layers = []}
-
-
