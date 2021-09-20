@@ -137,6 +137,18 @@ let vcat_with_substrate substrate left right =
 let vcat left right =
   vcat_with_substrate left.substrate left right
 
+let hcat_all l =
+  match l with
+  | [] -> []
+  | p :: [] -> p
+  | p :: l -> List.fold_left Stitchy.Operations.hcat p l
+
+let vcat_all l =
+  match l with
+  | [] -> []
+  | p :: [] -> p
+  | p :: l -> List.fold_left Stitchy.Operations.vcat p l
+
 let rec vrepeat image = function
   | n when n <= 1 -> image
   | n -> vcat image (vrepeat image (n - 1))
