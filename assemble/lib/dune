@@ -1,4 +1,5 @@
 (library
+ (public_name stitchcraft.assemble)
  (name assemble)
  (libraries astring stitchy)
 )

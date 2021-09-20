@@ -1,4 +1,5 @@
 (library
  (name primitives)
+ (public_name stitchcraft.primitives)
  (libraries stitchy)
 )

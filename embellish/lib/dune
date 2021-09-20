@@ -1,4 +1,5 @@
 (library
+ (public_name stitchcraft.borders)
  (name borders)
  (libraries stitchy)
 )
