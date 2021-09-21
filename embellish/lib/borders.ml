@@ -94,10 +94,9 @@ let embellish ~rotate_corners ~center ~corner ~top ~fencepost =
   let open Stitchy.Types in
   let open Stitchy.Operations in
   let side = rotate_ccw top in
-  let fencepost_w, fencepost_h = match fencepost with
-    | None -> 0, 0
-    | Some fencepost ->
-      fencepost.substrate.max_x + 1, fencepost.substrate.max_y + 1
+  let fencepost_w = match fencepost with
+    | None -> 0
+    | Some fencepost -> fencepost.substrate.max_x + 1
   in
   let horiz_border_reps = Compose.border_repetitions
       ~fencepost:fencepost_w
@@ -105,9 +104,9 @@ let embellish ~rotate_corners ~center ~corner ~top ~fencepost =
       ~side:(top.substrate.max_x + 1)
   in
   let vert_border_reps = Compose.border_repetitions
-      ~fencepost:fencepost_h
+      ~fencepost:fencepost_w (* sic. we use fencepost_w here again because fencepost gets rotated *)
       ~center:(center.substrate.max_y + 1)
-      ~side:(side.substrate.max_y + 1)
+      ~side:(side.substrate.max_y + 1) (* side is already rotated, so use its max_y *)
   in
   let divide_space amount =
     if amount mod 2 == 0 then (amount / 2, amount / 2)
