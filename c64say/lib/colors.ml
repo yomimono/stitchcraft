@@ -85,4 +85,4 @@ let thread_of_color = function
   | Light_blue ->
         dmc_lookup "995" (* looks too dark on the card, but I think it's the right intensity *)
   | Light_gray ->
-      dmc_lookup "413" (* looks about right *)
+      dmc_lookup "415"
