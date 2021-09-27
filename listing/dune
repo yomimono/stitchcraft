@@ -6,7 +6,7 @@
 (rule (alias runtest)
       (deps test/test.pattern)
       (action (progn
-                (run listing -i test/test.pattern -o test.png)
+                (run listing -k -i test/test.pattern -o test.png)
                 (run xdg-open test.png)
                 ))
       )

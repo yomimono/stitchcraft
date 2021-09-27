@@ -8,6 +8,10 @@ let output =
   let doc = "png filename to output (note that - does NOT mean stdout)" in
   Cmdliner.Arg.(value & opt string "preview.png" & info ["o"; "output"] ~doc)
 
+let annotation =
+  let doc = "annotate with 'KIT!' instead of default 'PDF!'" in
+  Cmdliner.Arg.(value & flag & info ["k"; "kit"] ~doc)
+
 (* Etsy explicitly doesn't support transparency in PNGs,
    so when we first create this image, say we don't want an
    alpha channel set.  The background fill will be completely
@@ -71,7 +75,7 @@ let paint_layer image adjustment ({stitches; thread; _ } : layer) =
 let paint_backstitch_layer image adjustment ({stitches; thread; } : backstitch_layer) =
   SegmentSet.iter (fun stitch -> paint_line image adjustment thread stitch) stitches
 
-let go input output =
+let go input output is_kit =
   let open Rresult in
   Stitchy.Files.stdin_or_file input
   >>= pattern_of_yojson
@@ -94,18 +98,19 @@ let go input output =
       let bottom_edge = top_edge + substrate.max_y + 1 in
       `Horizontal (top_edge, bottom_edge)
   in
-  Annotate.add_pdf image ~orientation ~text_color ~matting_color:(contrast text_color);
+  let annotation = if is_kit then `Kit else `Pdf in
+  Annotate.add_pdf image ~annotation ~orientation ~text_color ~matting_color:(contrast text_color);
   List.iter (paint_layer image adjustment) layers;
   List.iter (paint_backstitch_layer image adjustment) backstitch_layers;
   let () = ImageLib_unix.writefile output image in
   Ok ()
 
-let reword input output =
-  Rresult.R.reword_error (fun str -> `Msg str) (go input output)
+let reword input output annotation =
+  Rresult.R.reword_error (fun str -> `Msg str) (go input output annotation)
 
 let info = Cmdliner.Term.info "listing"
 
-let go_t = Cmdliner.Term.(const reword $ input $ output)
+let go_t = Cmdliner.Term.(const reword $ input $ output $ annotation)
 
 let () =
   let result = Cmdliner.Term.term_result go_t in

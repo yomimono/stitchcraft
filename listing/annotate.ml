@@ -1,35 +1,67 @@
+(* both annotation options ("kit!" "pdf!") use glyphs
+ * of the same dimensions and have a '!', so share those aspects *)
+let bang = [
+    (1, 0);
+    (1, 1);
+    (1, 2);
+
+    (1, 4);
+  ]
+
 let glyph_width, glyph_height = (5, 7)
+module Pdf = struct
+  let p = [
+    (0, 0); (1, 0); (2, 0);
+    (0, 1);         (2, 1);
+    (0, 2); (1, 2); (2, 2);
+    (0, 3);
+    (0, 4);
+  ]
+  and d = [
+    (0, 0); (1, 0);
+    (0, 1);         (2, 1);
+    (0, 2);         (2, 2);
+    (0, 3);         (2, 3);
+    (0, 4); (1, 4);
+  ]
+  and f = [
+    (0, 0); (1, 0); (2, 0);
+    (0, 1);
+    (0, 2); (1, 2);
+    (0, 3);
+    (0, 4);
+  ]
+  let glyphs = [p; d; f; bang]
+end
 
-let p_glyph = [
-  (0, 0); (1, 0); (2, 0);
-  (0, 1);         (2, 1);
-  (0, 2); (1, 2); (2, 2);
-  (0, 3);
-  (0, 4);
-]
-and d_glyph = [
-  (0, 0); (1, 0);
-  (0, 1);         (2, 1);
-  (0, 2);         (2, 2);
-  (0, 3);         (2, 3);
-  (0, 4); (1, 4);
-]
-and f_glyph = [
-  (0, 0); (1, 0); (2, 0);
-  (0, 1);
-  (0, 2); (1, 2);
-  (0, 3);
-  (0, 4);
-]
-and bang = [
-  (1, 0);
-  (1, 1);
-  (1, 2);
+module Kit = struct
+  let k = [
+    (0, 0);         (2, 0);
+    (0, 1);         (2, 1);
+    (0, 2); (1, 2);
+    (0, 3);         (2, 3);
+    (0, 4);         (2, 4);
+  ]
+  and i = [
+            (1, 0);
+            (1, 1);
+            (1, 2);
+            (1, 3);
+            (1, 4);
+  ]
+  and t = [
+    (0, 0); (1, 0); (2, 0);
+            (1, 1);
+            (1, 2);
+            (1, 3);
+            (1, 4);
+  ]
+  let glyphs = [k; i; t; bang]
+end
 
-  (1, 4);
-]
-
-let glyphs = [p_glyph; d_glyph; f_glyph; bang]
+let glyphs_of_annotation = function
+  | `Kit -> Kit.glyphs
+  | `Pdf -> Pdf.glyphs
 
 (*  since "background" already means something else,
  *  reuse a term from framing for the extra stuff we're sticking
@@ -66,10 +98,11 @@ let write image glyphs orientation (r, g, b) ~start_x ~start_y =
         glyph
     ) glyphs
 
-let add_pdf image ~orientation ~text_color ~matting_color =
+let add_pdf image ~annotation ~orientation ~text_color ~matting_color =
   (* need 5 vertical pixels and 3 horizontal for each glyph *)
   (* this is *ludicrously* bad internationalization,
      but I'm assuming that .pdf is a global idea...? *)
+  let glyphs = glyphs_of_annotation annotation in
   let start_x, start_y = match orientation with
   | `Horizontal (top_edge, _) ->
     (* center the text horizontally *)
