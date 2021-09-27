@@ -1,4 +1,12 @@
 (executables
   (public_names listing)
   (libraries cmdliner rresult stitchy imagelib imagelib.unix)
-  )
+)
+
+(rule (alias runtest)
+      (deps test/test.pattern)
+      (action (progn
+                (run listing -i test/test.pattern -o test.png)
+                (run xdg-open test.png)
+                ))
+      )
