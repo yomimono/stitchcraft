@@ -33,8 +33,8 @@ let make_background ?(extra_width=0) ?(extra_height=0) substrate =
   Image.fill_rgb image r g b;
   image
 
-(* TODO: etsy accepts several aspect ratios as "optimal", not just 4:3;
- * we could probably do something more intelligent here *)
+(* we solve for four:three specifically because that's the ratio
+ * etsy expects thumbnails to be in *)
 let solve_for_four_to_three substrate =
   let open Annotate in
   let width = substrate.max_x + 1 and height = substrate.max_y + 1 in
@@ -54,7 +54,7 @@ let solve_for_four_to_three substrate =
     `Heighten (max (better_height - height) min_height)
   (* for cases that are already just about right, we still need to make sure
    * we have enough room to annotate them *)
-  else `Heighten (max (better_height - height) min_height)
+  else `Widen (max (better_width - width) min_width)
 
 let paint_pixel image adjustment thread (x, y) =
   let (r, g, b) = Stitchy.DMC.Thread.to_rgb thread in
