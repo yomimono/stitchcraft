@@ -78,7 +78,8 @@ let go input output =
   let text_color =
     (* TODO: reuse the contrast math we have for the pdf generator *)
     match substrate.background with
-    | 0, 0, 0 -> 255,255,255
+    | 0,0,0 -> 255,255,255
+    | 255,255,255 -> 0,0,0
     | color -> color
   in
   let orientation = match adjustment with
@@ -96,8 +97,7 @@ let go input output =
 let reword input output =
   Rresult.R.reword_error (fun str -> `Msg str) (go input output)
 
-let info = Cmdliner.Term.info
-    "generator of png preview images for cross-stitch patterns, suitable for use as listing images on Etsy"
+let info = Cmdliner.Term.info "listing"
 
 let go_t = Cmdliner.Term.(const reword $ input $ output)
 
