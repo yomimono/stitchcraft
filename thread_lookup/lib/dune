@@ -1,0 +1,5 @@
+(library
+  (name thread_lookup)
+  (public_name stitchcraft.thread_lookup)
+  (libraries stitchy)
+)

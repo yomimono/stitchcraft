@@ -70,9 +70,8 @@ let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread phrase
 let normalize phrase =
   Uunf_string.normalize_utf_8 `NFC phrase
 
-let stitch lookup textcolor background gridsize (phrase : string) interline =
+let stitch lookup thread background gridsize (phrase : string) interline =
   let phrase = normalize phrase in
-  let thread = Colors.thread_of_color textcolor in
   let (phrase, max_x, max_y) = render_phrase lookup thread phrase interline in
   let substrate = make_substrate ~max_x ~max_y background gridsize in
   {layers = [phrase]; substrate; backstitch_layers = []}
