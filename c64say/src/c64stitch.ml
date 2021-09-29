@@ -11,8 +11,10 @@ let output =
   Cmdliner.Arg.(value & opt string "-" & info ["o"; "output"] ~doc)
 
 let textcolor =
-  let doc = "color of text" in
-  Cmdliner.Arg.(value & opt (enum C64say.Colors.cmdliner_enum) C64say.Colors.Black & info ["t"; "textcolor"] ~doc)
+  let thread_conv = Cmdliner.Arg.conv Stitchy.DMC.Thread.(parse, pp) in
+  let default = List.hd Stitchy.DMC.Thread.basic in
+  let doc = "thread identifier for text" in
+  Cmdliner.Arg.(value & opt thread_conv default & info ["t"; "textcolor"] ~doc)
 
 let bgcolor =
   let doc = "color of background" in
