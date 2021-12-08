@@ -22,9 +22,10 @@ let spoo (fabric, metadata, palette, stitches, extras, knots, backstitches) =
   Format.eprintf "got %d backstitches\n%!" @@ List.length backstitches;
   ()
 
-let read_one verbose input =
+let read_one verbose filename =
   let open Lwt.Infix in
-  Lwt_io.open_file ~mode:Input input >>= fun input ->
+  Lwt_io.open_file ~mode:Input filename >>= fun input ->
+  if verbose then Format.eprintf "beginning parse for file %s\n%!" filename;
   Angstrom_lwt_unix.parse Patreader.file input >>= fun (_, result) ->
   match result with
   | Error e -> Lwt.return @@ Error (`Msg e)
