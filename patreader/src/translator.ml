@@ -41,7 +41,10 @@ let layers_of_cross_stitches threads stitches =
       match acc, color_index with 
       | Error s, _ -> Error s
       (* color 0xff has a special meaning -- no stitch *)
-      | Ok acc, 255 -> Ok acc
+      (* color indices are *supposed* to be 1-indexed, but I keep running into
+       * stuff that's like "hey here is color index 0", what the crap.
+       * so let's also treat that as "no stitch" *)
+      | Ok acc, 255 | Ok acc, 0 -> Ok acc
       | Ok acc, color_index ->
         match (List.nth threads (color_index - 1)) with
         | None -> Error (`Msg "unknown thread")
