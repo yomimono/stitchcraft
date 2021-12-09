@@ -119,7 +119,10 @@ let stitches_at pattern coordinate =
 let submap ~x_off ~y_off ~width ~height layers =
   let only_stitches_in_submap (layer : layer) =
     let stitches =
-      CoordinateSet.filter (fun (x, y)-> x < x_off + width && y < y_off + height) layer.stitches
+      CoordinateSet.filter (fun (x, y) -> (x >= x_off &&
+                                           x < (x_off + width) &&
+                                           y >= y_off &&
+                                           y < y_off + height)) layer.stitches
     in
     {layer with stitches = stitches}
   in
