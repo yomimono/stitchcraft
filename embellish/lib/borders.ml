@@ -122,6 +122,10 @@ let embellish ~rotate_corners ~center ~corner ~top ~fencepost =
     | Some fencepost ->
       vcat (vrepeat (vcat fencepost top) horiz_border_reps) fencepost
   in
+  let left, right = match rotate_corners with
+    | false -> side_border, side_border
+    | true -> side_border, rotate_ccw @@ rotate_ccw side_border
+  in
   (* upper-left, upper-right, lower-right, lower-left *)
   let ul, ur, lr, ll =
     match rotate_corners with
@@ -135,9 +139,9 @@ let embellish ~rotate_corners ~center ~corner ~top ~fencepost =
       let left_pad, right_pad = divide_space x_difference in
       let empty_corner_left = empty center.substrate (left_pad - 1) 1 in
       let empty_corner_right = empty center.substrate (right_pad - 1) 1 in
-      (side_border <|> empty_corner_left <|> center <|> empty_corner_right <|> side_border)
+      (left <|> empty_corner_left <|> center <|> empty_corner_right <|> right)
     end else
-      (side_border <|> center <|> (rotate_ccw @@ rotate_ccw side_border))
+      (left <|> center <|> right)
   in
   (ul <|> top_border <|> ur)
   <->
