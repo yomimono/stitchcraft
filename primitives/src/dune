@@ -1,5 +1,5 @@
 (executables
- (public_names empty piece rect)
+ (public_names empty piece rect rotate)
  (libraries cmdliner primitives stitchy yojson)
 )
 
