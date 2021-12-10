@@ -95,7 +95,8 @@ let to_stitches (_fabric, _metadata, palette, stitches, backstitches) =
    * so it's worth doing that mapping once for the pattern and then
    * referring to it later. *)
   let threads = List.map match_thread palette in
-  layers_of_cross_stitches threads stitches >>= fun stitch_layers ->
+  layers_of_cross_stitches threads stitches >>= fun l ->
+  let stitches = List.fold_left (fun new_list layer -> Stitchy.Layers.merge_threads new_list [layer]) [] l in
   backstitch_layers_of_backstitches threads backstitches >>= fun backstitch_layers ->
-  Ok (stitch_layers, backstitch_layers)
+  Ok (stitches , backstitch_layers)
 
