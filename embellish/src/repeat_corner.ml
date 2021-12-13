@@ -68,21 +68,25 @@ open Cmdliner
 let corner =
   let doc = "Corner border image (oriented to upper-left corner). \
             This image will be rotated and repeated for each corner." in
-  Arg.(value & opt file "corner.json" & info ["corner"] ~docv:"CORNER" ~doc)
+  Arg.(value & opt file "corner.pattern" & info ["corner"] ~docv:"CORNER" ~doc)
 
 let border =
   let doc = "border image (oriented as it will appear on top border). \
     This image will be rotated and repeated as necessary to construct a
     full border around the center image, linking the rotated corner images." in
-  Arg.(value & opt file "border.json" & info ["border"] ~docv:"BORDER" ~doc)
+  Arg.(value & opt file "border.pattern" & info ["border"] ~docv:"BORDER" ~doc)
 
 let center =
   let doc = "Center image.  Corner and side will be inserted to surround this image." in
-  Arg.(value & opt file "center.json" & info ["center"] ~docv:"CENTER" ~doc)
+  Arg.(value & opt file "center.pattern" & info ["center"] ~docv:"CENTER" ~doc)
 
 let output =
   let doc = "Where to output the finished, embellished image. -, the default, is stdout." in
   Arg.(value & opt string "-" & info ["o"; "output"] ~docv:"OUTPUT" ~doc)
+
+let fill =
+  let doc = "a fill for any space generated to make borders fit properly. If none desired, try `empty 1 1`" in
+  Arg.(value & opt file "fill.pattern" & info ["fill"] ~docv:"FILL" ~doc)
 
 let info =
   let doc = "embellish an image with corner and border images" in
@@ -92,26 +96,27 @@ let spoo output json =
   if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
   else Yojson.Safe.to_file output json
 
-let go corner border center output =
-  let (corner, border, center) = try
-      Yojson.Safe.(from_file corner, from_file border, from_file center)
+let go corner border center fill output =
+  let (corner, border, center, fill) = try
+      Yojson.Safe.(from_file corner, from_file border, from_file center, from_file fill)
     with
     | _ -> failwith "couldn't read an input file"
   in
   match Stitchy.Types.(pattern_of_yojson corner,
                        pattern_of_yojson border,
-                       pattern_of_yojson center) with
-  | Ok corner, Ok top, Ok center -> begin
+                       pattern_of_yojson center,
+                       pattern_of_yojson fill) with
+  | Ok corner, Ok top, Ok center, Ok fill -> begin
     match Stitchy.Types.(corner.substrate.max_y, top.substrate.max_y) with
     | a, b when compare a b <> 0 ->
       failwith (Printf.sprintf "Corner and border images must have the height")
     | _, _ ->
-      Borders.better_embellish ~center ~corner ~top
+      Borders.better_embellish ~fill ~center ~corner ~top
       |> Stitchy.Types.pattern_to_yojson
       |> spoo output
     end
-  | _, _, _ -> failwith (Printf.sprintf "failed to parse input json")
+  | _ -> failwith (Printf.sprintf "failed to parse input json")
 
-let compose_t = Term.(const go $ corner $ border $ center $ output)
+let compose_t = Term.(const go $ corner $ border $ center $ fill $ output)
 
 let () = Term.exit @@ Term.eval (compose_t, info)

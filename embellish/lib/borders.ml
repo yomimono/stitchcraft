@@ -1,8 +1,62 @@
 open Stitchy.Operations
 
+type dimensions = {
+  x_off : int;
+  y_off : int;
+  width : int;
+  height : int;
+}
+
+let pp fmt {x_off; y_off; width; height} =
+  Format.fprintf fmt "%d x %d starting at %d , %d" width height x_off y_off
+
+let within ~x ~y {x_off; y_off; width; height} =
+  x_off <= x && x < (x_off + width) &&
+  y_off <= y && y < (y_off + height)
+
+
+(** [tile pattern ~dimensions ~mask_dimensions] fills an area of `dimensions` size with
+ * tiling repetitions of `pattern`, except for any dimensions in `mask_dimensions`,
+ * which are left unfilled but do not interrupt the tiling. *)
+let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
+  let open Stitchy.Types in
+  Stdlib.Format.eprintf "filling %a, masking off %a" pp dimensions (Fmt.list pp) mask_dimensions;
+  let row pattern ~(dimensions : dimensions) =
+    let vrepetitions =
+      if dimensions.width mod (pattern.substrate.max_x + 1) = 0 then
+        dimensions.width / (pattern.substrate.max_x + 1)
+      else dimensions.width / (pattern.substrate.max_x + 1) + 1
+    in
+    let r = Stitchy.Operations.vrepeat pattern vrepetitions in
+    {r with substrate = {r.substrate with max_x = dimensions.width - 1}}
+  in
+  let hrepetitions =
+    if dimensions.height mod (pattern.substrate.max_y + 1) = 0 then
+      dimensions.height / (pattern.substrate.max_y + 1)
+    else dimensions.height / (pattern.substrate.max_y + 1) + 1
+  in
+  let r = Stitchy.Operations.hrepeat (row pattern ~dimensions) hrepetitions in
+  let unmasked = {r with substrate = {r.substrate with max_y = dimensions.height - 1}} in
+  let shifted = displace_pattern (RightAndDown (dimensions.x_off, dimensions.y_off)) unmasked in
+  let masks : CoordinateSet.t =
+    List.fold_left
+      (fun so_far (mask : dimensions) ->
+         let xs = List.init mask.width (fun n -> n + mask.x_off) in
+         let ys = List.init mask.height (fun n -> n + mask.y_off) in
+         List.fold_left (fun cs x ->
+             List.fold_left (fun cs y ->
+                 CoordinateSet.add (x, y) cs
+               ) cs ys)
+           so_far xs) CoordinateSet.empty mask_dimensions
+  in
+  {shifted with layers =
+           List.map (fun (layer : layer) -> {layer with stitches = CoordinateSet.diff layer.stitches masks})
+             shifted.layers
+  }
+
 (* TODO: this definitely needs a better name *)
 (* this is the guilloche-style corner-plus repeating border *)
-let better_embellish ~corner ~top ~center =
+let better_embellish ~fill ~corner ~top ~center =
   let horizontal_repetitions =
     let open Stitchy.Types in
     let x_to_fill =
@@ -54,7 +108,7 @@ let better_embellish ~corner ~top ~center =
     (* upper left is just what we were passed *)
     corner;
     (* upper right is upper left rotated clockwise 90 degrees,
-     * then shoved over to the right edge *)
+  r  * then shoved over to the right edge *)
     rotate_ccw @@ rotate_ccw @@ rotate_ccw corner |>
     displace_pattern (Right (corner_long_side + top_border_width));
     (* lower right is upper left rotated 180 degrees,
@@ -77,17 +131,22 @@ let better_embellish ~corner ~top ~center =
                             corner.substrate.max_x + 1 +
                             corner.substrate.max_y;
                   } in
-  let center_shifted =
+  let left_padding, top_padding = 
     (* the center will be smaller than the borders,
      * so not only does it need to move down and to the right
      * to avoid the borders, it also needs to (potentially)
      * move down and to the right to center itself within them. *)
-    let left_padding = (substrate.max_x - center.substrate.max_x) / 2
-    and top_padding = (substrate.max_y - center.substrate.max_y) / 2
-    in
-    displace_pattern (RightAndDown (left_padding, top_padding)) center
+    ((substrate.max_x - center.substrate.max_x) / 2),
+    ((substrate.max_y - center.substrate.max_y) / 2)
   in
-  List.fold_left (merge_patterns ~substrate) center_shifted (corners @ borders)
+  let center_shifted = displace_pattern (RightAndDown (left_padding, top_padding)) center in
+  let center_mask = {x_off = left_padding; y_off = top_padding; width = center.substrate.max_x + 1; height = center.substrate.max_y + 1 } in
+  let (center_dimensions : dimensions) = {x_off = top_border.substrate.max_y + 1;
+                                          y_off = (left_border.substrate.max_x + 1);
+                                          width = center_shifted.substrate.max_x + 1;
+                                          height = center_shifted.substrate.max_y + 1} in
+  let center_fill = tile fill ~dimensions:center_dimensions ~mask_dimensions:[center_mask] in
+  List.fold_left (merge_patterns ~substrate) center_shifted (center_fill :: corners @ borders)
 
 (* this is the simpler, corners-and-repeating-motif kind of repeating border *)
 let embellish ~rotate_corners ~center ~corner ~top ~fencepost =
