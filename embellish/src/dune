@@ -20,12 +20,23 @@
 
 (data_only_dirs test)
 
+(rule (target fill.pattern)
+      (action
+        (progn
+ (with-stdout-to dot.pattern (run rect -t 310 1 1))
+ (with-stdout-to empty.pattern (run empty 1 1))
+ (run vcat -o top.pattern dot.pattern empty.pattern)
+ (run vcat -o bottom.pattern empty.pattern dot.pattern)
+ (run hcat -o fill.pattern top.pattern bottom.pattern)
+ )
+        ))
+
 (rule (alias runtest)
- (deps (glob_files test/*))
+ (deps fill.pattern (glob_files test/*))
  (action
   (progn
-   (run repeat_corner -o repeated_corners.json --border test/border.json --center test/center.json --corner test/corner.json)
-   (run stitchpattern -w "TEST IMAGE from https://github.com/yomimono/stitchcraft" -o repeated_corners.pdf -i repeated_corners.json)
+   (run repeat_corner -o repeated_corners.pattern --border test/border.pattern --center test/repeat_center.pattern --corner test/corner.pattern --fill fill.pattern)
+   (run stitchpattern -w "TEST IMAGE from https://github.com/yomimono/stitchcraft" -o repeated_corners.pdf -i repeated_corners.pattern)
    (run xdg-open repeated_corners.pdf)
    (run embellish_stitch --fencepost=test/fencepost.pattern --corner=test/top.pattern --top=test/top.pattern --center=test/center.pattern -o fencepost.pattern)
    (run stitchpattern -w "TEST IMAGE from https://github.com/yomimono/stitchcraft" -o fencepost.pdf -i fencepost.pattern)
