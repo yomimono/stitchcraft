@@ -20,7 +20,6 @@ let within ~x ~y {x_off; y_off; width; height} =
  * which are left unfilled but do not interrupt the tiling. *)
 let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
   let open Stitchy.Types in
-  Stdlib.Format.eprintf "filling %a, masking off %a" pp dimensions (Fmt.list pp) mask_dimensions;
   let row pattern ~(dimensions : dimensions) =
     let vrepetitions =
       if dimensions.width mod (pattern.substrate.max_x + 1) = 0 then
@@ -28,7 +27,7 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
       else dimensions.width / (pattern.substrate.max_x + 1) + 1
     in
     let r = Stitchy.Operations.vrepeat pattern vrepetitions in
-    {r with substrate = {r.substrate with max_x = dimensions.width - 1}}
+    {r with substrate = {r.substrate with max_x = (dimensions.width - 1)}}
   in
   let hrepetitions =
     if dimensions.height mod (pattern.substrate.max_y + 1) = 0 then
@@ -49,8 +48,15 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
                ) cs ys)
            so_far xs) CoordinateSet.empty mask_dimensions
   in
+  let max_x = dimensions.width + dimensions.x_off - 1
+  and max_y = dimensions.height + dimensions.y_off - 1
+  in
   {shifted with layers =
-           List.map (fun (layer : layer) -> {layer with stitches = CoordinateSet.diff layer.stitches masks})
+           List.map (fun (layer : layer) ->
+                      let stitches = CoordinateSet.(diff layer.stitches masks |>
+                                     filter (fun (x, y) -> x <= max_x && y <= max_y))
+                      in
+                      {layer with stitches;})
              shifted.layers
   }
 
@@ -140,12 +146,18 @@ let better_embellish ~fill ~corner ~top ~center =
     ((substrate.max_y - center.substrate.max_y) / 2)
   in
   let center_shifted = displace_pattern (RightAndDown (left_padding, top_padding)) center in
-  let center_mask = {x_off = left_padding; y_off = top_padding; width = center.substrate.max_x + 1; height = center.substrate.max_y + 1 } in
+  let mask_off_center : dimensions =
+    {x_off = left_padding;
+     y_off = top_padding;
+     width = center.substrate.max_x + 1;
+     height = center.substrate.max_y + 1 }
+  in
   let (center_dimensions : dimensions) = {x_off = top_border.substrate.max_y + 1;
-                                          y_off = (left_border.substrate.max_x + 1);
-                                          width = center_shifted.substrate.max_x + 1;
-                                          height = center_shifted.substrate.max_y + 1} in
-  let center_fill = tile fill ~dimensions:center_dimensions ~mask_dimensions:[center_mask] in
+                                          y_off = left_border.substrate.max_x + 1;
+                                          width = substrate.max_x - (left_border.substrate.max_x * 2) - 1;
+                                          height = substrate.max_y - (top_border.substrate.max_y * 2) - 1;
+                                         } in
+  let center_fill = tile fill ~dimensions:center_dimensions ~mask_dimensions:[mask_off_center] in
   List.fold_left (merge_patterns ~substrate) center_shifted (center_fill :: corners @ borders)
 
 (* this is the simpler, corners-and-repeating-motif kind of repeating border *)
