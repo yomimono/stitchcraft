@@ -352,11 +352,13 @@ let add_pdfops_to_pagemap map (page_row, page_column, pdfops) =
   | None -> PageMap.add (page_row, page_column) (pdfops::[]) map
   | Some l -> PageMap.add (page_row, page_column) (pdfops::l) map
 
-let add_layer_to_pagemap map ~doc ~font_size (layer : Stitchy.Types.layer) =
+let add_layer_to_pagemap map ~max_x ~max_y ~doc ~font_size (layer : Stitchy.Types.layer) =
   let open Stitchy.Types in
   CoordinateSet.fold (fun (x, y) acc ->
-      let page_x, page_y, pdfops = pdfops_of_stitch ~doc ~font_size ~layer (x, y) in
-      add_pdfops_to_pagemap acc (page_x, page_y, pdfops)
+      if x <= max_x && y <= max_y then begin
+        let page_x, page_y, pdfops = pdfops_of_stitch ~doc ~font_size ~layer (x, y) in
+        add_pdfops_to_pagemap acc (page_x, page_y, pdfops)
+      end else acc
     ) layer.stitches map
 
 let add_backstitch_layer_to_pagemap map ~doc (backstitch_layer : Stitchy.Types.backstitch_layer) =
@@ -367,7 +369,10 @@ let add_backstitch_layer_to_pagemap map ~doc (backstitch_layer : Stitchy.Types.b
     ) backstitch_layer.stitches map
 
 let populate_pagemap ~doc ~font_size pattern =
-  let map = List.fold_left (fun map layer -> add_layer_to_pagemap map ~doc ~font_size layer)
+  let max_x = pattern.Stitchy.Types.substrate.max_x
+  and max_y = pattern.Stitchy.Types.substrate.max_y
+  in
+  let map = List.fold_left (fun map layer -> add_layer_to_pagemap map ~max_x ~max_y ~doc ~font_size layer)
     PageMap.empty pattern.Stitchy.Types.layers in
   List.fold_left (fun map backstitch_layer -> add_backstitch_layer_to_pagemap map ~doc backstitch_layer)
     map pattern.Stitchy.Types.backstitch_layers
