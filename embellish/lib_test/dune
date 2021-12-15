@@ -1,0 +1,8 @@
+(executable
+  (name test_borders)
+  (libraries alcotest borders primitives stitchy)
+)
+
+(rule (alias runtest)
+      (action (run %{exe:test_borders.exe}))
+      )
