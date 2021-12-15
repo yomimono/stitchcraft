@@ -14,6 +14,14 @@ let within ~x ~y {x_off; y_off; width; height} =
   x_off <= x && x < (x_off + width) &&
   y_off <= y && y < (y_off + height)
 
+let max3 a b c : int = max (max a b) (max b c)
+
+let border_repetitions ~fencepost ~center ~side =
+  match center mod (side + fencepost) with
+  (* since we need to insert another fencepost anyway, leftovers <= the size of the last fencepost are nothing to worry about *)
+  | w when w <= fencepost -> center / (side + fencepost)
+  | _ -> (* too much space left over; add another repetition *)
+    center / (side + fencepost) + 1
 
 (** [tile pattern ~dimensions ~mask_dimensions] fills an area of `dimensions` size with
  * tiling repetitions of `pattern`, except for any dimensions in `mask_dimensions`,
@@ -186,11 +194,11 @@ let embellish ~min_width ~rotate_corners ~center ~corner ~top ~fencepost =
     | Some fencepost -> fencepost.substrate.max_x + 1
   in
   let center_width = max min_width (center.substrate.max_x + 1) in
-  let horiz_border_reps = Compose.border_repetitions ~center:center_width
+  let horiz_border_reps = border_repetitions ~center:center_width
       ~fencepost:fencepost_w
       ~side:(top.substrate.max_x + 1)
   in
-  let vert_border_reps = Compose.border_repetitions
+  let vert_border_reps = border_repetitions
       ~fencepost:fencepost_w (* sic. we use fencepost_w here again because fencepost gets rotated *)
       ~center:(center.substrate.max_y + 1)
       ~side:(side.substrate.max_y + 1) (* side is already rotated, so use its max_y *)
