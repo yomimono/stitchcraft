@@ -85,8 +85,8 @@ let better_embellish ~fill ~corner ~top ~center =
       center.substrate.max_x + 2 * corner.substrate.max_y
       - corner.substrate.max_x
     in
-    x_to_fill / (top.substrate.max_x + 1) +
-    (if x_to_fill mod (top.substrate.max_x + 1) <> 0 then 1 else 0)
+    x_to_fill / top.substrate.max_x +
+    (if x_to_fill mod top.substrate.max_x <> 0 then 1 else 0)
   and vertical_repetitions =
     let open Stitchy.Types in
     let y_to_fill =
@@ -95,8 +95,8 @@ let better_embellish ~fill ~corner ~top ~center =
     in
     (* we still use top.substrate.max_x here, because we'll
      * be rotating the top pattern 90 degrees to use it on the sides *)
-    y_to_fill / (top.substrate.max_x + 1) +
-    (if y_to_fill mod (top.substrate.max_y + 1) <> 0 then 1 else 0)
+    y_to_fill / top.substrate.max_x +
+    (if y_to_fill mod top.substrate.max_y <> 0 then 1 else 0)
   in
   let top_border = vrepeat top horizontal_repetitions
   and left_border = hrepeat (rotate_ccw top) vertical_repetitions
