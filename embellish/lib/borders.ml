@@ -20,6 +20,15 @@ let within ~x ~y {x_off; y_off; width; height} =
  * which are left unfilled but do not interrupt the tiling. *)
 let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
   let open Stitchy.Types in
+  let backstitch_in segment mask_dimensions =
+    let masked (src, dst) mask =
+      (mask.x_off <= (fst src) && (fst src) < mask.x_off + mask.width &&
+      mask.y_off <= (snd src) && (snd src) < mask.y_off + mask.height) ||
+      (mask.x_off <= (fst dst) && (fst dst) < mask.x_off + mask.width &&
+      mask.y_off <= (snd dst) && (snd dst) < mask.y_off + mask.height)
+    in
+    List.exists (masked segment) mask_dimensions
+  in
   let row pattern ~(dimensions : dimensions) =
     let vrepetitions =
       if dimensions.width mod (pattern.substrate.max_x + 1) = 0 then
@@ -37,7 +46,7 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
   let r = Stitchy.Operations.hrepeat (row pattern ~dimensions) hrepetitions in
   let unmasked = {r with substrate = {r.substrate with max_y = dimensions.height - 1}} in
   let shifted = displace_pattern (RightAndDown (dimensions.x_off, dimensions.y_off)) unmasked in
-  let masks : CoordinateSet.t =
+  let stitch_masks : CoordinateSet.t =
     List.fold_left
       (fun so_far (mask : dimensions) ->
          let xs = List.init mask.width (fun n -> n + mask.x_off) in
@@ -51,13 +60,20 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
   let max_x = dimensions.width + dimensions.x_off - 1
   and max_y = dimensions.height + dimensions.y_off - 1
   in
-  {shifted with layers =
-           List.map (fun (layer : layer) ->
-                      let stitches = CoordinateSet.(diff layer.stitches masks |>
-                                     filter (fun (x, y) -> x <= max_x && y <= max_y))
-                      in
-                      {layer with stitches;})
-             shifted.layers
+  let mask_layer (layer : layer) =
+    let stitches = CoordinateSet.(diff layer.stitches stitch_masks |>
+                                  filter (fun (x, y) -> x <= max_x && y <= max_y))
+    in
+    {layer with stitches;}
+  in
+  let mask_backstitch_layer (backstitch_layer : backstitch_layer) =
+    let backstitches = SegmentSet.filter
+        (fun segment -> not @@ backstitch_in segment mask_dimensions)
+        backstitch_layer.stitches in
+    {backstitch_layer with stitches = backstitches}
+  in
+  {shifted with layers = List.map mask_layer shifted.layers;
+                backstitch_layers = List.map mask_backstitch_layer shifted.backstitch_layers;
   }
 
 (* TODO: this definitely needs a better name *)
