@@ -177,7 +177,7 @@ let better_embellish ~fill ~corner ~top ~center =
   List.fold_left (merge_patterns ~substrate) center_shifted (center_fill :: corners @ borders)
 
 (* this is the simpler, corners-and-repeating-motif kind of repeating border *)
-let embellish ~rotate_corners ~center ~corner ~top ~fencepost =
+let embellish ~min_width ~rotate_corners ~center ~corner ~top ~fencepost =
   let open Stitchy.Types in
   let open Stitchy.Operations in
   let side = rotate_ccw top in
@@ -185,9 +185,9 @@ let embellish ~rotate_corners ~center ~corner ~top ~fencepost =
     | None -> 0
     | Some fencepost -> fencepost.substrate.max_x + 1
   in
-  let horiz_border_reps = Compose.border_repetitions
+  let center_width = max min_width (center.substrate.max_x + 1) in
+  let horiz_border_reps = Compose.border_repetitions ~center:center_width
       ~fencepost:fencepost_w
-      ~center:(center.substrate.max_x + 1)
       ~side:(top.substrate.max_x + 1)
   in
   let vert_border_reps = Compose.border_repetitions

@@ -21,6 +21,10 @@ let center =
   let doc = "Center pattern.  Corner and side will be inserted to surround this image." in
   Arg.(value & opt file "center.pattern" & info ["center"] ~docv:"CENTER" ~doc)
 
+let min_width =
+  let doc = "minimum width for the final pattern" in
+  Arg.(value & opt int 1 & info ["min_width"] ~docv:"MIN_WIDTH" ~doc)
+
 let output =
   let doc = "Where to output the finished, embellished pattern. -, the default, is stdout." in
   Arg.(value & opt string "-" & info ["o"; "output"] ~docv:"OUTPUT" ~doc)
@@ -33,7 +37,7 @@ let spoo output json =
   if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
   else Yojson.Safe.to_file output json
 
-let go fencepost rotate_corners corner top center output =
+let go fencepost rotate_corners corner top center min_width output =
   let (corner, top, center) = try
       Yojson.Safe.(from_file corner, from_file top, from_file center)
     with
@@ -53,11 +57,11 @@ let go fencepost rotate_corners corner top center output =
                        pattern_of_yojson top,
                        pattern_of_yojson center) with
   | Ok fencepost, Ok corner, Ok top, Ok center ->
-    Borders.embellish ~fencepost ~rotate_corners ~center ~corner ~top
+    Borders.embellish ~min_width ~fencepost ~rotate_corners ~center ~corner ~top
     |> Stitchy.Types.pattern_to_yojson
     |> spoo output
   | _, _, _, _ -> failwith (Printf.sprintf "failed to parse input json")
 
-let compose_t = Term.(const go $ fencepost $ rotate_corners $ corner $ top $ center $ output)
+let compose_t = Term.(const go $ fencepost $ rotate_corners $ corner $ top $ center $ min_width $ output)
 
 let () = Term.exit @@ Term.eval (compose_t, info)
