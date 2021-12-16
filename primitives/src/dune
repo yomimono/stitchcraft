@@ -6,7 +6,7 @@
 (rule
  (alias runtest)
  (action (progn
-  (with-stdout-to backstitch.pattern (run %{exe:backstitch.exe} 0 0 0 1))
+  (with-stdout-to backstitch.pattern (run %{exe:backstitch.exe} "0,0/1,1"))
   (with-stdout-to empty.pattern (run %{exe:empty.exe} 61 64))
   (with-stdout-to vertical_line.pattern (run %{exe:rect.exe} 1 66))
   (with-stdout-to horizontal_line.pattern (run %{exe:rect.exe} 61 1))
