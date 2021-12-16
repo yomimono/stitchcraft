@@ -5,6 +5,21 @@ let pp_stitches fmt cs =
   let pp_list = Fmt.(list @@ pair ~sep:(Fmt.nop) int int) in
   pp_list fmt (Stitchy.Types.CoordinateSet.elements cs)
 
+let pixel thread = Stitchy.Types.({
+    substrate = {
+      max_x = 0;
+      max_y = 0;
+      background = (0, 0, 0);
+      grid = Fourteen;
+    };
+    layers = [{
+        thread;
+        stitch = Cross Full;
+        stitches = CoordinateSet.of_list [(0, 0)];
+      }];
+    backstitch_layers = [];
+  })
+
 let close_borders () =
   (* if the side border is side 1 and there are no fenceposts,
    * the number of border repetitions should always be equal to the center *)
@@ -89,9 +104,21 @@ let masked_tile () =
   ()
 
 let better_embellish_dimensions () =
-  let pixel = Stitchy.Types.({
+  let corner = pixel (List.hd Stitchy.DMC.Thread.basic) in
+  let center = {corner with layers = []} in
+  let pattern = Borders.better_embellish ~fill:pattern ~corner ~top:corner ~center in
+  let expected_stitches = Stitchy.Types.CoordinateSet.of_list [
+      (0, 0); (1, 0); (2, 0);
+      (0, 1);         (2, 1);
+      (0, 2); (1, 2); (2, 2);
+  ] in
+  Alcotest.(check (testable pp_stitches Stitchy.Types.CoordinateSet.equal)) "better_embellish correctly handles tiny patterns" expected_stitches (List.hd pattern.layers).stitches;
+  ()
+
+let better_embellish_no_top () =
+  let long_corner = Stitchy.Types.({
       substrate = {
-        max_x = 0;
+        max_x = 2;
         max_y = 0;
         background = (0, 0, 0);
         grid = Fourteen;
@@ -99,14 +126,17 @@ let better_embellish_dimensions () =
       layers = [{
           thread = List.hd Stitchy.DMC.Thread.basic;
           stitch = Cross Full;
-          stitches = CoordinateSet.of_list [(0, 0)];
+          stitches = CoordinateSet.of_list [(1, 0)];
         }];
       backstitch_layers = [];
-    }) in
-  let center = {pixel with layers = []} in
-  let pattern = Borders.better_embellish ~fill:pattern ~corner:pixel ~top:pixel ~center in
-  Alcotest.(check int) "better_embellish doesn't make huge borders" 3 pattern.substrate.max_x;
-  Alcotest.(check int) "better_embellish doesn't make huge borders" 3 pattern.substrate.max_y;
+    })
+  in
+  let top = pixel (List.hd Stitchy.DMC.Thread.basic) in
+  let center = {top with layers = []} in
+  let pattern = Borders.better_embellish ~fill:center ~corner:long_corner ~center ~top in
+  let expected_stitches = Stitchy.Types.CoordinateSet.of_list [ (1, 0); (3, 1); (0, 2); (2, 3) ] in
+  Alcotest.(check (testable pp_stitches Stitchy.Types.CoordinateSet.equal)) "better_embellish correctly handles tiny patterns" expected_stitches (List.hd pattern.layers).stitches;
+
   ()
 
 let () = Alcotest.(run "borders" @@ [
@@ -124,6 +154,7 @@ let () = Alcotest.(run "borders" @@ [
       ]);
     ("better_embellish", [
         ("dimensions", `Quick, better_embellish_dimensions);
+        ("no top repetitions", `Quick, better_embellish_no_top);
       ]);
 
   ])

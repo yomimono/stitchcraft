@@ -137,6 +137,7 @@ let vcat_with_substrate substrate left right =
 let vcat left right =
   vcat_with_substrate left.substrate left right
 
+(* n.b. - calling vrepeat/hrepeat with `0` does not result in an empty pattern *)
 let rec vrepeat image = function
   | n when n <= 1 -> image
   | n -> vcat image (vrepeat image (n - 1))
