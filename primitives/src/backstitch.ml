@@ -1,18 +1,10 @@
-let src_x =
-  let doc = "backstitch source x coordinate" in
-  Cmdliner.Arg.(value & pos 0 int 0 & info [] ~doc ~docv:"SRC_X")
+let segment =
+  let point = Cmdliner.Arg.(pair int int) in
+  Cmdliner.Arg.(pair ~sep:'/' point point)
 
-let src_y =
-  let doc = "backstitch source y coordinate" in
-  Cmdliner.Arg.(value & pos 1 int 0 & info [] ~doc ~docv:"SRC_Y")
-
-let dst_x =
-  let doc = "backstitch destination x coordinate" in
-  Cmdliner.Arg.(value & pos 2 int 0 & info [] ~doc ~docv:"DST_X")
-
-let dst_y =
-  let doc = "backstitch destination y coordinate" in
-  Cmdliner.Arg.(value & pos 3 int 0 & info [] ~doc ~docv:"DST_Y")
+let segments =
+  let doc = "list of backstitches as pairs of sources and destinations on the line grid" in
+  Cmdliner.Arg.(value & pos_all segment [] & info [] ~doc ~docv:"SEGMENTS")
 
 let thread =
   let thread_conv = Cmdliner.Arg.conv Stitchy.DMC.Thread.(parse, pp) in
@@ -34,18 +26,24 @@ let gridsize =
   let doc = "size of aida cloth grid" in
   Cmdliner.Arg.(value & opt (enum grid_converter) Stitchy.Types.Fourteen & info ["g"; "gridsize"] ~doc)
 
-let bs background grid thread src_x src_y dst_x dst_y =
+let bs background grid thread l =
   let open Stitchy.Types in
+  let max_x, max_y = List.fold_left (fun (max_x, max_y) ((src_x, src_y), (dst_x, dst_y))->
+      let new_max_x = max max_x @@ (max src_x dst_x) - 1
+      and new_max_y = max max_y @@ (max src_y dst_y) - 1
+      in
+      (new_max_x, new_max_y)
+    ) (0, 0) l
+  in
   let substrate = {
     background;
     grid;
-    max_x = max 0 @@ (max src_x dst_x) - 1;
-    max_y = max 0 @@ (max src_y dst_y) - 1;
+    max_x;
+    max_y;
   } in
-  let segment : segment = (src_x, src_y), (dst_x, dst_y) in
   let backstitch_layers = [{
       thread;
-      stitches = SegmentSet.singleton segment;
+      stitches = SegmentSet.of_list l;
     }] in
   let pattern = {substrate; backstitch_layers; layers = []} in
   Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_channel stdout
@@ -53,4 +51,4 @@ let bs background grid thread src_x src_y dst_x dst_y =
 let bs_t = Cmdliner.Term.info "backstitch"
 
 let () =
-  Cmdliner.Term.(exit @@ eval (const bs $ background $ gridsize $ thread $ src_x $ src_y $ dst_x $ dst_y, bs_t))
+  Cmdliner.Term.(exit @@ eval (const bs $ background $ gridsize $ thread $ segments, bs_t))
