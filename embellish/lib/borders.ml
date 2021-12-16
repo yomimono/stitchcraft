@@ -23,20 +23,17 @@ let border_repetitions ~fencepost ~center ~side =
   | _ -> (* too much space left over; add another repetition *)
     center / (side + fencepost) + 1
 
+let backstitch_in (src, dst) dim =
+  (dim.x_off <= (fst src) && (fst src) <= dim.x_off + dim.width &&
+   dim.y_off <= (snd src) && (snd src) <= dim.y_off + dim.height) &&
+  (dim.x_off <= (fst dst) && (fst dst) <= dim.x_off + dim.width &&
+   dim.y_off <= (snd dst) && (snd dst) <= dim.y_off + dim.height)
+
 (** [tile pattern ~dimensions ~mask_dimensions] fills an area of `dimensions` size with
  * tiling repetitions of `pattern`, except for any dimensions in `mask_dimensions`,
  * which are left unfilled but do not interrupt the tiling. *)
 let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
   let open Stitchy.Types in
-  let backstitch_in segment mask_dimensions =
-    let masked (src, dst) mask =
-      (mask.x_off <= (fst src) && (fst src) < mask.x_off + mask.width &&
-      mask.y_off <= (snd src) && (snd src) < mask.y_off + mask.height) ||
-      (mask.x_off <= (fst dst) && (fst dst) < mask.x_off + mask.width &&
-      mask.y_off <= (snd dst) && (snd dst) < mask.y_off + mask.height)
-    in
-    List.exists (masked segment) mask_dimensions
-  in
   let row pattern ~(dimensions : dimensions) =
     let vrepetitions =
       if dimensions.width mod (pattern.substrate.max_x + 1) = 0 then
@@ -75,8 +72,12 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
     {layer with stitches;}
   in
   let mask_backstitch_layer (backstitch_layer : backstitch_layer) =
+    let not_in_any segment dimensions =
+      not @@ List.exists (backstitch_in segment) dimensions
+    in
     let backstitches = SegmentSet.filter
-        (fun segment -> not @@ backstitch_in segment mask_dimensions)
+        (fun segment -> (not_in_any segment mask_dimensions) &&
+                        backstitch_in segment dimensions)
         backstitch_layer.stitches in
     {backstitch_layer with stitches = backstitches}
   in
@@ -193,20 +194,24 @@ let better_embellish ~fill ~corner ~top ~center =
     ((substrate.max_y - center.substrate.max_y) / 2)
   in
   let center_shifted = displace_pattern (RightAndDown (left_padding, top_padding)) center in
-  let mask_off_center : dimensions =
-    {x_off = left_padding;
-     y_off = top_padding;
-     width = center.substrate.max_x + 1;
-     height = center.substrate.max_y + 1 }
-  in
-  let (potential_fill : dimensions) = {
-    x_off = corner_short_side;
-    y_off = corner_short_side;
-    width = (substrate.max_x + 1) - 2 * corner_short_side;
-    height = (substrate.max_y + 1) - 2 * corner_short_side;
-  } in
-  let center_fill = tile fill ~dimensions:potential_fill ~mask_dimensions:[mask_off_center] in
-  List.fold_left (merge_patterns ~substrate) center_shifted ( center_fill :: corners @ borders)
+  match left_padding, top_padding with
+  | 0, 0 -> (* nothing to fill! *)
+    List.fold_left (merge_patterns ~substrate) center_shifted (corners @ borders)
+  | _, _ ->
+    let mask_off_center : dimensions =
+      {x_off = left_padding;
+       y_off = top_padding;
+       width = center.substrate.max_x + 1;
+       height = center.substrate.max_y + 1 }
+    in
+    let (potential_fill : dimensions) = {
+      x_off = corner_short_side;
+      y_off = corner_short_side;
+      width = (substrate.max_x + 1) - 2 * corner_short_side;
+      height = (substrate.max_y + 1) - 2 * corner_short_side;
+    } in
+    let center_fill = tile fill ~dimensions:potential_fill ~mask_dimensions:[mask_off_center] in
+    List.fold_left (merge_patterns ~substrate) center_shifted ( center_fill :: corners @ borders)
 
 (* this is the simpler, corners-and-repeating-motif kind of repeating border *)
 let embellish ~min_width ~rotate_corners ~center ~corner ~top ~fencepost =
