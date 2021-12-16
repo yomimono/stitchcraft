@@ -86,53 +86,77 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
 
 (* TODO: this definitely needs a better name *)
 (* this is the guilloche-style corner-plus repeating border *)
-let better_embellish ~fill ~corner ~top ~center =
+let better_embellish ~fill:_ ~corner ~top ~center =
+  let corner_long_side = corner.Stitchy.Types.substrate.max_x + 1 in
+  let corner_short_side = corner.substrate.max_y + 1 in
   let horizontal_repetitions =
     let open Stitchy.Types in
-    let x_to_fill =
-      center.substrate.max_x + 2 * corner.substrate.max_y
-      - corner.substrate.max_x
+    (* if center is smaller than the corners already cover,
+     * we need 0 repetitions *)
+    let x_to_fill = max 0 @@
+      (center.substrate.max_x + 1) - corner_long_side - corner_short_side
     in
-    x_to_fill / top.substrate.max_x +
-    (if x_to_fill mod top.substrate.max_x <> 0 then 1 else 0)
+    if x_to_fill > 0 then
+      x_to_fill / (top.substrate.max_x + 1) +
+      (* if necessary, add an extra repetition *)
+      (if x_to_fill mod (top.substrate.max_x + 1) <> 0 then 1 else 0)
+    else 0
   and vertical_repetitions =
     let open Stitchy.Types in
-    let y_to_fill =
-      center.substrate.max_y + 2 * corner.substrate.max_y
-      - corner.substrate.max_x
+    let y_to_fill = max 0 @@
+      (center.substrate.max_y + 1) - corner_long_side - corner_short_side
     in
     (* we still use top.substrate.max_x here, because we'll
      * be rotating the top pattern 90 degrees to use it on the sides *)
-    y_to_fill / top.substrate.max_x +
-    (if y_to_fill mod top.substrate.max_y <> 0 then 1 else 0)
-  in
-  let top_border = vrepeat top horizontal_repetitions
-  and left_border = hrepeat (rotate_ccw top) vertical_repetitions
-  in
-  let bottom_border = rotate_ccw @@ rotate_ccw top_border
-  and right_border = rotate_ccw @@ rotate_ccw left_border
+    if y_to_fill > 0 then
+      y_to_fill / (top.substrate.max_x + 1) +
+      (if y_to_fill mod (top.substrate.max_x + 1) <> 0 then 1 else 0)
+    else 0
   in
   (* the straight, repeated borders *)
-  let corner_long_side = corner.substrate.max_x + 1 in
-  let corner_short_side = corner.substrate.max_y + 1 in
-  let top_border_width = top_border.substrate.max_x + 1 in
-  let borders = [
-    (* top border just needs to move over to make room for the upper left-hand corner *)
-    displace_pattern (Right corner_long_side) top_border;
-    (* right-hand border needs to move to the right side,
-     * and also to move down to make room for the upper right-hand corner *)
-    displace_pattern (RightAndDown (corner_long_side + top_border_width,
-                                    corner_long_side))
-      right_border; 
-    (* bottom border needs to move to the right to make room for the lower left-
-     * hand corner (on the short side), and to go to the bottom of the pattern *)
-    displace_pattern (RightAndDown (corner_short_side,
-                                    corner_long_side + left_border.substrate.max_y + 1))
-      bottom_border;
-    (* the left border is already on the left side, and just needs to shift down
-     * to make room for the upper left-hand corner's short side *)
-    displace_pattern (Down corner_short_side) left_border;
-  ] in
+  let top_border_width = horizontal_repetitions * (top.substrate.max_x + 1) in
+  let left_border_length = vertical_repetitions * (top.substrate.max_x + 1) in
+  let borders =
+    match horizontal_repetitions, vertical_repetitions with
+    | 0, 0 -> []
+    | n, 0 -> (* we only need more stuff on the top and bottom *)
+      let top_border = vrepeat top n in
+      let bottom_border = rotate_ccw @@ rotate_ccw top_border in
+      [
+        displace_pattern (Right corner_long_side) top_border;
+        (* bottom border needs to move to the right to make room for the lower left-
+         * hand corner (on the short side), and to go to the bottom of the pattern *)
+        displace_pattern (RightAndDown (corner_short_side,
+                                        corner_long_side))
+          bottom_border;
+      ]
+    | 0, n -> (* we only need more stuff on the left and right *)
+      let left_border = hrepeat (rotate_ccw top) n in
+      let right_border = rotate_ccw @@ rotate_ccw left_border in
+      [
+        (* right-hand border needs to move to the right side,
+         * and also to move down to make room for the upper right-hand corner *)
+        displace_pattern (RightAndDown (corner_long_side,
+                                        corner_short_side))
+          right_border;
+        (* the left border is already on the left side, and just needs to shift down
+         * to make room for the upper left-hand corner's short side *)
+        displace_pattern (Down corner_short_side) left_border;
+      ]
+    | horizontal, vertical -> (* we need h more top/bottom, v more left/right *)
+      let top_border = vrepeat top horizontal in
+      let left_border = hrepeat (rotate_ccw top) vertical in
+      let bottom_border = rotate_ccw @@ rotate_ccw top_border in
+      let right_border = rotate_ccw @@ rotate_ccw left_border in
+      [displace_pattern (Right corner_long_side) top_border;
+       displace_pattern (RightAndDown (corner_long_side + top_border_width,
+                                       corner_long_side)) right_border;
+       displace_pattern (RightAndDown (corner_short_side,
+                                       left_border_length + corner_long_side)) bottom_border;
+       displace_pattern (Down corner_short_side) left_border;
+
+      ]
+  in
   (* the corners *)
   let corners = [
     (* upper left is just what we were passed *)
@@ -146,20 +170,18 @@ let better_embellish ~fill ~corner ~top ~center =
      * and below the right-side border *)
     rotate_ccw @@ rotate_ccw corner |>
     displace_pattern (RightAndDown (top_border_width + corner_short_side,
-                                    corner_long_side + left_border.substrate.max_y + 1));
+                                    corner_long_side + left_border_length));
     (* lower left is rotated counter-clockwise 90 degrees,
      * then shifted down past the short end of the upper-left corner and the
      * whole left-side border. *)
     rotate_ccw corner |>
-    displace_pattern (Down (corner_short_side + left_border.substrate.max_y + 1));
+    displace_pattern (Down (corner_short_side + left_border_length));
   ] in
   let substrate = { center.Stitchy.Types.substrate with
-                    max_x = corner.substrate.max_x + 1 +
-                            top_border.substrate.max_x + 1 +
-                            corner.substrate.max_y;
-                    max_y = left_border.substrate.max_y + 1 +
-                            corner.substrate.max_x + 1 +
-                            corner.substrate.max_y;
+                    max_x = corner_long_side + corner_short_side +
+                            top_border_width;
+                    max_y = corner_long_side + corner_short_side +
+                            left_border_length
                   } in
   let left_padding, top_padding = 
     (* the center will be smaller than the borders,
@@ -170,19 +192,19 @@ let better_embellish ~fill ~corner ~top ~center =
     ((substrate.max_y - center.substrate.max_y) / 2)
   in
   let center_shifted = displace_pattern (RightAndDown (left_padding, top_padding)) center in
-  let mask_off_center : dimensions =
+  let _mask_off_center : dimensions =
     {x_off = left_padding;
      y_off = top_padding;
      width = center.substrate.max_x + 1;
      height = center.substrate.max_y + 1 }
-  in
-  let (center_dimensions : dimensions) = {x_off = top_border.substrate.max_y + 1;
+  in (*
+  let (potential_fill : dimensions) ={x_off = top_border.substrate.max_y + 1;
                                           y_off = left_border.substrate.max_x + 1;
                                           width = substrate.max_x - (left_border.substrate.max_x * 2) - 1;
                                           height = substrate.max_y - (top_border.substrate.max_y * 2) - 1;
                                          } in
-  let center_fill = tile fill ~dimensions:center_dimensions ~mask_dimensions:[mask_off_center] in
-  List.fold_left (merge_patterns ~substrate) center_shifted (center_fill :: corners @ borders)
+  let center_fill = tile fill ~dimensions:potential_fill ~mask_dimensions:[mask_off_center] in *)
+  List.fold_left (merge_patterns ~substrate) center_shifted ((* center_fill :: *) corners @ borders)
 
 (* this is the simpler, corners-and-repeating-motif kind of repeating border *)
 let embellish ~min_width ~rotate_corners ~center ~corner ~top ~fencepost =
