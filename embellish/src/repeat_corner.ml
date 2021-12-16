@@ -88,6 +88,16 @@ let fill =
   let doc = "a fill for any space generated to make borders fit properly. If none desired, try `empty 1 1`" in
   Arg.(value & opt file "fill.pattern" & info ["fill"] ~docv:"FILL" ~doc)
 
+let min_width =
+  let doc = "minimum width for the entire finished piece. Making borders tile properly
+    may require the width to be much greater than the value provided." in
+   Arg.(value & opt int 1 & info ["w"; "width"] ~docv:"WIDTH" ~doc)
+
+let min_height =
+  let doc = "minimum height for the entire finished piece. Making borders tile properly
+    may require the height to be much greater than the value provided." in
+   Arg.(value & opt int 1 & info ["h"; "height"] ~docv:"HEIGHT" ~doc)
+
 let info =
   let doc = "embellish an image with corner and border images" in
   Term.info "embellish" ~doc ~exits:Term.default_exits
@@ -96,7 +106,7 @@ let spoo output json =
   if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
   else Yojson.Safe.to_file output json
 
-let go corner border center fill output =
+let go corner border center fill min_width min_height output =
   let (corner, border, center, fill) = try
       Yojson.Safe.(from_file corner, from_file border, from_file center, from_file fill)
     with
@@ -111,12 +121,12 @@ let go corner border center fill output =
     | a, b when compare a b <> 0 ->
       failwith (Printf.sprintf "Corner and border images must have the height")
     | _, _ ->
-      Borders.better_embellish ~fill ~center ~corner ~top
+      Borders.better_embellish ~fill ~center ~corner ~top ~min_width ~min_height
       |> Stitchy.Types.pattern_to_yojson
       |> spoo output
     end
   | _ -> failwith (Printf.sprintf "failed to parse input json")
 
-let compose_t = Term.(const go $ corner $ border $ center $ fill $ output)
+let compose_t = Term.(const go $ corner $ border $ center $ fill $ min_width $ min_height $ output)
 
 let () = Term.exit @@ Term.eval (compose_t, info)

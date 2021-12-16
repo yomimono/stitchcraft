@@ -87,7 +87,7 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
 
 (* TODO: this definitely needs a better name *)
 (* this is the guilloche-style corner-plus repeating border *)
-let better_embellish ~fill ~corner ~top ~center =
+let better_embellish ~fill ~corner ~top ~center ~min_width ~min_height =
   let corner_long_side = corner.Stitchy.Types.substrate.max_x + 1 in
   let corner_short_side = corner.substrate.max_y + 1 in
   let horizontal_repetitions =
@@ -96,7 +96,7 @@ let better_embellish ~fill ~corner ~top ~center =
      * we need 0 repetitions *)
     (* a rectangular corner will cover (long_side - short_side) pixels of the border *)
     let x_to_fill = max 0 @@
-      (center.substrate.max_x + 1) - (corner_long_side - corner_short_side)
+      (max min_width @@ center.substrate.max_x + 1) - (corner_long_side - corner_short_side)
     in
     if x_to_fill > 0 then
       x_to_fill / (top.substrate.max_x + 1) +
@@ -106,7 +106,7 @@ let better_embellish ~fill ~corner ~top ~center =
   and vertical_repetitions =
     let open Stitchy.Types in
     let y_to_fill = max 0 @@
-      (center.substrate.max_y + 1) - (corner_long_side - corner_short_side)
+      (max min_height @@ (center.substrate.max_y + 1)) - (corner_long_side - corner_short_side)
     in
     (* we still use top.substrate.max_x here, because we'll
      * be rotating the top pattern 90 degrees to use it on the sides *)
