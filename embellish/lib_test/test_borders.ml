@@ -107,6 +107,8 @@ let better_embellish_dimensions () =
   let corner = pixel (List.hd Stitchy.DMC.Thread.basic) in
   let center = {corner with layers = []} in
   let pattern = Borders.better_embellish ~fill:pattern ~corner ~top:corner ~center in
+  (* since all elements have width and height 1, we expect not to need
+   * any extra repetitions -- just enough to to surround the center *)
   let expected_stitches = Stitchy.Types.CoordinateSet.of_list [
       (0, 0); (1, 0); (2, 0);
       (0, 1);         (2, 1);

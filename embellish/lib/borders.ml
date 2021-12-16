@@ -93,8 +93,9 @@ let better_embellish ~fill:_ ~corner ~top ~center =
     let open Stitchy.Types in
     (* if center is smaller than the corners already cover,
      * we need 0 repetitions *)
+    (* a rectangular corner will cover (long_side - short_side) pixels of the border *)
     let x_to_fill = max 0 @@
-      (center.substrate.max_x + 1) - corner_long_side - corner_short_side
+      (center.substrate.max_x + 1) - (corner_long_side - corner_short_side)
     in
     if x_to_fill > 0 then
       x_to_fill / (top.substrate.max_x + 1) +
@@ -104,7 +105,7 @@ let better_embellish ~fill:_ ~corner ~top ~center =
   and vertical_repetitions =
     let open Stitchy.Types in
     let y_to_fill = max 0 @@
-      (center.substrate.max_y + 1) - corner_long_side - corner_short_side
+      (center.substrate.max_y + 1) - (corner_long_side - corner_short_side)
     in
     (* we still use top.substrate.max_x here, because we'll
      * be rotating the top pattern 90 degrees to use it on the sides *)
@@ -179,9 +180,9 @@ let better_embellish ~fill:_ ~corner ~top ~center =
   ] in
   let substrate = { center.Stitchy.Types.substrate with
                     max_x = corner_long_side + corner_short_side +
-                            top_border_width;
+                            top_border_width - 1;
                     max_y = corner_long_side + corner_short_side +
-                            left_border_length
+                            left_border_length - 1
                   } in
   let left_padding, top_padding = 
     (* the center will be smaller than the borders,
