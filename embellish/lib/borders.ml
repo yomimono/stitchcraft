@@ -86,7 +86,7 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
 
 (* TODO: this definitely needs a better name *)
 (* this is the guilloche-style corner-plus repeating border *)
-let better_embellish ~fill:_ ~corner ~top ~center =
+let better_embellish ~fill ~corner ~top ~center =
   let corner_long_side = corner.Stitchy.Types.substrate.max_x + 1 in
   let corner_short_side = corner.substrate.max_y + 1 in
   let horizontal_repetitions =
@@ -193,19 +193,20 @@ let better_embellish ~fill:_ ~corner ~top ~center =
     ((substrate.max_y - center.substrate.max_y) / 2)
   in
   let center_shifted = displace_pattern (RightAndDown (left_padding, top_padding)) center in
-  let _mask_off_center : dimensions =
+  let mask_off_center : dimensions =
     {x_off = left_padding;
      y_off = top_padding;
      width = center.substrate.max_x + 1;
      height = center.substrate.max_y + 1 }
-  in (*
-  let (potential_fill : dimensions) ={x_off = top_border.substrate.max_y + 1;
-                                          y_off = left_border.substrate.max_x + 1;
-                                          width = substrate.max_x - (left_border.substrate.max_x * 2) - 1;
-                                          height = substrate.max_y - (top_border.substrate.max_y * 2) - 1;
-                                         } in
-  let center_fill = tile fill ~dimensions:potential_fill ~mask_dimensions:[mask_off_center] in *)
-  List.fold_left (merge_patterns ~substrate) center_shifted ((* center_fill :: *) corners @ borders)
+  in
+  let (potential_fill : dimensions) = {
+    x_off = corner_short_side;
+    y_off = corner_short_side;
+    width = (substrate.max_x + 1) - 2 * corner_short_side;
+    height = (substrate.max_y + 1) - 2 * corner_short_side;
+  } in
+  let center_fill = tile fill ~dimensions:potential_fill ~mask_dimensions:[mask_off_center] in
+  List.fold_left (merge_patterns ~substrate) center_shifted ( center_fill :: corners @ borders)
 
 (* this is the simpler, corners-and-repeating-motif kind of repeating border *)
 let embellish ~min_width ~rotate_corners ~center ~corner ~top ~fencepost =
