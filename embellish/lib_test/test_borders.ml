@@ -20,6 +20,21 @@ let pixel thread = Stitchy.Types.({
     backstitch_layers = [];
   })
 
+let pattern = Stitchy.Types.({
+  substrate = {
+    max_x = 2;
+    max_y = 2;
+    background = (0, 0, 0);
+    grid = Fourteen;
+  };
+  layers = [{
+      thread = List.hd Stitchy.DMC.Thread.basic;
+      stitch = Cross Full;
+      stitches = CoordinateSet.of_list [(0, 0); (1, 1);];
+    }];
+  backstitch_layers = [];
+})
+
 let close_borders () =
   (* if the side border is side 1 and there are no fenceposts,
    * the number of border repetitions should always be equal to the center *)
@@ -47,20 +62,26 @@ let within () =
   Alcotest.(check bool) "1, 1 not within extant w/h" false (Borders.within ~x:1 ~y:1 (dim 0 0 1 1));
   Alcotest.(check bool) "0, 0 not within offset w/h" false (Borders.within ~x:0 ~y:0 (dim 10 10 1 1))
 
-let pattern = Stitchy.Types.({
-  substrate = {
-    max_x = 2;
-    max_y = 2;
-    background = (0, 0, 0);
-    grid = Fourteen;
-  };
-  layers = [{
-      thread = List.hd Stitchy.DMC.Thread.basic;
-      stitch = Cross Full;
-      stitches = CoordinateSet.of_list [(0, 0); (1, 1);];
-    }];
-  backstitch_layers = [];
-})
+let bs_within () =
+  Alcotest.(check bool) "horizontal backstitch on top is in the thing"
+    true (Borders.backstitch_in ((0, 0), (1, 0)) (dim 0 0 1 1));
+  Alcotest.(check bool) "horizontal backstitch on bottom is in the thing"
+    true (Borders.backstitch_in ((0, 1), (1, 1)) (dim 0 0 1 1));
+  Alcotest.(check bool) "vertical backstitch on left is in the thing"
+    true (Borders.backstitch_in ((0, 0), (0, 1)) (dim 0 0 1 1));
+  Alcotest.(check bool) "vertical backstitch on right is in the thing"
+    true (Borders.backstitch_in ((1, 0), (1, 1)) (dim 0 0 1 1));
+  Alcotest.(check bool) "non-border backstitches are inside"
+    true (Borders.backstitch_in ((1, 1), (2, 2)) (dim 0 0 5 5));
+  Alcotest.(check bool) "backstitches partly outside are not inside"
+    false (Borders.backstitch_in ((1, 1), (2, 1)) (dim 0 0 1 1));
+  Alcotest.(check bool) "backstitches entirely outside are not inside"
+    false (Borders.backstitch_in ((2, 2), (3, 3)) (dim 0 0 1 1));
+  Alcotest.(check bool) "offset backstitches are still inside"
+    true (Borders.backstitch_in ((1, 1), (2, 2)) (dim 1 1 5 5));
+  Alcotest.(check bool) "offset backstitches are still outside"
+    false (Borders.backstitch_in ((1, 1), (2, 2)) (dim 10 10 5 5));
+  ()
 
 let tile () =
   let open Stitchy.Types in
@@ -138,8 +159,28 @@ let better_embellish_no_top () =
   let pattern = Borders.better_embellish ~fill:center ~corner:long_corner ~center ~top in
   let expected_stitches = Stitchy.Types.CoordinateSet.of_list [ (1, 0); (3, 1); (0, 2); (2, 3) ] in
   Alcotest.(check (testable pp_stitches Stitchy.Types.CoordinateSet.equal)) "better_embellish correctly handles tiny patterns" expected_stitches (List.hd pattern.layers).stitches;
-
   ()
+
+let backstitch_fill_borders () =
+  let open Stitchy.Types in
+  let fill : pattern = {
+    substrate = {max_x = 0; max_y = 0; background = (255, 255, 255); grid = Fourteen;};
+    layers = [];
+    backstitch_layers = [
+      { thread = List.hd Stitchy.DMC.Thread.basic;
+        stitches = SegmentSet.singleton ((0, 0), (1, 0));}
+    ];} in
+  let top = pixel (List.hd Stitchy.DMC.Thread.basic) in
+  let center = {top with layers = []} in
+  let pattern = Borders.better_embellish ~fill ~corner:top ~center ~top in
+  let backstitches = pattern.backstitch_layers in
+  (* for now, allow backstitch layers with empty segment lists to fulfill this *)
+  match List.length backstitches with
+  | 0 -> ()
+  | 1 ->
+    let l = List.hd backstitches in
+    Alcotest.(check int) "no backstitches in final product, because no fill" 0 @@ SegmentSet.cardinal l.stitches
+  | _ -> Alcotest.fail "too many backstitch layers"
 
 let () = Alcotest.(run "borders" @@ [
     ("compose", [
@@ -149,6 +190,7 @@ let () = Alcotest.(run "borders" @@ [
       ]);
     ("within", [
         ("within", `Quick, within);
+        ("backstitches don't escape", `Quick, bs_within);
       ]);
     ("tile", [
         ("tile", `Quick, tile);
@@ -157,6 +199,7 @@ let () = Alcotest.(run "borders" @@ [
     ("better_embellish", [
         ("dimensions", `Quick, better_embellish_dimensions);
         ("no top repetitions", `Quick, better_embellish_no_top);
+        ("backstitches don't make it out of the fill", `Quick, backstitch_fill_borders);
       ]);
 
   ])
