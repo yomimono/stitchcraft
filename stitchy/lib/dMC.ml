@@ -489,27 +489,27 @@ end = struct
     let lookup s = StringMap.find s id_map in
     [
       "310"; (* black *)
+      "740"; (* ocaml orange *)
       "666"; (* \m/ RED \m/ *)
+      "702"; (* a light green *)
+      "415"; (* light gray *)
+      "995"; (* electric blue *)
+      "3799"; (* dark gray-green *)
+      "809"; (* baby blue *)
+      "208"; (* darkish purple *)
+      "White";
+      "B5200"; (* whiter than white *)
+      "605"; (* pink *)
       "321"; (* lighter, but still vibrant, red *)
       "699"; (* a WICKED dark green *)
       "700"; (* dark green *)
-      "702"; (* a light green *)
-      "740"; (* ocaml orange *)
-      "208"; (* darkish purple *)
       "210"; (* lighter purple *)
       "307"; (* yellow *)
-      "809"; (* baby blue *)
       "820"; (* navy *)
       "823"; (* the ol' blueberry. it looks dark af in the screenshot *)
-      "995"; (* electric blue *)
-      "3799"; (* dark gray-green *)
-      "415"; (* light gray *)
-      "White";
       "Ecru";
-      "B5200"; (* whiter than white *)
       "351"; (* dullish peachy orange *)
       "433"; (* brown *)
-      "605"; (* pink *)
     ] |> List.map lookup
 
   let of_rgb color = RGBMap.find_opt color rgb_map
