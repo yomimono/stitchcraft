@@ -190,8 +190,14 @@ let better_embellish ~fill ~corner ~top ~center ~min_width ~min_height =
      * so not only does it need to move down and to the right
      * to avoid the borders, it also needs to (potentially)
      * move down and to the right to center itself within them. *)
-    ((substrate.max_x - center.substrate.max_x) / 2),
-    ((substrate.max_y - center.substrate.max_y) / 2)
+    (* unfortunately, monospaced fonts tend to bias toward having their spacing on the right,
+     * so if we also have our bias there we get some weird effects when centering.
+     * Instead, prefer to move stuff to the left if there is an uneven number of pixels. *)
+    let horizontal_padding = substrate.max_x - center.substrate.max_x
+    and vertical_padding = substrate.max_y - center.substrate.max_y
+    in
+    (max 0 @@ horizontal_padding / 2 + (horizontal_padding mod 2)),
+    (max 0 @@ vertical_padding / 2 + (horizontal_padding mod 2))
   in
   let center_shifted = displace_pattern (RightAndDown (left_padding, top_padding)) center in
   match left_padding, top_padding with
