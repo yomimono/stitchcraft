@@ -1,0 +1,10 @@
+(executable
+  (name get)
+  (libraries etsy bos cmdliner cohttp-lwt-unix fpath mirage-random mirage-crypto tls uri)
+)
+
+(rule (alias runtest)
+      (action
+        (progn
+          (run %{exe:get.exe})
+          )))
