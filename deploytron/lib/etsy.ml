@@ -6,3 +6,7 @@ module User = struct
   let get_by_id id = Uri.with_path base (openapi_v3 ^ "/users/" ^ id)
 
 end
+
+module Shop = struct
+  let get_by_user_id id = Uri.with_path base (openapi_v3 ^ "/users/" ^ id ^ "/shops")
+end

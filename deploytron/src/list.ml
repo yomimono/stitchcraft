@@ -31,7 +31,7 @@ let ls storage key _shop =
       Printf.eprintf "token seems to have extraneous .'s, which are field separators\n%!"; exit 1
     | user_id::_ ->
       Lwt_main.run @@ (
-        let uri = Etsy.User.get_by_id user_id in
+        let uri = Etsy.Shop.get_by_user_id user_id in
         let headers = auth_headers key token in
         Cohttp_lwt_unix.Client.get ~headers uri >>= fun (response, body) ->
         Cohttp_lwt.Body.to_string body >>= fun contents ->
