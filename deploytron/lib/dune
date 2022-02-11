@@ -1,4 +1,4 @@
 (library
   (name etsy)
-  (libraries yojson)
+  (libraries uri yojson)
 )
