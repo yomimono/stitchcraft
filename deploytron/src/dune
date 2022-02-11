@@ -1,11 +1,4 @@
-(executable
-  (name get)
-  (modules get)
-  (libraries etsy bos cmdliner cohttp-lwt-unix fpath mirage-random mirage-crypto tls uri)
-)
-
-(executable
-  (name list)
-  (modules list)
+(executables
+  (names get list upload)
   (libraries etsy bos cmdliner cohttp-lwt-unix fpath mirage-random mirage-crypto tls uri)
 )
