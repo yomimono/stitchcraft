@@ -20,6 +20,10 @@ let storage =
   in
   Cmdliner.Arg.(value & opt dir (Fpath.to_string default) & info ~doc ["d"; "dir"])
 
+let start_over =
+  let doc = "start the whole thing over" in
+  Cmdliner.Arg.(value & flag & info ~doc ["n"; "new"])
+
 let state dir =
   match Bos.OS.Dir.create dir with
   | Error _ -> `Broken
@@ -32,28 +36,28 @@ let state dir =
       | Ok state -> `Have_state state
       | Error _ -> `Nothing
 
-let get host storage =
+let get host storage start_over =
   let open Lwt.Infix in
   let state_uri = Uri.with_path host "/auth" in
   let token_uri = Uri.with_path host "/token" in
   Lwt_main.run @@ (
-    match state (Fpath.v storage) with
-    | `Broken -> Printf.eprintf "Can't find or write %s; won't continue" storage; exit 1
-    | `Have_token token -> Printf.printf "%s\n%!" token; exit 0
-    | `Have_state state -> begin
-      let params = ["state", [state]] in
-      Cohttp_lwt_unix.Client.post_form ~params token_uri >>= fun (response, body) ->
-      Cohttp_lwt.Body.to_string body >>= fun body ->
-      match Cohttp.Response.status response with
-      | `OK -> begin
-        match Bos.OS.File.write Fpath.(v storage / "state") body with
-        | Error (`Msg s) -> Printf.eprintf "error writing token: %s\n%!" s; exit 1
-        | Ok () -> exit 0
+    match state (Fpath.v storage), start_over with
+    | `Broken, _ -> Printf.eprintf "Can't find or write %s; won't continue" storage; exit 1
+    | `Have_token token, false -> Printf.printf "%s\n%!" token; exit 0
+    | `Have_state state, false -> begin
+        let params = ["state", [state]] in
+        Cohttp_lwt_unix.Client.post_form ~params token_uri >>= fun (response, body) ->
+        Cohttp_lwt.Body.to_string body >>= fun body ->
+        match Cohttp.Response.status response with
+        | `OK -> begin
+            match Bos.OS.File.write Fpath.(v storage / "token") body with
+            | Error (`Msg s) -> Printf.eprintf "error writing token: %s\n%!" s; exit 1
+            | Ok () -> exit 0
+          end
+        | _ -> Printf.eprintf "remote server didn't give a token: %s\n%!" body;
+          exit 1
       end
-      | _ -> Printf.eprintf "remote server didn't give a token: %s\n%!" body;
-        exit 1
-    end
-    | `Nothing ->
+    | `Nothing, _ | _, true ->
       let params = ["uuid", ["sixteenbytesoffun"]] in
       Cohttp_lwt_unix.Client.post_form ~params state_uri >>= fun (response, body) ->
       Cohttp_lwt.Body.to_string body >>= fun body ->
@@ -73,7 +77,7 @@ let get host storage =
       Lwt.return_unit
   )
 
-let get_t = Cmdliner.Term.(const get $ host $ storage)
+let get_t = Cmdliner.Term.(const get $ host $ storage $ start_over)
 
 let info = Cmdliner.Term.info "get"
 
