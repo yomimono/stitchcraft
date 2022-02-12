@@ -1,4 +1,4 @@
-open Lwt.Infix
+(* open Lwt.Infix *)
 
 let storage =
   let doc = "directory for storing tokens" in
@@ -45,25 +45,67 @@ let upload storage key shop listing filename =
   | Error (`Msg s) -> Printf.eprintf "failed to find a token in %s : %s\n%!" storage s;
     exit 1
   | Ok token ->
-    (* TODO parameterize listing file id; right now they're all 1 *)
+    (* TODO parameterize rank; right now they're all 1 *)
+    let rank = 1 in
     Lwt_main.run @@ (
       match Bos.OS.File.read (Fpath.v filename) with
       | Error (`Msg s) -> Printf.eprintf "couldn't read file for upload: %s\n%!" s; exit 1
       | Ok file ->
-        let headers = auth_headers key token in
-        let uri = Etsy.File.upload_by_listing_id ~shop listing in
+        Printf.printf "file size: %d\n%!" @@ String.length file;
+        let _headers = auth_headers key token in
+        let _uri = Etsy.File.upload_by_listing_id ~shop listing in
         (* in order to upload properly, we need multipart form data,
          * which cohttp doesn't directly provide. 
          * dinosaure to the rescue ;) *)
-        let params = ["name", [filename];
-                      "rank", ["1"];
-                      "file", [file];
-                     ] in
-        Cohttp_lwt_unix.Client.post_form ~headers ~params uri >>= fun (response, body) ->
+        (* the (string * int * int ) in the part definition is buffer, offset, length *)
+        let name_part, rank_part, file_part =
+          let rank_str = string_of_int rank in
+          let open Multipart_form in
+          part ~encoding:`Bit7
+            (fun () -> Some (filename, 0, (String.length filename))),
+          part ~encoding:`Bit7
+            (fun () -> Some (rank_str, 0, (String.length rank_str))),
+          part ~encoding:`Binary ~disposition:(Content_disposition.v ~filename "file")
+            (fun () -> Some (file, 0, (Printf.printf "file\n%!"; String.length file)))
+        in
+        Mirage_crypto_rng_unix.initialize ();
+        let rng ?g:_ n = Mirage_crypto_rng_unix.getrandom n |> Cstruct.to_string |> Base64.encode_string ~alphabet:Base64.uri_safe_alphabet in
+        Printf.printf "randomed\n%!";
+        let multipart = Multipart_form.multipart ~rng [name_part; rank_part; file_part] in
+        Printf.printf "multiparted\n%!";
+        let _h, form_body = Multipart_form.to_stream multipart in
+        Printf.printf "streamed\n%!";
+        let _form_body_str = Lwt_stream.(from_direct form_body) in
+        Printf.printf "mapped streamed\n%!"; (*
+        let l = Lwt_stream.get_available form_body_str in
+        Stdlib.List.iter (fun (l, off, len) -> Printf.printf "%d, %d, %s\n%!" off len l) l;
+                                                *)
+        match form_body () with
+        | None -> Printf.printf "eat shit\n%!"; Lwt.return_unit
+        | Some (buf, off, len) ->
+          Printf.printf "%d, %d, %s\n%!" off len buf;
+          Lwt.return_unit
+
+
+
+
+
+        (*
+        let content_type = Multipart_form.(Header.content_type h |> Content_type.to_string)
+        and content_disposition = Multipart_form.(Header.content_disposition h |> Option.get |> Content_disposition.to_string)
+        and content_encoding = Multipart_form.(Header.content_encoding h |> Content_encoding.to_string)
+        in
+        let headers = Cohttp.Header.add_list headers
+            ["Content-type", content_type;
+             "Content-disposition", content_disposition;
+             "Content-encoding", content_encoding;
+            ] in
+        let body = Lwt_stream.(from_direct form_body |> map (fun (buf, _, _) -> buf)) |> Cohttp_lwt.Body.of_stream in
+        Cohttp_lwt_unix.Client.post ~headers ~body uri >>= fun (response, body) ->
         Cohttp_lwt.Body.to_string body >>= fun contents ->
         success_or_death response contents >>= fun () ->
         Printf.printf "%s\n%!" contents;
-        Lwt.return_unit
+        Lwt.return_unit *)
     )
 
 
