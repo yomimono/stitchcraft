@@ -1,4 +1,4 @@
-let base = Uri.of_string "https://api.etsy.com"
+let base = Uri.of_string "https://openapi.etsy.com"
 
 let openapi_v3 = "/v3/application"
 
