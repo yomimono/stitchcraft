@@ -83,10 +83,7 @@ let upload storage key shop listing filename =
         let h, form_body = Multipart_form.to_stream multipart in
         let content_type = Multipart_form.(Header.content_type h |> Content_type.to_string) in
         let headers = Cohttp.Header.add headers "Content-Type" content_type in
-        Format.printf "%a\n%!" Cohttp.Header.pp_hum headers;
-        let body = Lwt_stream.(from_direct form_body |> map (fun (buf, _, _) ->
-            Printf.printf "%s%!" buf;
-            buf)) |> Cohttp_lwt.Body.of_stream in
+        let body = Lwt_stream.(from_direct form_body |> map (fun (buf, _, _) -> buf)) |> Cohttp_lwt.Body.of_stream in
         Cohttp_lwt_unix.Client.post ~headers ~body uri >>= fun (response, body) ->
         Cohttp_lwt.Body.to_string body >>= fun contents ->
         success_or_death response contents >>= fun () ->
