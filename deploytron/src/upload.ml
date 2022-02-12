@@ -72,8 +72,8 @@ let upload storage key shop listing filename =
         let name_part, rank_part, file_part =
           let rank_str = string_of_int rank in
           let open Multipart_form in
-          part ~encoding:`Bit7 ~disposition:(Content_disposition.v "name") @@ stream_of_string filename,
-          part ~encoding:`Bit7 ~disposition:(Content_disposition.v "rank") @@ stream_of_string rank_str,
+          part ~disposition:(Content_disposition.v "name") @@ stream_of_string filename,
+          part ~disposition:(Content_disposition.v "rank") @@ stream_of_string rank_str,
           part ~encoding:`Binary ~disposition:(Content_disposition.v ~filename "file") @@
             stream_of_string file
         in
@@ -83,8 +83,14 @@ let upload storage key shop listing filename =
         let h, form_body = Multipart_form.to_stream multipart in
         let content_type = Multipart_form.(Header.content_type h |> Content_type.to_string) in
         let headers = Cohttp.Header.add headers "Content-Type" content_type in
-        let body = Lwt_stream.(from_direct form_body |> map (fun (buf, _, _) -> buf)) |> Cohttp_lwt.Body.of_stream in
-        Cohttp_lwt_unix.Client.post ~headers ~body uri >>= fun (response, body) ->
+        let body = Lwt_stream.(from_direct form_body |> map (fun (buf, _, _) -> buf)) in
+        let s = Lwt_stream.get_available body in
+        Printf.printf "%s\n%!" @@ Uri.to_string uri;
+        Printf.printf "%s\n%!" @@ Cohttp.Header.to_string headers;
+        Stdlib.List.iter (Printf.printf "%s") s;
+        Printf.printf "\n%!";
+        let body = Cohttp_lwt.Body.of_string (String.concat "" s) in
+        Cohttp_lwt_unix.Client.post ~chunked:false ~headers ~body uri >>= fun (response, body) ->
         Cohttp_lwt.Body.to_string body >>= fun contents ->
         success_or_death response contents >>= fun () ->
         Printf.printf "\n\n%s\n%!" contents;
