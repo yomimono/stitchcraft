@@ -15,10 +15,6 @@ let metadata =
 
 let eight_bit debug =
   (* these are "plain" 8-bit chars, so we run them through Char.chr *)
-  (* TODO: some yaff files include the random garbage that sat in here from
-   * the original charset, which we probably don't want to do.
-   * It's likely that the more intellectually honest thing to do is fail
-   * if we get a value below 20 or >= 127. *)
   let uchar_of_string s = int_of_string s |> Char.chr |> Uchar.of_char in
   string "0x" >>= fun _ ->
   if debug then Format.eprintf "looks like an eight-bit label\n%!";
@@ -98,7 +94,16 @@ let real_glyph debug =
   if debug then Format.eprintf "got labels %a\n%!" Fmt.(list int) (List.map Uchar.to_int labels);
   bitmap debug >>| fun glyph ->
   if debug then Format.eprintf "got a %d by %d glyph!\n%!" glyph.width glyph.height;
-  Some (glyph, labels)
+  (* some yaff files include the random garbage that sat in here from
+   * the original charset, which we probably don't want to do.
+   * "fix" this by discarding everything obviously wrong. *)
+  match List.filter (fun label ->
+
+      ((Uchar.to_int label) >= 0x20 && (Uchar.to_int label) < 127)
+      || Uchar.to_int label > 255)
+      labels with
+  | [] -> None
+  | labels -> Some (glyph, labels)
 
 (* some yaffs define a glyph for "missing" characters; ignore it *)
 let missing_glyph debug =
