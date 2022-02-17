@@ -1,5 +1,6 @@
 let fontformat = Cmdliner.Arg.enum ["otf", `Otf;
                                     "psf", `Psf;
+                                    "yaff", `Yaff;
                                    ]
 
 let debug =
@@ -30,6 +31,9 @@ let ingest fmt db src font_name debug =
     Populator.populate db src font_name debug
   | `Psf ->
     let module Populator = Sqlite.Populate(Psf2stitchfont) in
+    Populator.populate db src font_name debug
+  | `Yaff ->
+    let module Populator = Sqlite.Populate(Yaff2stitchfont) in
     Populator.populate db src font_name debug
 
 let ingest_t = Cmdliner.Term.(const ingest $ fmt $ db $ src $ font_name $ debug)
