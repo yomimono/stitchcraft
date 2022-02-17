@@ -6,7 +6,6 @@ let info =
   let doc = "ingest psf (pc screen font) version 2 files" in
   Cmdliner.Term.info "readpsf" ~doc
 
-(* you can tell somebody writes Java in her day job these days *)
 module Psfreader = Fontreader.Readfiles.Reader(Fontreader.Psf2stitchfont)
 
 let read_t = Cmdliner.Term.(const Psfreader.read $ const false $ input)
