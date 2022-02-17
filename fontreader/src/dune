@@ -10,12 +10,7 @@
  (libraries cmdliner bos fontreader fmt)
 )
 (executable
- (public_name psf2sqlite)
- (modules psf2sqlite)
- (libraries cmdliner fontreader sqlite)
-)
-(executable
- (public_name otf2sqlite)
- (modules otf2sqlite)
+ (public_name font2sqlite)
+ (modules font2sqlite)
  (libraries cmdliner fontreader sqlite)
 )
