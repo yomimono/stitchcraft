@@ -31,7 +31,7 @@ Stitchcraft bundles several executables for command-line use.  Many assume the p
 * embellish , for composing cross-stitch patterns in various ways
 * estimator , which gives very loose time and materials estimates for cross-stitch patterns
 * listing , which makes supplementary files useful in listing cross-stitch patterns on Etsy
-* patreader , which reads some .pat files and converts them to Stitchy's format
+* pat2stitchy , which reads some .pat files and converts them to Stitchy's format
 * font2sqlite, for importing bitmap fonts to the font database
 
 ## Pattern Viewing
