@@ -22,7 +22,7 @@ A better user experience for such folks is coming someday.
 
 # How can I use it?
 
-Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in /tmp (location customizable with `--db`), which stores raster font information; if this file is missing, you're gonna have a bad time.  You can create entries for it with `otb2stitchfont`, or use the version distributed in this git repository.
+Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in /tmp (location customizable with `--db`), which stores raster font information; if this file is missing, you're gonna have a bad time.  You can create entries for it with `font2sqlite`, or use the version distributed in this git repository.
 
 ## Pattern Generation and Manipulation
 
@@ -31,16 +31,13 @@ Stitchcraft bundles several executables for command-line use.  Many assume the p
 * embellish , for composing cross-stitch patterns in various ways
 * estimator , which gives very loose time and materials estimates for cross-stitch patterns
 * listing , which makes supplementary files useful in listing cross-stitch patterns on Etsy
-* otb2stitchfont , for importing otf bitmap fonts to the font database
+* patreader , which reads some .pat files and converts them to Stitchy's format
+* font2sqlite, for importing bitmap fonts to the font database
 
 ## Pattern Viewing
 
 * notty_canvas , for displaying patterns in the terminal
 * stitchpattern , for converting patterns to PDFs
-
-## Example Compositions
-
-The `dune` file contains several test cases.  Have a look at the `brainfuck`, `butts`, `cards`, `be_gay_find_primes`, `verbs`, and `tops` targets.
 
 ## Importing Graphics
 
@@ -59,10 +56,9 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 # Future Features
 
 * nicer `listing` preview graphics
-* Etsy API integration in `listing` (blocked on nice OAuth2 library :( )
+* Etsy API integration (blocked on a bug either in Etsy's OpenAPI 3.0 or our implementation )
 * Zoom in `notty_canvas`
 * sensible names or possibly subcommands
-* ingestion of traditional pattern software files
 * more full-featured composition binaries
 
 # Anti-features / out-of-scope stuff
