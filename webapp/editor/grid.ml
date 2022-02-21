@@ -13,7 +13,7 @@ type editor = {
   tool : tool;
 }
 
-let block_size = 10
+let block_size = 20
 
 let default_thread = (List.hd DMC.Thread.basic)
 
@@ -51,7 +51,6 @@ let make_toolbar () =
   let textbutton s = Html.createButton ~_type:(Js.string "text") ~name:(Js.string s) d in
   let toolbar = Html.getElementById "toolbar"
   and eraser = textbutton "eraser"
-  and save_png = textbutton "save_png"
   and make_json = textbutton "make_json"
   and upload = textbutton "upload"
   in
@@ -60,28 +59,9 @@ let make_toolbar () =
   Dom.appendChild upload (d##createTextNode (Js.string "save to server"));
 
   Dom.appendChild toolbar eraser;
-  Dom.appendChild toolbar save_png;
   Dom.appendChild toolbar make_json;
   Dom.appendChild toolbar upload;
-  (eraser, save_png, make_json, upload)
-
-let make_save_link pattern =
-  let d = Html.window##.document in
-  let json = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.pretty_to_string in
-  let save_link = "download_json" in
-  match Base64.encode json with
-  | Error _  -> () (* TODO oh no *)
-  | Ok png_buf ->
-    let uri = Format.asprintf "data:text/json;base64,%s" png_buf in
-    let link = Html.createA d in
-    link##.href := Js.string uri;
-    link##.id := Js.string save_link;
-    Dom.appendChild link (d##createTextNode (Js.string "download masterpiece!"));
-    match Html.getElementById_opt save_link with
-    | None ->
-      Dom.appendChild (Html.getElementById "download") link
-    | Some old_link ->
-      Dom.replaceChild (Html.getElementById "download") link old_link
+  (eraser, make_json, upload)
 
 let make_colorbar editor =
   let d = Html.window##.document in
@@ -172,7 +152,7 @@ let start _event =
   Canvas.render canvas !state;
   let drawbox = Html.getElementById "drawbox" in
   Dom.appendChild drawbox canvas;
-  let (eraser, save, json, upload) = make_toolbar () in
+  let (eraser, json, upload) = make_toolbar () in
   Lwt.ignore_result @@ show_library ();
   let () = make_colorbar editor in
   drawbox##.onclick := Html.handler (fun event ->
@@ -182,10 +162,6 @@ let start _event =
     );
   eraser##.onclick := Html.handler (fun _ ->
       editor := { tool = Eraser } ;
-      Js._false
-    );
-  save##.onclick := Html.handler (fun _ ->
-      make_save_link !state;
       Js._false
     );
   json##.onclick := Html.handler (fun _ ->
