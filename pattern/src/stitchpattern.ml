@@ -23,7 +23,7 @@ let watermark =
 
 let info =
   let doc = "output a PDF for a cross-stitch pattern" in
-  Term.info "pattern" ~doc
+  Cmd.info "pattern" ~doc
 
 let paper_size =
   let sizes = [
@@ -57,4 +57,4 @@ let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
 let embed_t = Term.(const write_pattern $ paper_size $ watermark $ grid_size
                     $ fat_line_interval $ src $ dst)
 
-let () = Term.exit @@ Term.eval (embed_t, info)
+let () = exit @@ Cmd.eval @@ Cmd.v info embed_t

@@ -23,22 +23,21 @@ let go files output =
       | Ok patterns, Ok pattern -> Ok (pattern::patterns)
     ) (Ok []) files
   in
-  let bigpattern patterns =
-    List.fold_left (fun bigpattern next -> match bigpattern with
-        | None -> Some next
-        | Some bigpattern -> Some (Stitchy.Operations.vcat bigpattern next))
-      None patterns
-  in
   match files with
   | Error _ -> failwith "oh no!!"
   | Ok patterns ->
-    match bigpattern patterns with
-    | None -> failwith "oh NOOOOOO!!!"
-    | Some bigpattern ->
+    match Stitchy.Operations.(perform Vcat patterns) with
+    | Error (`Msg s) -> Format.eprintf "error performing concatenation: %s\n%!" s;
+      exit 1
+    | Ok (bigpattern::_) ->
       Stitchy.Types.pattern_to_yojson bigpattern
       |> Yojson.Safe.to_file output
+    | Ok _ ->
+      Format.eprintf "multiple patterns came back from hcat";
+      exit 1
+
 let vcat_t = Term.(const go $ files $ output)
 
-let info = Term.info "vcat" ~doc:"vertically concatenate patterns"
+let info = Cmd.info "vcat" ~doc:"vertically concatenate patterns"
 
-let () = Term.exit @@ Term.eval (vcat_t, info)
+let () = exit @@ Cmd.eval @@ Cmd.v info vcat_t

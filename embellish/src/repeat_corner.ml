@@ -100,7 +100,7 @@ let min_height =
 
 let info =
   let doc = "embellish an image with corner and border images" in
-  Term.info "embellish" ~doc ~exits:Term.default_exits
+  Cmd.info "embellish" ~doc
 
 let spoo output json =
   if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
@@ -129,4 +129,4 @@ let go corner border center fill min_width min_height output =
 
 let compose_t = Term.(const go $ corner $ border $ center $ fill $ min_width $ min_height $ output)
 
-let () = Term.exit @@ Term.eval (compose_t, info)
+let () = exit @@ Cmd.eval @@ Cmd.v info compose_t

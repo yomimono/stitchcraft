@@ -1,6 +1,18 @@
 open Types
 
-type displacement = | Right of int | Down of int | RightAndDown of int * int
+type displacement =
+  | Right of int
+  | Down of int
+  | RightAndDown of int * int
+
+type t =
+  | Hcat
+  | Vcat
+  | Displace of displacement
+  | Transform of ((int * int) -> (int * int))
+  | Merge of substrate
+  | Repeat of displacement
+  | Rotate
 
 let displace_stitch displacement (x, y) =
   match displacement with
@@ -146,6 +158,13 @@ let rec hrepeat image = function
   | n when n <= 1 -> image
   | n -> hcat image (hrepeat image (n - 1))
 
+let repeat dimensions image =
+  match dimensions with
+  | Down n -> vrepeat image n
+  | Right n -> hrepeat image n
+  | RightAndDown (i, j) ->
+    vrepeat (hrepeat image i) j
+    
 let rotate_ccw (pattern : pattern) =
   let rotate (x, y) =
     let rotated_x = x * -1 in
@@ -163,3 +182,16 @@ let (<|>) = vcat
 let empty base_substrate max_x max_y =
   let substrate = {base_substrate with max_x; max_y } in
   {layers = []; substrate; backstitch_layers = []}
+
+let perform op l =
+  match op, l with
+  | Hcat, hd::tl -> Ok [List.fold_left hcat hd tl]
+  | Vcat, hd::tl -> Ok [List.fold_left vcat hd tl]
+  | Merge substrate, hd::tl ->
+    Ok [List.fold_left (fun acc p -> merge_patterns ~substrate acc p) hd tl]
+  | Hcat, _ | Vcat, _ | Merge _, _ ->
+    Error (`Msg "list must contain at least one pattern")
+  | Rotate, l -> Ok (List.map rotate_ccw l)
+  | Displace d, _ -> Ok (List.map (displace_pattern d) l)
+  | Repeat d, _ -> Ok (List.map (repeat d) l)
+  | Transform f, _ -> Ok (List.map (transform_all_stitches ~f) l)
