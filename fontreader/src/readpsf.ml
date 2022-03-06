@@ -4,17 +4,14 @@ let input =
 
 let info =
   let doc = "ingest psf (pc screen font) version 2 files" in
-  Cmdliner.Term.info "readpsf" ~doc
+  Cmdliner.Cmd.info "readpsf" ~doc
 
 module Psfreader = Fontreader.Readfiles.Reader(Fontreader.Psf2stitchfont)
 
-let read_t = Cmdliner.Term.(const Psfreader.read $ const false $ input)
+let mapped debug input = Psfreader.read debug input |> function
+  | Error (`Msg e) -> Format.eprintf "%s\n%!" e; Error e
+  | Ok l -> Ok l
 
-let () =
-  Cmdliner.Term.eval (read_t, info) |> function
-  | `Ok (Error (`Msg s)) -> 
-    Format.eprintf "%s\n%!" s; exit 1
-  | `Ok (Ok ()) ->
-    exit 0 
-  | `Error _ -> exit 1
-  | e -> Cmdliner.Term.exit e
+let read_t = Cmdliner.Term.(const mapped $ const false $ input)
+
+let () = exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info read_t

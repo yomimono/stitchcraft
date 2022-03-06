@@ -46,10 +46,8 @@ let go input grid width height background exclude output =
       let pattern = Assemble.stitch background width height grid exclude layers in
       Stitchy.Files.stdout_or_file (Stitchy.Types.pattern_to_yojson pattern) output
 
-let info =
-  let doc = "assemble" in
-  Cmdliner.Term.info doc
+let info = Cmdliner.Cmd.info "assemble"
 
 let go_t = Cmdliner.Term.(const go $ input $ grid $ width $ height $ background $ exclude $ output)
 
-let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (go_t, info)
+let () = exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info go_t

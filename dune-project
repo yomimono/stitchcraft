@@ -12,7 +12,7 @@
  (description "Do you like making cross-stitch patterns, but hate arithmetic? Work primarily in a square-unit medium, but want to do it on the terminal? Stitchcraft has your back."
 )
 (depends
-  (dune (>= 2.0))
+  (dune (>= 2.7))
   (alcotest (>= 1.0.0))
   (astring (>= 0.8.0))
   (base64 (>= 3.0.0))
@@ -21,7 +21,7 @@
   (caqti (>= 1.2.0 ))
   (caqti-driver-sqlite3 (>= 1.2.0 ))
   (caqti-lwt (>= 1.2.0 ))
-  (cmdliner (>= 1.0.4 ))
+  (cmdliner (>= 1.1.0 ))
   (cstruct (>= 5.0.0 ))
   (fmt (>= 0.8.0 ))
   (imagelib (>= 20200929 ))

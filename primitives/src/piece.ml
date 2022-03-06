@@ -39,6 +39,6 @@ let piece x_off y_off width height file =
       (Stitchy.Operations.transform_all_stitches ~f:displace) in
     Yojson.Safe.to_channel stdout @@ Stitchy.Types.pattern_to_yojson p
 
-let info = Cmdliner.Term.info "piece" ~doc:"slice a piece out of an existing pattern"
+let info = Cmdliner.Cmd.info "piece" ~doc:"slice a piece out of an existing pattern"
 
-let () = Cmdliner.(Term.exit @@ Term.eval (Term.(const piece $ xoff $ yoff $ width $ height $ file), info))
+let () = exit @@ Cmdliner.(Cmd.eval @@ Cmd.v info @@ Term.(const piece $ xoff $ yoff $ width $ height $ file))

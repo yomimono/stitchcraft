@@ -92,9 +92,9 @@ let disp input =
 
 let info =
   let doc = "display/explore a cross-stitch pattern on the terminal" in
-  Cmdliner.Term.info "notty_canvas" ~doc
+  Cmdliner.Cmd.info "notty_canvas" ~doc
 
 let disp_t = Cmdliner.Term.(const disp $ input)
 
 let () =
-  Cmdliner.Term.exit @@ Cmdliner.Term.eval (disp_t, info)
+  exit @@ Cmdliner.Cmd.eval @@ Cmdliner.Cmd.v info disp_t

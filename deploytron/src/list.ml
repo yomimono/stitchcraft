@@ -69,7 +69,7 @@ let ls storage key _shop =
   let open Lwt.Infix in
   match Bos.OS.File.read Fpath.(v storage / "token") with
   | Error (`Msg s) -> Printf.eprintf "failed to find a token in %s : %s\n%!" storage s;
-    exit 1
+    Error s
   | Ok token ->
     (* user ID is the first chunk of a token *)
     match String.split_on_char '.' token with
@@ -77,7 +77,7 @@ let ls storage key _shop =
     | l when Stdlib.List.length l > 2 ->
       Printf.eprintf "token seems to have extraneous .'s, which are field separators\n%!"; exit 1
     | user_id::_ ->
-      Lwt_main.run @@ (
+      let _l = Lwt_main.run @@ (
         get_shop token key user_id >>= fun shop ->
         Format.printf "%a\n%!" Yojson.Safe.pp (Etsy.Shop.to_yojson shop);
         get_listings token key shop.shop_id >>= fun listings ->
@@ -87,10 +87,12 @@ let ls storage key _shop =
             Format.printf "%a\n%!" Yojson.Safe.pp (Etsy.File.many_to_yojson files);
             Lwt.return_unit
           ) listings.results
-      )
+      ) in
+      Ok ()
 
 let ls_t = Cmdliner.Term.(const ls $ storage $ key $ shop)
 
-let info = Cmdliner.Term.info "ls"
+let info = Cmdliner.Cmd.info "ls"
 
-let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (ls_t, info)
+let () =
+  exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info ls_t
