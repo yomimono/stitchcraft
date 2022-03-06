@@ -31,7 +31,7 @@ let output =
 
 let info =
   let doc = "embellish a pattern with corner and border images" in
-  Term.info "embellish" ~doc ~exits:Term.default_exits
+  Cmd.info "embellish" ~doc
 
 let spoo output json =
   if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
@@ -64,4 +64,4 @@ let go fencepost rotate_corners corner top center min_width output =
 
 let compose_t = Term.(const go $ fencepost $ rotate_corners $ corner $ top $ center $ min_width $ output)
 
-let () = Term.exit @@ Term.eval (compose_t, info)
+let () = exit @@ Cmd.eval @@ Cmd.v info compose_t

@@ -19,23 +19,24 @@ let go files output =
       | Ok patterns, Ok pattern -> Ok (pattern::patterns)
     ) (Ok []) files
   in
-  let bigpattern patterns =
-    List.fold_left (fun bigpattern next -> match bigpattern with
-        | None -> Some next
-        | Some bigpattern -> Some (Stitchy.Operations.hcat bigpattern next))
-      None patterns
-  in
   match files with
   | Error _ -> failwith "oh no!!"
   | Ok patterns ->
-    match bigpattern patterns with
-    | None -> failwith "oh NOOOOOO!!!"
-    | Some bigpattern ->
+    match Stitchy.Operations.(perform Hcat patterns) with
+    | Error (`Msg s) ->
+      Format.eprintf "error concatenating: %s\n!" s;
+      exit 1
+    | Ok (bigpattern::_) -> begin
       Stitchy.Types.pattern_to_yojson bigpattern
       |> Yojson.Safe.to_file output
+    end
+    | Ok _ ->
+      Format.eprintf "too many elements returned";
+      exit 1
 
 let hcat_t = Term.(const go $ files $ output)
 
-let info = Term.info "hcat" ~doc:"horizontally concatenate patterns"
+let info = Cmd.info "hcat" ~doc:"horizontally concatenate patterns"
 
-let () = Term.exit @@ Term.eval (hcat_t, info)
+let () =
+  exit @@ Cmd.eval @@ Cmd.v info hcat_t
