@@ -8,17 +8,17 @@ let debug =
 
 let info =
   let doc = "ingest otf files" in
-  Cmdliner.Term.info "readotf" ~doc
+  Cmdliner.Cmd.info "readotf" ~doc
 
 module Otfreader = Fontreader.Readfiles.Reader(Fontreader.Otf2stitchfont)
 
-let read_t = Cmdliner.Term.(const Otfreader.read $ debug $ input)
+let mapped debug input = Otfreader.read debug input |> function
+  | Error (`Msg e) ->
+    Format.eprintf "%s\n%!" e;
+    Error e
+  | Ok l -> Ok l
 
-let () =
-  Cmdliner.Term.eval (read_t, info) |> function
-  | `Ok (Error (`Msg s)) -> 
-    Format.eprintf "%s\n%!" s; exit 1
-  | `Ok (Ok ()) ->
-    exit 0 
-  | `Error _ -> exit 1
-  | e -> Cmdliner.Term.exit e
+let read_t = Cmdliner.Term.(const mapped $ debug $ input)
+
+let () = exit @@
+  Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info read_t

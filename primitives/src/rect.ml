@@ -41,4 +41,4 @@ let rect height width thread bg gridsize x y =
 
 let () =
   let go = Cmdliner.Term.(const rect $ height $ width $ thread $ background $ gridsize $ x $ y) in
-  Cmdliner.Term.(exit @@ eval (go, info "rect"))
+  exit @@ Cmdliner.Cmd.(eval @@ v (info "rect") go)

@@ -48,7 +48,7 @@ let bs background grid thread l =
   let pattern = {substrate; backstitch_layers; layers = []} in
   Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_channel stdout
 
-let bs_t = Cmdliner.Term.info "backstitch"
+let bs_t = Cmdliner.Cmd.info "backstitch"
 
-let () =
-  Cmdliner.Term.(exit @@ eval (const bs $ background $ gridsize $ thread $ segments, bs_t))
+let () = exit @@
+  Cmdliner.(Cmd.eval @@ Cmd.v bs_t @@ Term.(const bs $ background $ gridsize $ thread $ segments))

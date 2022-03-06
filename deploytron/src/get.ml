@@ -79,6 +79,6 @@ let get host storage start_over =
 
 let get_t = Cmdliner.Term.(const get $ host $ storage $ start_over)
 
-let info = Cmdliner.Term.info "get"
+let info = Cmdliner.Cmd.info "get"
 
-let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (get_t, info)
+let () = exit @@ Cmdliner.Cmd.eval @@ Cmdliner.Cmd.v info get_t

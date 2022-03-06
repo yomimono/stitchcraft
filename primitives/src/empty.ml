@@ -24,8 +24,8 @@ let empty width height bg gridsize =
   let pattern = Primitives.empty bg gridsize ~width ~height in
   Yojson.Safe.to_channel stdout @@ Stitchy.Types.pattern_to_yojson pattern
 
-let empty_t = Cmdliner.Term.info "empty"
+let empty_info = Cmdliner.Cmd.info "empty"
   
 let () =
   let go = Cmdliner.Term.(const empty $ width $ height $ background $ gridsize) in
-  Cmdliner.Term.(exit @@ eval (go, empty_t))
+  exit @@ Cmdliner.Cmd.eval @@ Cmdliner.Cmd.v empty_info go

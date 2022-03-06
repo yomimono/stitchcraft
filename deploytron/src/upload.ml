@@ -100,6 +100,6 @@ let upload storage key shop listing filename =
 
 let upload_t = Cmdliner.Term.(const upload $ storage $ key $ shop $ listing $ file)
 
-let info = Cmdliner.Term.info "upload"
+let info = Cmdliner.Cmd.info "upload"
 
-let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (upload_t, info)
+let () = exit @@ Cmdliner.Cmd.eval @@ Cmdliner.Cmd.v info upload_t

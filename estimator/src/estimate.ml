@@ -33,6 +33,7 @@ let estimate file margin =
 
 let estimate_t = Cmdliner.Term.(const estimate $ pattern $ margin)
 
-let info = Cmdliner.Term.info "estimate"
+let info = Cmdliner.Cmd.info "estimate"
 
-let () = Cmdliner.Term.exit @@ Cmdliner.Term.eval (estimate_t, info)
+let () = 
+  exit @@ Cmdliner.Cmd.eval @@ Cmdliner.Cmd.v info estimate_t

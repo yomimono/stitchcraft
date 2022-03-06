@@ -16,6 +16,7 @@ let rotate file =
   | Ok pattern ->
     Stitchy.Operations.rotate_ccw pattern |> Stitchy.Types.pattern_to_yojson |> Yojson.Safe.to_channel stdout
 
-let info = Cmdliner.Term.info "rotate" ~doc:"rotate a pattern counterclockwise"
+let info = Cmdliner.Cmd.info "rotate" ~doc:"rotate a pattern counterclockwise"
 
-let () = Cmdliner.(Term.exit @@ Term.eval (Term.(const rotate $ file), info))
+let () = exit @@
+  Cmdliner.(Cmd.eval @@ Cmd.v info @@ Term.(const rotate $ file))

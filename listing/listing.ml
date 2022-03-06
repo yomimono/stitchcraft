@@ -105,13 +105,9 @@ let go input output is_kit =
   let () = ImageLib_unix.writefile output image in
   Ok ()
 
-let reword input output annotation =
-  Rresult.R.reword_error (fun str -> `Msg str) (go input output annotation)
+let info = Cmdliner.Cmd.info "listing"
 
-let info = Cmdliner.Term.info "listing"
-
-let go_t = Cmdliner.Term.(const reword $ input $ output $ annotation)
+let go_t = Cmdliner.Term.(const go $ input $ output $ annotation)
 
 let () =
-  let result = Cmdliner.Term.term_result go_t in
-  Cmdliner.Term.exit @@ Cmdliner.Term.eval (result, info)
+  exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info go_t

@@ -36,15 +36,14 @@ let ingest fmt db src font_name debug =
     let module Populator = Sqlite.Populate(Yaff2stitchfont) in
     Populator.populate db src font_name debug
 
-let ingest_t = Cmdliner.Term.(const ingest $ fmt $ db $ src $ font_name $ debug)
+let go fmt db src font_name debug =
+  match ingest fmt db src font_name debug with
+  | Error (`Msg s) -> Format.eprintf "%s\n%!" s; Error s
+  | Ok l -> Ok l
 
-let info = Cmdliner.Term.info "populate a sqlite database with font information"
+let ingest_t = Cmdliner.Term.(const go $ fmt $ db $ src $ font_name $ debug)
+
+let info = Cmdliner.Cmd.info "populate a sqlite database with font information"
 
 let () =
-  Cmdliner.Term.eval (ingest_t, info) |> function
-  | `Ok (Error (`Msg s)) -> 
-    Format.eprintf "%s\n%!" s; exit 1
-  | `Ok (Ok ()) ->
-    exit 0 
-  | `Error _ -> exit 1
-  | e -> Cmdliner.Term.exit e
+  exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info ingest_t
