@@ -7,7 +7,7 @@
 (library
   (name postgres)
   (modules postgres)
-  (libraries bos pgx pgx_lwt_unix)
+  (libraries bos fontreader pgx pgx_lwt_unix stitchy)
 )
 
 (executable
@@ -19,4 +19,9 @@
  (public_name font2sqlite)
  (modules font2sqlite)
  (libraries cmdliner fontreader sqlite)
+)
+(executable
+  (public_name font2postgres)
+  (modules font2postgres)
+  (libraries cmdliner fontreader postgres)
 )
