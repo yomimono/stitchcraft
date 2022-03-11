@@ -6,8 +6,16 @@ module UcharMap : Map.S with type key = Uchar.t
 type coordinates = int * int [@@deriving yojson]
 type segment = coordinates * coordinates [@@deriving yojson]
 module Coordinates : Map.OrderedType with type t = coordinates
-module CoordinateSet : Set.S with type elt = coordinates [@@deriving yojson]
-module SegmentSet : Set.S with type elt = segment [@@deriving yojson]
+module CoordinateSet : sig
+  include Set.S with type elt = coordinates
+  val to_yojson : t -> Yojson.Safe.t
+  val of_yojson : Yojson.Safe.t -> (t, string) result
+end
+module SegmentSet : sig
+  include Set.S with type elt = segment
+  val to_yojson : t -> Yojson.Safe.t
+  val of_yojson : Yojson.Safe.t -> (t, string) result
+end
 
 type cross_stitch =
   | Full (* X *) (* full stitch *)
