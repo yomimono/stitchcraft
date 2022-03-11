@@ -4,6 +4,12 @@
  (libraries bos caqti caqti-driver-sqlite3 caqti-lwt fontreader lwt sqlite3 stitchy)
 )
 
+(library
+  (name postgres)
+  (modules postgres)
+  (libraries bos pgx pgx_lwt_unix)
+)
+
 (executable
  (public_name readpsf)
  (modules readpsf)
