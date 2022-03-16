@@ -27,12 +27,12 @@ Stitchcraft bundles several executables for command-line use.  Many assume the p
 ## Pattern Generation and Manipulation
 
 * assemble , for assembling color- and placement-free components into a full cross-stitch pattern
-* c64stitch , for taking text input and making a cross-stitch pattern from it
 * embellish , for composing cross-stitch patterns in various ways
 * estimator , which gives very loose time and materials estimates for cross-stitch patterns
 * listing , which makes supplementary files useful in listing cross-stitch patterns on Etsy
 * pat2stitchy , which reads some .pat files and converts them to Stitchy's format
-* font2sqlite, for importing bitmap fonts to the font database
+* font2sqlite and font2postgres, for importing bitmap fonts to the font databases textstitch uses
+* textstitch , for taking text input and making a cross-stitch pattern from it
 
 ## Pattern Viewing
 
