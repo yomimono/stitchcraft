@@ -1,4 +1,4 @@
 (library
- (name c64say)
+ (name textsay)
  (libraries astring lwt stitchy uucp uunf uunf.string uutf)
 )

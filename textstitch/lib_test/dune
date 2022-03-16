@@ -1,6 +1,6 @@
 (executable
  (name lib_test)
- (libraries alcotest c64say stitchy)
+ (libraries alcotest textsay stitchy)
 )
 
 (rule
