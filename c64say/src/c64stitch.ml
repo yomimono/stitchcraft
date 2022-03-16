@@ -35,27 +35,88 @@ let font_name =
   let env = Cmdliner.Cmd.Env.info "STITCH_FONT" ~doc in
   Cmdliner.Arg.(value & opt string "Bm437_PhoenixEGA_8x8" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
 
-let db =
-  let doc = "filename containing a sqlite database of font information" in
-  Cmdliner.Arg.(value & opt file "/tmp/fonts.sqlite3" & info ["d"; "db"] ~doc)
+type db = { host : string;
+            port : int;
+            database : string;
+            user : string;
+            password : string;
+          }
 
-let make_pattern font db textcolor background gridsize phrase interline output =
+let set_db host port database user password = {host; port; database; user; password }
+
+let db_t =
+  let host =
+    let doc = "postgresql server hostname" in
+    let env = Cmdliner.Cmd.Env.info "PGHOST" in
+    Cmdliner.Arg.(value & opt string "localhost" & info ["h"; "host"] ~docv:"PGHOST" ~doc ~env)
+  in
+  let port =
+    let doc = "postgresql server port" in
+    let env = Cmdliner.Cmd.Env.info "PGPORT" in
+    Cmdliner.Arg.(value & opt int 5432 & info ["p"; "port"] ~docv:"PGPORT" ~doc ~env)
+  in
+  let database =
+    let doc = "postgresql database name" in
+    let env = Cmdliner.Cmd.Env.info "PGDATABASE" in
+    Cmdliner.Arg.(value & opt string "stitchcraft" & info ["db"] ~docv:"PGDATABASE" ~doc ~env)
+  in
+  let user =
+    let doc = "postgresql user" in
+    let env = Cmdliner.Cmd.Env.info "PGUSER" in
+    Cmdliner.Arg.(value & opt string "stitchcraft" & info ["u"] ~docv:"PGUSER" ~doc ~env)
+  in
+  let password =
+    let doc = "postgresql user's password" in
+    let env = Cmdliner.Cmd.Env.info "PGPASSWORD" in
+    Cmdliner.Arg.(value & opt string "s3kr1t" & info ["pass"] ~docv:"PGPASSWORD" ~doc ~env)
+  in
+  Cmdliner.Term.(const set_db $ host $ port $ database $ user $ password)
+
+let make_pattern font {host; port; database; password; user } textcolor background gridsize phrase interline output =
   let open Lwt.Infix in
-  Caqti_lwt.connect (Uri.of_string @@ "sqlite3://" ^ db) >>= function
-  | Error e -> Lwt.return @@ Error (Format.asprintf "%a" Caqti_error.pp e)
-  | Ok db ->
-    C64say.Chars.map db font >>= function
-    | Error s -> Lwt.return (Error s)
-    | Ok map ->
-      let lookup letter = Stitchy.Types.UcharMap.find_opt letter map in
-      let pattern = C64say.Assemble.stitch lookup textcolor background gridsize phrase interline in
-      let json = Stitchy.Types.pattern_to_yojson pattern in
-      Lwt.return @@ Stitchy.Files.stdout_or_file json output
+  let uchars = C64say.Assemble.uchars_of_phrase phrase in
+  Pgx_lwt_unix.connect ~host ~port ~database ~password ~user () >>= fun connection ->
+  let to_lookup = List.sort_uniq Uchar.compare uchars in
+  let params = List.map (fun u -> Pgx.Value.[of_string font; of_int (Uchar.to_int u)]) to_lookup in
+  let query = {|WITH font_id AS (
+    SELECT id FROM fonts WHERE name=$1
+    ), glyph_id AS (
+    SELECT glyph FROM fonts_glyphs
+    JOIN font_id on font_id.id = fonts_glyphs.font
+    AND fonts_glyphs.uchar = $2
+    )
+    SELECT $2, width, height, stitches FROM glyphs
+    INNER JOIN glyph_id ON glyph_id.glyph = glyphs.id
+    |} in
+  Pgx_lwt_unix.execute_many connection ~params ~query >>= fun rows ->
+  let map = List.fold_left (fun map r ->
+      match r with
+      | u::w::h::s::[] -> begin
+        match Pgx.Value.to_string s with
+          | None -> map
+          | Some json ->
+            match Stitchy.Types.CoordinateSet.of_yojson @@ Yojson.Safe.from_string json with
+            | Error _ -> map
+            | Ok stitches ->
+              let width = Pgx.Value.to_int_exn w
+              and height = Pgx.Value.to_int_exn h
+              and uchar = Pgx.Value.to_int_exn u |> Uchar.of_int 
+              in
+              let glyph = Stitchy.Types.({width; height; stitches}) in
+              UcharMap.add uchar glyph map
+      end
+      | _ -> map
+    ) Stitchy.Types.UcharMap.empty (List.flatten rows)
+  in
+  let lookup letter = Stitchy.Types.UcharMap.find_opt letter map in
+  let pattern = C64say.Assemble.stitch lookup textcolor background gridsize uchars interline in
+  let json = Stitchy.Types.pattern_to_yojson pattern in
+  Lwt.return @@ Stitchy.Files.stdout_or_file json output
 
 let stitch font db textcolor background gridsize phrase interline output =
   Lwt_main.run @@ make_pattern font db textcolor background gridsize phrase interline output
 
-let stitch_t = Cmdliner.Term.(const stitch $ font_name $ db $ textcolor $ bgcolor $ gridsize $ phrase $ interline $ output)
+let stitch_t = Cmdliner.Term.(const stitch $ font_name $ db_t $ textcolor $ bgcolor $ gridsize $ phrase $ interline $ output)
 
 let info =
   let doc = "make a stitch file repesenting a phrase in a known font" in

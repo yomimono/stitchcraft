@@ -1,5 +1,4 @@
 (executable
  (public_name c64stitch)
- (libraries c64say astring cmdliner stitchy uutf)
- (modules c64stitch)
+ (libraries c64say astring cmdliner stitchy uutf pgx pgx_lwt_unix)
 )
