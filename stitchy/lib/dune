@@ -1,6 +1,6 @@
 (library
  (name stitchy)
  (public_name stitchcraft.stitchy)
- (libraries yojson ppx_deriving.eq ppx_deriving_yojson.runtime base64 fmt imagelib)
+ (libraries yojson ppx_deriving.eq ppx_deriving_yojson.runtime base64 fmt)
  (preprocess (pps ppx_deriving.eq ppx_deriving_yojson))
 )
