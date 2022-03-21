@@ -9,6 +9,7 @@ let html = {|
     <script type="text/javascript" src="grid.js"></script>
   </head>
   <body>
+          <div id="error"></div>
           <div id="drawbox"></div>
           <div id="colorbar"></div>
           <div id="download"></div>
