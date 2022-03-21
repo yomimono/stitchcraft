@@ -5,12 +5,6 @@
  (preprocess (pps js_of_ocaml-ppx))
 )
 
-(rule
- (targets grid.js)
- (action
-  (run %{bin:js_of_ocaml} -q --noruntime %{lib:js_of_ocaml-compiler:runtime.js}
-    --source-map -o %{targets} %{dep:grid.bc})))
-
 (alias
  (name install)
  (deps grid.js index.html))

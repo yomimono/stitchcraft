@@ -1,0 +1,19 @@
+(executable
+  (name server)
+  (modules server)
+  (libraries caqti-driver-postgresql dream))
+
+(executable
+ (name grid)
+ (modules grid canvas edit)
+ (modes js)
+ (libraries base64 js_of_ocaml js_of_ocaml-lwt stitchy)
+ (preprocess (pps js_of_ocaml-ppx))
+)
+
+(rule
+  (alias runtest)
+  (deps grid.bc.js server.exe)
+  (action
+    (run ./server.exe)
+    ))
