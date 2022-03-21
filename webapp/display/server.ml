@@ -29,9 +29,8 @@ let try_serve_pattern id =
   in
   try
     Db.collect_list find_pattern @@ int_of_string id >>= function
-    | Ok (_pattern::_) ->
-      (* Dream.json ~code:200 pattern *)
-      Dream.html ~code:200 html
+    | Ok (pattern::_) ->
+      Dream.json ~code:200 pattern
     | Ok [] ->
       Dream.respond ~code:404 ""
     | Error _ ->
@@ -43,5 +42,6 @@ let () =
   Dream.run @@ Dream.logger @@ Dream.sql_pool "postgresql://stitchcraft:lolbutts@localhost:5432" @@ Dream.router [
     Dream.get "/pattern/:id" (fun request -> Dream.sql request @@ (try_serve_pattern @@ Dream.param request "id"));
     Dream.get "/" (fun _request -> Dream.respond ~code:200 html);
+    Dream.get "/index.html" (fun _request -> Dream.respond ~code:200 html);
     Dream.get "/grid.js" @@ Dream.from_filesystem "" "grid.bc.js";
   ]

@@ -1,7 +1,7 @@
 open Stitchy
 open Types
 
-let block_size = 10
+let block_size = 20
 
 let thread_to_css thread = Js_of_ocaml.CSS.Color.hex_of_rgb (DMC.Thread.to_rgb thread)
 

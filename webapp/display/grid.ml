@@ -6,25 +6,15 @@ module Js = Js_of_ocaml.Js
 module CSS = Js_of_ocaml.CSS
 module Dom = Js_of_ocaml.Dom
 
-let block_size = 20
 let thread_to_css thread = CSS.Color.hex_of_rgb (DMC.Thread.to_rgb thread)
-
-let init =
-  let substrate = {
-    background = 255, 255, 255;
-    grid = Fourteen;
-    max_x = 19;
-    max_y = 19;
-  } in
-  { substrate; layers = []; backstitch_layers = [] }
 
 module Html = Js_of_ocaml.Dom_html
 
-let create_canvas size =
+let create_canvas width height =
   let d = Html.window##.document in
   let c = Html.createCanvas d in
-  c##.width := size;
-  c##.height := size;
+  c##.width := width;
+  c##.height := height;
   c
 
 let load_pattern id =
@@ -45,8 +35,6 @@ let load_pattern id =
 let start _event =
   (* TODO: figure out a sensible size for the canvas based on window size *)
   (* TODO: also figure out a sensible size for block display *)
-  let canvas = create_canvas 300 in
-  let state = ref init in
   Lwt.ignore_result (
     load_pattern 1 >|= function
     | Error s ->
@@ -55,11 +43,16 @@ let start _event =
       let err = d##createTextNode (Js.string s) in
       Dom.appendChild error_element err;
       Lwt.return_unit
-    | Ok pattern -> state := pattern; Lwt.return_unit
+    | Ok pattern ->
+      let canvas = create_canvas
+          Stitchy.Types.((pattern.substrate.max_x + 1) * Canvas.block_size)
+          Stitchy.Types.((pattern.substrate.max_y + 1) * Canvas.block_size)
+      in
+      Canvas.render canvas pattern;
+      let drawbox = Html.getElementById "drawbox" in
+      Dom.appendChild drawbox canvas;
+      Lwt.return_unit
   );
-  Canvas.render canvas !state;
-  let drawbox = Html.getElementById "drawbox" in
-  Dom.appendChild drawbox canvas;
   Js._false (* "If the handler returns false, the default action is prevented" *)
 
 let () =
