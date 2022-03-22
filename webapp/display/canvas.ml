@@ -1,12 +1,15 @@
 open Stitchy
 open Types
 
-let block_size = 20
+type t = {
+  block_size : int;
+  canvas : Js_of_ocaml.Dom_html.canvasElement Js_of_ocaml.Js.t;
+}
 
 let thread_to_css thread = Js_of_ocaml.CSS.Color.hex_of_rgb (DMC.Thread.to_rgb thread)
 
-let render_stitch c _stitch thread (x, y) =
-  let context = c##getContext (Js_of_ocaml.Dom_html._2d_) in
+let render_stitch {canvas; block_size} _stitch thread (x, y) =
+  let context = canvas##getContext (Js_of_ocaml.Dom_html._2d_) in
   context##.fillStyle := Js_of_ocaml.Js.string @@ thread_to_css thread;
   context##fillRect
     (* x offset *) (float_of_int (x * block_size))
@@ -14,12 +17,12 @@ let render_stitch c _stitch thread (x, y) =
     (* width *) (float_of_int block_size)
     (* length *) (float_of_int block_size)
 
-let render_grid ?(minor_index= 5) ?(major_index = 20) c piece =
+let render_grid ?(minor_index= 5) ?(major_index = 20) {canvas; block_size} piece =
   let linewidth index = match index mod minor_index with
     | 0 -> if index mod major_index = 0 then 3. else 2.
     | _ -> 1.
   in
-  let context = c##getContext (Js_of_ocaml.Dom_html._2d_) in
+  let context = canvas##getContext (Js_of_ocaml.Dom_html._2d_) in
   let draw_col_line index =
     context##beginPath;
     context##.lineWidth := linewidth index;
@@ -48,14 +51,7 @@ let render_grid ?(minor_index= 5) ?(major_index = 20) c piece =
 let render_layer canvas layer =
   CoordinateSet.iter (render_stitch canvas layer.stitch layer.thread) layer.stitches
 
-(* TODO it can represent a gridline instead, but we'll pretend that isn't true now *)
-let which_block _substrate x y =
-  (* TODO: this definitely isn't right, substitute this with a real way to find the offset to the first block *)
-  (* unfortunately we may need to set it ourselves in order to be able to know what it is *)
-  let padding_x, padding_y = 5, 5 in
-  ((x - padding_x) / block_size), ((y - padding_y) / block_size)
-
-let render_background canvas substrate =
+let render_background {canvas; block_size} substrate =
   (* draw a big ol' rectangle of the background color *)
   let far_x = (substrate.max_x + 1) * block_size
   and far_y = (substrate.max_y + 1) * block_size

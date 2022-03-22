@@ -10,12 +10,18 @@ let thread_to_css thread = CSS.Color.hex_of_rgb (DMC.Thread.to_rgb thread)
 
 module Html = Js_of_ocaml.Dom_html
 
-let create_canvas width height =
+let create_canvas pattern =
   let d = Html.window##.document in
   let c = Html.createCanvas d in
-  c##.width := width;
-  c##.height := height;
-  c
+  let w = Html.window##.innerWidth
+  and h = Html.window##.innerHeight
+  in
+  let canvas_largest = max w h in
+  let pattern_largest = (max pattern.substrate.max_x pattern.substrate.max_y) + 1 in
+  let block_size = canvas_largest / pattern_largest in
+  c##.width := block_size * (pattern.substrate.max_x + 1);
+  c##.height := block_size * (pattern.substrate.max_y + 1);
+  {Canvas.canvas = c; block_size}
 
 let load_pattern id =
   Js_of_ocaml_lwt.XmlHttpRequest.get (Format.asprintf "/pattern/%d" id) >>= fun response ->
@@ -44,13 +50,10 @@ let start _event =
       Dom.appendChild error_element err;
       Lwt.return_unit
     | Ok pattern ->
-      let canvas = create_canvas
-          Stitchy.Types.((pattern.substrate.max_x + 1) * Canvas.block_size)
-          Stitchy.Types.((pattern.substrate.max_y + 1) * Canvas.block_size)
-      in
+      let canvas = create_canvas pattern in
       Canvas.render canvas pattern;
       let drawbox = Html.getElementById "drawbox" in
-      Dom.appendChild drawbox canvas;
+      Dom.appendChild drawbox Canvas.(canvas.canvas);
       Lwt.return_unit
   );
   Js._false (* "If the handler returns false, the default action is prevented" *)
