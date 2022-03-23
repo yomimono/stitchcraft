@@ -14,7 +14,24 @@ let html = {|
             <div id="grid"></div>
     </body>
   </html> |}
- 
+
+let to_pgsql_array l =
+  let quoted_string fmt s = Format.fprintf fmt "\"%s\"" s in
+  Ok (Format.asprintf "{%a}" Fmt.(list ~sep:comma quoted_string) l)
+
+type _ Caqti_type.field +=
+  | String_array : (string list) Caqti_type.field
+
+let get_coding : type a. _ -> a Caqti_type.Field.t -> a Caqti_type.Field.coding = fun _ -> function
+  | String_array ->
+    let encode = to_pgsql_array
+    and decode _ = Error "nope" (* TODO; for now we don't care *)
+    in
+    Caqti_type.Field.Coding {rep = Caqti_type.String; encode; decode}
+  | _ -> assert false
+
+let string_array = Caqti_type.field String_array
+
 let try_serve_pattern id =
   fun (module Db : Caqti_lwt.CONNECTION) ->
   let find_pattern =
@@ -44,21 +61,8 @@ let search request =
     let tags = List.filter_map
         (fun (k, v) -> if String.equal k "tag" then Some v else None) l
     in
-    (* problem: I can't find a way to define a custom encoder/decoder that (1) allows me to input strings and (2) doesn't pass what I type through a `printf %S`.  So it's unclear to me how,
-     * even with a custom encoder/decoder,
-     * I would pass a string array? *)
-    (* I can loop over the list of tags to get a list, although that seems kinda bonkers *)
-    (* and what am I going to do with it once I have it? I still don't have a way to get it,
-     * in list form, into a query.
-     *
-     * I think I need to either submit or carry a patch? *)
-    let get_tag_id =
-      Caqti_request.find_opt Caqti_type.string Caqti_type.int
-        "SELECT id FROM tags WHERE name = ?"
-    in
-    Lwt_list.map_p (Db.find_opt get_tag_id) tags >>= fun tag_ids ->
     let find_tags =
-      Caqti_request.collect Caqti_type.string Caqti_type.(tup2 int string)
+      Caqti_request.collect string_array Caqti_type.(tup2 int string)
         {|
         SELECT
         id, name

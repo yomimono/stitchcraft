@@ -39,7 +39,7 @@ let load_pattern id =
 
 let start _event =
   Lwt.ignore_result (
-    load_pattern 2 >|= function
+    load_pattern 1 >|= function
     | Error s ->
       let d = Html.window##.document in
       let error_element = Html.getElementById "error" in
