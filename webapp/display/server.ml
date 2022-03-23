@@ -61,6 +61,10 @@ let search request =
     let tags = List.filter_map
         (fun (k, v) -> if String.equal k "tag" then Some v else None) l
     in
+    let tags_present =
+      Caqti_request.find string_array Caqti_type.int
+         "SELECT count(id) FROM tags WHERE name = ANY(?)"
+    in
     let find_tags =
       Caqti_request.collect string_array Caqti_type.(tup2 int string)
         {|
@@ -72,13 +76,17 @@ let search request =
              (SELECT id FROM tags WHERE name = ANY(?)))
         |}
     in
-    Db.collect_list find_tags tags >>= function
-    | Ok [] -> Dream.respond ~code:404 "no results"
-    | Ok l -> begin
-      let links = List.map Template.link l |> String.concat "<br/>" in
-      Dream.html ~code:200 links
-      end
-    | Error s -> Dream.html ~code:500 @@ Format.asprintf "%a" Caqti_error.pp s
+    Db.find tags_present tags >>= function
+    | Error _ -> Dream.html ~code:500 ""
+    | Ok n when n <> List.length tags -> Dream.html ~code:400 ""
+    | Ok _ ->
+      Db.collect_list find_tags tags >>= function
+      | Error s -> Dream.html ~code:500 @@ Format.asprintf "%a" Caqti_error.pp s
+      | Ok [] -> Dream.respond ~code:404 "no results"
+      | Ok l -> begin
+          let links = List.map Template.link l |> String.concat "<br/>" in
+          Dream.html ~code:200 links
+        end
   end
   | _ -> Dream.respond ~code:400 ""
 
