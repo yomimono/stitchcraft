@@ -1,4 +1,5 @@
 open Lwt.Infix
+
 let html = {|
   <?xml version="1.0" encoding="utf-8"?>
   <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
@@ -43,20 +44,31 @@ let search request =
     let tags = List.filter_map
         (fun (k, v) -> if String.equal k "tag" then Some v else None) l
     in
-    (* I kind of doubt this is going to work, because the quoting is going to be
-     * wrong in the assembled statement *)
-    let tag_string = String.concat "\",\"" tags in
+    (* problem: I can't find a way to define a custom encoder/decoder that (1) allows me to input strings and (2) doesn't pass what I type through a `printf %S`.  So it's unclear to me how,
+     * even with a custom encoder/decoder,
+     * I would pass a string array? *)
+    (* I can loop over the list of tags to get a list, although that seems kinda bonkers *)
+    (* and what am I going to do with it once I have it? I still don't have a way to get it,
+     * in list form, into a query.
+     *
+     * I think I need to either submit or carry a patch? *)
+    let get_tag_id =
+      Caqti_request.find_opt Caqti_type.string Caqti_type.int
+        "SELECT id FROM tags WHERE name = ?"
+    in
+    Lwt_list.map_p (Db.find_opt get_tag_id) tags >>= fun tag_ids ->
     let find_tags =
-      Caqti_request.find_opt Caqti_type.string Caqti_type.(tup2 int string)
+      Caqti_request.collect Caqti_type.string Caqti_type.(tup2 int string)
         {|
-            SELECT id, name
-            FROM patterns
-            WHERE tags @>
-              (SELECT ARRAY
-                (SELECT id FROM tags WHERE name = ANY(ARRAY[?])))
+        SELECT
+        id, name
+        FROM patterns
+        WHERE tags @>
+          (SELECT ARRAY
+             (SELECT id FROM tags WHERE name = ANY(?)))
         |}
     in
-    Db.collect_list find_tags tag_string >>= function
+    Db.collect_list find_tags tags >>= function
     | Ok [] -> Dream.respond ~code:404 "no results"
     | Ok l -> begin
       let links = List.map Template.link l |> String.concat "<br/>" in
@@ -69,6 +81,7 @@ let search request =
 
 
 let () =
+  Caqti_type.Field.define_coding String_array {get_coding};
   Dream.run @@ Dream.logger @@ Dream.sql_pool "postgresql://stitchcraft:lolbutts@localhost:5432" @@ Dream.router [
     Dream.get "/pattern/:id" (fun request -> Dream.sql request @@ (try_serve_pattern @@ Dream.param request "id"));
     Dream.post "/search" (fun request -> Dream.sql request @@ search request);
