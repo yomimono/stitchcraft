@@ -10,7 +10,7 @@
 
 (executable
  (name grid)
- (modules grid canvas edit)
+ (modules grid canvas)
  (modes js)
  (libraries base64 js_of_ocaml js_of_ocaml-lwt stitchy)
  (preprocess (pps js_of_ocaml-ppx))
