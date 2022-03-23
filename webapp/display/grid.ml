@@ -27,7 +27,6 @@ let load_pattern id =
   Js_of_ocaml_lwt.XmlHttpRequest.get (Format.asprintf "/pattern/%d" id) >>= fun response ->
   match response.Js_of_ocaml_lwt.XmlHttpRequest.code with
   | 200 -> begin
-      (* see whether we can translate that json into a pattern *)
       match pattern_of_yojson @@ Yojson.Safe.from_string response.Js_of_ocaml_lwt.XmlHttpRequest.content with
       | Ok state -> Lwt.return @@ Ok state
       | Error s -> Lwt.return @@ Error (Format.asprintf "error getting state from valid json: %s" s)
@@ -39,8 +38,6 @@ let load_pattern id =
              response.Js_of_ocaml_lwt.XmlHttpRequest.content)
 
 let start _event =
-  (* TODO: figure out a sensible size for the canvas based on window size *)
-  (* TODO: also figure out a sensible size for block display *)
   Lwt.ignore_result (
     load_pattern 1 >|= function
     | Error s ->
@@ -52,8 +49,8 @@ let start _event =
     | Ok pattern ->
       let canvas = create_canvas pattern in
       Canvas.render canvas pattern;
-      let drawbox = Html.getElementById "drawbox" in
-      Dom.appendChild drawbox Canvas.(canvas.canvas);
+      let grid = Html.getElementById "grid" in
+      Dom.appendChild grid Canvas.(canvas.canvas);
       Lwt.return_unit
   );
   Js._false (* "If the handler returns false, the default action is prevented" *)

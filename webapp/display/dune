@@ -1,6 +1,11 @@
+(rule
+ (targets template.ml)
+ (deps template.eml.ml)
+ (action (run dream_eml %{deps} --workspace %{workspace_root})))
+
 (executable
   (name server)
-  (modules server)
+  (modules server template)
   (libraries caqti-driver-postgresql dream))
 
 (executable
