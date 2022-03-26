@@ -5,11 +5,16 @@ let index =
   <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
       <title>Pixel Canvas!</title>
-      <script type="text/javascript" src="grid.js"></script>
     </head>
     <body>
-            <div id="error"></div>
-            <div id="grid"></div>
+      <div id="search">
+        <form method="POST" action="/search">
+             <label>Tag:
+                     <input type="text" required="true" id="tag" name="tag" />
+             </label>
+             <button type="submit">Submit</button>
+             </form>
+      </div>
     </body>
   </html>
 

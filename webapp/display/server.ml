@@ -62,8 +62,10 @@ let search request =
         |}
     in
     Db.find tags_present tags >>= function
-    | Error _ -> Dream.html ~code:500 ""
-    | Ok n when n <> List.length tags -> Dream.html ~code:400 ""
+    | Error _ -> Dream.html ~code:500 "error finding tags"
+    | Ok n when n <> List.length tags -> Dream.respond ~code:400 
+                                           (Format.asprintf
+                                              "only %d tags of %d were found" n (List.length tags))
     | Ok _ ->
       Db.collect_list find_tags tags >>= function
       | Error s -> Dream.html ~code:500 @@ Format.asprintf "%a" Caqti_error.pp s
@@ -73,7 +75,7 @@ let search request =
           Dream.html ~code:200 links
         end
   end
-  | _ -> Dream.respond ~code:400 ""
+  | _e -> Dream.respond ~code:400 "form wasn't ok"
 
 
 
