@@ -23,23 +23,24 @@ let create_canvas pattern =
   c##.height := block_size * (pattern.substrate.max_y + 1);
   {Canvas.canvas = c; block_size}
 
-let load_pattern id =
-  Js_of_ocaml_lwt.XmlHttpRequest.get (Format.asprintf "/pattern/%d" id) >>= fun response ->
-  match response.Js_of_ocaml_lwt.XmlHttpRequest.code with
-  | 200 -> begin
-      match pattern_of_yojson @@ Yojson.Safe.from_string response.Js_of_ocaml_lwt.XmlHttpRequest.content with
-      | Ok state -> Lwt.return @@ Ok state
-      | Error s -> Lwt.return @@ Error (Format.asprintf "error getting state from valid json: %s" s)
-      | exception (Yojson.Json_error s) ->
-        Lwt.return @@ Error (Format.asprintf "error parsing json: %s" s)
-    end
-  | n ->
-    Lwt.return @@ Error (Format.asprintf "failed to get library: code %d, content %s" n
-             response.Js_of_ocaml_lwt.XmlHttpRequest.content)
+let load_pattern tag =
+  let d = Html.window##.document in
+  let json =
+    match Js.Opt.to_option @@ d##getElementById (Js.string tag) with
+    | None -> "{}"
+    | Some e -> match Js.Opt.to_option e##.textContent with
+      | None -> "{}"
+      | Some e -> Js.to_string e
+  in
+  match pattern_of_yojson @@ Yojson.Safe.from_string json with
+  | Ok state -> Lwt.return @@ Ok state
+  | Error s -> Lwt.return @@ Error (Format.asprintf "error getting state from valid json: %s" s)
+  | exception (Yojson.Json_error s) ->
+    Lwt.return @@ Error (Format.asprintf "error parsing json: %s" s)
 
 let start _event =
   Lwt.ignore_result (
-    load_pattern 1 >|= function
+    load_pattern "json" >|= function
     | Error s ->
       let d = Html.window##.document in
       let error_element = Html.getElementById "error" in
