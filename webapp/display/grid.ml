@@ -32,11 +32,16 @@ let load_pattern tag =
       | None -> "{}"
       | Some e -> Js.to_string e
   in
-  match pattern_of_yojson @@ Yojson.Safe.from_string json with
+  match Yojson.Safe.from_string json with
+  | exception Stack_overflow -> Lwt.return @@ Error "this string is too big to parse as json"
+  | s ->
+  match pattern_of_yojson s with
   | Ok state -> Lwt.return @@ Ok state
   | Error s -> Lwt.return @@ Error (Format.asprintf "error getting state from valid json: %s" s)
   | exception (Yojson.Json_error s) ->
     Lwt.return @@ Error (Format.asprintf "error parsing json: %s" s)
+  | exception Stack_overflow ->
+    Lwt.return @@ Error "this JSON is too big to parse as a pattern"
 
 let start _event =
   Lwt.ignore_result (
