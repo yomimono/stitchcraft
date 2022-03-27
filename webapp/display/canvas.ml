@@ -41,12 +41,17 @@ let render_grid ?(minor_index= 5) ?(major_index = 20) {canvas; block_size} piece
       y;
     context##stroke
   in
-  let rec aux f = function
+  let rec aux step f = function
     | k when k < 0 -> ()
-    | n -> (f n; aux f (n-1))
+    | n -> (f n; aux step f (n - step))
   in
-  aux draw_col_line (piece.max_x + 1);
-  aux draw_row_line (piece.max_y + 1)
+  let step = match max piece.max_x piece.max_y with
+    | n when n < 200 -> 1
+    | n when n < 400 -> 5
+    | _n -> 20
+  in
+  aux step draw_col_line (piece.max_x + 1);
+  aux step draw_row_line (piece.max_y + 1)
 
 let render_layer canvas layer =
   CoordinateSet.iter (render_stitch canvas layer.stitch layer.thread) layer.stitches

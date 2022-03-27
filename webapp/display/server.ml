@@ -10,7 +10,7 @@ type _ Caqti_type.field +=
 let get_coding : type a. _ -> a Caqti_type.Field.t -> a Caqti_type.Field.coding = fun _ -> function
   | String_array ->
     let encode = to_pgsql_array
-    and decode _ = Error "nope" (* TODO; for now we don't care *)
+    and decode _ = Error "string array decoding is not implemented" (* TODO; for now we don't care *)
     in
     Caqti_type.Field.Coding {rep = Caqti_type.String; encode; decode}
   | _ -> assert false
