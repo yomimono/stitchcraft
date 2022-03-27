@@ -16,9 +16,17 @@
  (preprocess (pps js_of_ocaml-ppx))
 )
 
+(executable
+  (name search)
+  (modules search)
+  (modes js)
+  (libraries js_of_ocaml js_of_ocaml-lwt lwt)
+  (preprocess (pps js_of_ocaml-ppx))
+)
+
 (rule
   (alias runtest)
-  (deps grid.bc.js server.exe)
+  (deps search.bc.js grid.bc.js server.exe)
   (action
     (run ./server.exe)
     ))
