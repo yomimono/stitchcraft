@@ -38,10 +38,7 @@ let try_serve_pattern id =
 let search request =
   fun (module Db : Caqti_lwt.CONNECTION) ->
   (* searches are implicitly across tags and conjunctive *)
-  (* TODO: currently csrf is false because we have no frontend,
-   * so we're using curl for testing, but in the future it
-   * should be true *)
-  Dream.form ~csrf:false request >>= function
+  Dream.form request >>= function
   | `Ok l -> begin
     let tags = List.filter_map
         (fun (k, v) -> if String.equal k "tag" then Some v else None) l
@@ -81,10 +78,10 @@ let search request =
 
 let () =
   Caqti_type.Field.define_coding String_array {get_coding};
-  Dream.run @@ Dream.logger @@ Dream.sql_pool "postgresql://stitchcraft:lolbutts@localhost:5432" @@ Dream.router [
+  Dream.run @@ Dream.logger @@ Dream.memory_sessions @@ Dream.sql_pool "postgresql://stitchcraft:lolbutts@localhost:5432" @@ Dream.router [
     Dream.get "/pattern/:id" (fun request -> Dream.sql request @@ (try_serve_pattern @@ Dream.param request "id"));
     Dream.post "/search" (fun request -> Dream.sql request @@ search request);
-    Dream.get "/" (fun _request -> Dream.respond ~code:200 Template.index);
-    Dream.get "/index.html" (fun _request -> Dream.respond ~code:200 Template.index);
+    Dream.get "/" (fun request -> Dream.respond ~code:200 @@ Template.index request);
+    Dream.get "/index.html" (fun request -> Dream.respond ~code:200 @@ Template.index request);
     Dream.get "/grid.js" @@ Dream.from_filesystem "" "grid.bc.js";
   ]

@@ -1,4 +1,4 @@
-let index =
+let index request =
   <?xml version="1.0" encoding="utf-8"?>
   <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
             "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
@@ -9,8 +9,9 @@ let index =
     <body>
       <div id="search">
         <form method="POST" action="/search">
+             <%s! Dream.csrf_tag request %> </input>
              <label>Tag:
-                     <input type="text" required="true" id="tag" name="tag" />
+             <input type="text" required="true" id="tag" name="tag" />
              </label>
              <button type="submit">Submit</button>
              </form>
