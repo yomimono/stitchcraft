@@ -4,7 +4,7 @@ let index request =
       <title>Pixel Canvas!</title>
     </head>
     <body>
-      <script type="text/javascript" src="/search.js"></script>
+      <script type="text/javascript" src="/tags.js"></script>
       <div id="search">
         <form method="POST" action="/search">
              <%s! Dream.csrf_tag request %> </input>

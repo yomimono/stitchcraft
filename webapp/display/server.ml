@@ -87,5 +87,5 @@ let () =
     Dream.get "/" (fun request -> Dream.respond ~code:200 @@ Template.index request);
     Dream.get "/index.html" (fun request -> Dream.respond ~code:200 @@ Template.index request);
     Dream.get "/display.js" @@ Dream.from_filesystem "" "display.bc.js";
-    Dream.get "/search.js" @@ Dream.from_filesystem "" "search.bc.js";
+    Dream.get "/tags.js" @@ Dream.from_filesystem "" "tags.bc.js";
   ]

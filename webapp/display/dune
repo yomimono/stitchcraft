@@ -17,8 +17,8 @@
 )
 
 (executable
-  (name search)
-  (modules search)
+  (name tags)
+  (modules tags)
   (modes js)
   (libraries js_of_ocaml js_of_ocaml-lwt lwt)
   (preprocess (pps js_of_ocaml-ppx))
@@ -26,7 +26,7 @@
 
 (rule
   (alias runtest)
-  (deps search.bc.js display.bc.js server.exe)
+  (deps tags.bc.js display.bc.js server.exe)
   (action
     (run ./server.exe)
     ))
