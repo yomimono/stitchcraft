@@ -30,7 +30,7 @@ let display json =
   <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
       <title>Pixel Canvas!</title>
-      <script type="text/javascript" src="/grid.js"></script>
+      <script type="text/javascript" src="/display.js"></script>
     </head>
     <body>
             <div id="error"></div>

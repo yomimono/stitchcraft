@@ -9,8 +9,8 @@
   (libraries caqti-driver-postgresql dream))
 
 (executable
- (name grid)
- (modules grid canvas)
+ (name display)
+ (modules display canvas)
  (modes js)
  (libraries base64 js_of_ocaml js_of_ocaml-lwt stitchy)
  (preprocess (pps js_of_ocaml-ppx))
@@ -26,7 +26,7 @@
 
 (rule
   (alias runtest)
-  (deps search.bc.js grid.bc.js server.exe)
+  (deps search.bc.js display.bc.js server.exe)
   (action
     (run ./server.exe)
     ))
