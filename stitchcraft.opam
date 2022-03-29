@@ -15,8 +15,7 @@ depends: [
   "base64" {>= "3.0.0"}
   "bos" {>= "0.2.0"}
   "camlpdf" {>= "2.3"}
-  "caqti" {>= "1.2.0"}
-  "caqti-driver-sqlite3" {>= "1.2.0"}
+  "caqti" {>= "1.8.0"}
   "caqti-lwt" {>= "1.2.0"}
   "cmdliner" {>= "1.1.0"}
   "cstruct" {>= "5.0.0"}

@@ -20,7 +20,8 @@ let string_array = Caqti_type.field String_array
 let try_serve_pattern id =
   fun (module Db : Caqti_lwt.CONNECTION) ->
   let find_pattern =
-    Caqti_request.find Caqti_type.int Caqti_type.string {|
+    let open Caqti_request.Infix in
+    Caqti_type.int -->! Caqti_type.string @:- {|
       SELECT pattern FROM patterns WHERE id = ?
     |}
   in
@@ -44,11 +45,13 @@ let search request =
         (fun (k, v) -> if String.equal k "tag" then Some v else None) l
     in
     let tags_present =
-      Caqti_request.find string_array Caqti_type.int
+      let open Caqti_request.Infix in
+      string_array -->! Caqti_type.int @:-
          "SELECT count(id) FROM tags WHERE name = ANY(?)"
     in
     let find_tags =
-      Caqti_request.collect string_array Caqti_type.(tup2 int string)
+      let open Caqti_request.Infix in
+      string_array -->* Caqti_type.(tup2 int string) @:-
         {|
         SELECT
         id, name
