@@ -42,5 +42,5 @@ let display json =
   </html>
 
 
-let [@warning "-27"] link (id, name) =
-<a href="/pattern/<%i id %>"><%s name %></a>
+let [@warning "-27"] link (id, name, max_x, max_y) =
+<a href="/pattern/<%i id %>"><%s name %> : <%i (max_x + 1) %> x <%i (max_y + 1) %></a>

@@ -51,10 +51,10 @@ let search request =
     in
     let find_tags =
       let open Caqti_request.Infix in
-      string_array -->* Caqti_type.(tup2 int string) @:-
+      string_array -->* Caqti_type.(tup4 int string int int) @:-
         {|
         SELECT
-        id, name
+        id, name, pattern->'substrate'->'max_x', pattern->'substrate'->'max_y'
         FROM patterns
         WHERE tags @>
           (SELECT ARRAY
