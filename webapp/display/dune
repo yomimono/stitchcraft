@@ -6,7 +6,7 @@
 (executable
   (name server)
   (modules server template)
-  (libraries caqti-driver-postgresql dream))
+  (libraries caqti-driver-postgresql dream stitchy))
 
 (executable
  (name display)

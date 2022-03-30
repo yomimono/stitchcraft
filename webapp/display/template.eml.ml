@@ -1,24 +1,43 @@
-let index request =
+let tags =
+  <label>Tag:
+    <input type="text" required="true" id="tag" name="tag" />
+  </label>
+  <div id="new_tags_zone">
+  </div>
+  <label>More Tags
+    <button type="button" id="add_tags">+</button>
+  </label>
+  <br/>
+
+let upload request =
   <html>
-    <head>
-      <title>Pixel Canvas!</title>
-    </head>
+    <head><title>Upload Pattern</title>
+  </head>
+  <body>
+  <div id="upload">
+  <form method="POST" action="/pattern/new" enctype="multipart/form-data">
+     <%s! Dream.csrf_tag request %>
+     <label>Name Your Pattern: <input type="text" name="name" id="upload_name"></label><br/>
+     <label>Pattern File: <input type="file" name="pattern" id="upload_pattern"></label><br/>
+%          Buffer.add_string ___eml_buffer tags;
+     <button type="submit">Submit</button>
+  </form>
+  </div>
+  </body>
+  </html>
+
+
+let index request =
+ <html>
+  <head> <title>Pixel Canvas!</title> </head>
     <body>
       <script type="text/javascript" src="/tags.js"></script>
       <div id="search">
         <form method="POST" action="/search">
              <%s! Dream.csrf_tag request %> </input>
-             <label>Tag:
-               <input type="text" required="true" id="tag" name="tag" />
-             </label>
-             <div id="new_tags_zone">
-             </div>
-             <label>More Tags
-               <button type="button" id="add_tags">+</button>
-             </label>
-             <br/>
+%                      Buffer.add_string ___eml_buffer tags;
              <button type="submit">Submit</button>
-             </form>
+        </form>
       </div>
     </body>
   </html>

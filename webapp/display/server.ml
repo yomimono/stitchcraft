@@ -36,19 +36,56 @@ let try_serve_pattern id =
   with
   | Failure _ | Invalid_argument _ -> Dream.respond ~code:400 ""
 
+let extract_values key l =
+  List.filter_map
+     (fun (k, v) -> if String.(equal (lowercase_ascii k) (lowercase_ascii key))
+       then Some v else None) l
+
+let count_matching_tags =
+  let open Caqti_request.Infix in
+  string_array -->! Caqti_type.int @:-
+  "SELECT count(id) FROM tags WHERE name = ANY(?)"
+
+let create request =
+  fun (module Db : Caqti_lwt.CONNECTION) ->
+  Dream.log "evaluating multipart request...";
+  Dream.multipart ~csrf:false request >>= function
+  | `Ok l -> begin
+    let tags = extract_values "tag" l |> List.flatten |> List.map snd in
+    match extract_values "name" l |> List.flatten |> List.map snd with
+    | [] | _::_::_ -> Dream.respond ~code:400 "supply exactly one name"
+    | name::[] ->
+      Dream.log "name and tags are readable";
+      match extract_values "pattern" l |> List.flatten |> List.map snd with
+      | [] | _::_::_ -> Dream.respond ~code:400 "supply exactly one pattern"
+      | file::[] ->
+      Dream.log "size %d file was transmitted" (String.length file);
+      match Yojson.Safe.from_string file |> Stitchy.Types.pattern_of_yojson with
+      | Error _ -> Dream.respond ~code:400 "supply a valid pattern"
+      | Ok pattern ->
+        Dream.log "decoded a pattern; will try to save it as requested";
+        let normalized_json = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string in
+        let make_pattern =
+          {| INSERT INTO patterns (name, pattern, tags)
+              SELECT ?, ?,
+              (SELECT ARRAY (SELECT id FROM tags WHERE name = ANY (?)))
+          |} in
+        let insert =
+          let open Caqti_request.Infix in
+          Caqti_type.(tup3 string string string_array) -->! Caqti_type.int @:-
+          make_pattern
+        in
+        Db.find insert (name, normalized_json, tags) >>= fun _rows ->
+        Dream.respond ~code:200 ""
+  end
+  | _e -> Dream.respond ~code:400 "create form wasn't ok"
+
 let search request =
   fun (module Db : Caqti_lwt.CONNECTION) ->
   (* searches are implicitly across tags and conjunctive *)
   Dream.form request >>= function
   | `Ok l -> begin
-    let tags = List.filter_map
-        (fun (k, v) -> if String.equal k "tag" then Some v else None) l
-    in
-    let tags_present =
-      let open Caqti_request.Infix in
-      string_array -->! Caqti_type.int @:-
-         "SELECT count(id) FROM tags WHERE name = ANY(?)"
-    in
+    let tags = extract_values "tag" l in
     let find_tags =
       let open Caqti_request.Infix in
       string_array -->* Caqti_type.(tup4 int string int int) @:-
@@ -61,7 +98,7 @@ let search request =
              (SELECT id FROM tags WHERE name = ANY(?)))
         |}
     in
-    Db.find tags_present tags >>= function
+    Db.find count_matching_tags tags >>= function
     | Error _ -> Dream.html ~code:500 "error finding tags"
     | Ok n when n <> List.length tags -> Dream.respond ~code:400 
                                            (Format.asprintf
@@ -78,10 +115,11 @@ let search request =
   | _e -> Dream.respond ~code:400 "form wasn't ok"
 
 
-
 let () =
   Caqti_type.Field.define_coding String_array {get_coding};
   Dream.run @@ Dream.logger @@ Dream.memory_sessions @@ Dream.sql_pool "postgresql://stitchcraft:lolbutts@localhost:5432" @@ Dream.router [
+    Dream.get "/pattern/new" (fun request -> Dream.respond @@ Template.upload request);
+    Dream.post "/pattern/new" (fun request -> Dream.sql request @@ create request);
     Dream.get "/pattern/:id" (fun request -> Dream.sql request @@ (try_serve_pattern @@ Dream.param request "id"));
     Dream.post "/search" (fun request -> Dream.sql request @@ search request);
     Dream.get "/" (fun request -> Dream.respond ~code:200 @@ Template.index request);
