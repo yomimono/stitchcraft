@@ -12,7 +12,7 @@
  (name display)
  (modules display canvas)
  (modes js)
- (libraries base64 js_of_ocaml js_of_ocaml-lwt stitchy)
+ (libraries base64 js_of_ocaml js_of_ocaml-lwt stitchy estimator)
  (preprocess (pps js_of_ocaml-ppx))
 )
 

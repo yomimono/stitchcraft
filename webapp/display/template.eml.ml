@@ -54,6 +54,10 @@ let display json =
     <body>
             <div id="error"></div>
             <div id="grid"></div>
+            <div id="materials"><h3>Materials List</h3>
+                                           <div id="materials_list">
+                                           </div>
+            </div>
             <div id="json" style="display:none">
                 <%s json %>
             </div>

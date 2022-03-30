@@ -43,6 +43,18 @@ let load_pattern tag =
   | exception Stack_overflow ->
     Lwt.return @@ Error "this JSON is too big to parse as a pattern"
 
+let ul_of_threads (threads : Estimator.thread_info list) =
+  let li_of_thread thread =
+    let li = Html.createLi Html.window##.document in
+    li##.textContent := Js.Opt.return (Js.string @@ Format.asprintf "%a" Estimator.pp_thread_info thread);
+    li
+  in
+  let alphabetize = List.sort (fun (a : Estimator.thread_info) b -> Stitchy.DMC.Thread.compare a.thread b.thread) in
+  let ul = Html.createUl Html.window##.document in
+  let lis = List.map li_of_thread (alphabetize threads) in
+  List.iter (Dom.appendChild ul) lis;
+  ul
+
 let start _event =
   Lwt.ignore_result (
     let d = Html.window##.document in
@@ -53,12 +65,18 @@ let start _event =
       Dom.appendChild error_element err;
       Lwt.return_unit
     | Ok pattern ->
-      let grid = Html.getElementById "grid" in
-      let max_width = Html.window##.innerWidth in
-      let max_height = Html.window##.innerHeight in
+      let grid = Html.getElementById "grid"
+      and materials = Html.getElementById "materials_list"
+      in
+      let max_width = Html.window##.innerWidth
+      and max_height = Html.window##.innerHeight
+      in
       let canvas = create_canvas ~max_width ~max_height pattern in
       Canvas.render canvas pattern;
       Dom.appendChild grid Canvas.(canvas.canvas);
+      let bill_of_materials = Estimator.materials ~margin_inches:1. pattern in
+      let ul = ul_of_threads bill_of_materials.threads in
+      Dom.appendChild materials ul;
       Lwt.return_unit
   );
   Js._false (* "If the handler returns false, the default action is prevented" *)

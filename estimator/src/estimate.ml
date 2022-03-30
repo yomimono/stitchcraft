@@ -25,7 +25,7 @@ let estimate file margin =
         substrate_w substrate_h margin substrate_cost;
       Format.printf "%a\n%!" pp_hoop_size hoop_size;
       Format.printf "%a\n%!" pp_frame frame_size;
-      List.iter print_thread_info materials.threads;
+      List.iter (fun thread -> Format.printf "%a\n" pp_thread_info thread) materials.threads;
       let total_cost, total_seconds = totals materials.threads in
       Printf.printf "total cost: %.02G; total time: %d seconds (%d minutes) (%.02G hours)\n%!"
         total_cost total_seconds (total_seconds / 60)

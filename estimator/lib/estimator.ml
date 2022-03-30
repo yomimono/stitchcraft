@@ -137,8 +137,8 @@ let totals threads =
   List.fold_left (fun (total_cost, total_seconds) {cost; seconds; _} ->
      (total_cost +. cost, total_seconds + seconds)) (0., 0) threads
 
-let print_thread_info {thread; amount; length; skeins; cost; seconds } =
-  Printf.printf "%s: %d stitches (%.02f linear inches, %.02f standard skeins, USD %.02f, ~%d seconds)\n%!"
+let pp_thread_info fmt {thread; amount; length; skeins; cost; seconds } =
+  Format.fprintf fmt "%s: %d stitches (%.02f linear inches, %.02f standard skeins, USD %.02f, ~%d seconds)\n%!"
     (Stitchy.DMC.Thread.to_string thread) amount length skeins cost seconds
 
 let backstitch_thread_info grid (layer : backstitch_layer) =
