@@ -46,6 +46,11 @@ let count_matching_tags =
   string_array -->! Caqti_type.int @:-
   "SELECT count(id) FROM tags WHERE name = ANY(?)"
 
+let ensure_tags =
+  let open Caqti_request.Infix in
+  string_array -->. Caqti_type.unit @:-
+  "INSERT INTO tags (name) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING"
+
 let create request =
   fun (module Db : Caqti_lwt.CONNECTION) ->
   Dream.log "evaluating multipart request...";
@@ -75,8 +80,13 @@ let create request =
           Caqti_type.(tup3 string string string_array) -->! Caqti_type.int @:-
           make_pattern
         in
-        Db.find insert (name, normalized_json, tags) >>= fun _rows ->
-        Dream.respond ~code:200 ""
+        Db.exec ensure_tags tags >>= function
+        | Error s -> Dream.log "failure ensuring %d tags; aborting pattern creation" (List.length tags); 
+          Dream.log "error: %a" Caqti_error.pp s;
+          Dream.respond ~code:500 ""
+        | Ok () ->
+          Db.find insert (name, normalized_json, tags) >>= fun _rows ->
+          Dream.respond ~code:200 ""
   end
   | _e -> Dream.respond ~code:400 "create form wasn't ok"
 
