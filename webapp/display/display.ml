@@ -10,15 +10,15 @@ let thread_to_css thread = CSS.Color.hex_of_rgb (DMC.Thread.to_rgb thread)
 
 module Html = Js_of_ocaml.Dom_html
 
-let create_canvas pattern =
+let create_canvas pattern ~max_width ~max_height =
   let d = Html.window##.document in
   let c = Html.createCanvas d in
-  let w = Html.window##.innerWidth
-  and h = Html.window##.innerHeight
+  let w = max_width
+  and h = max_height
   in
-  let canvas_largest = max w h in
+  let canvas_smallest = max 1 (min w h) in
   let pattern_largest = (max pattern.substrate.max_x pattern.substrate.max_y) + 1 in
-  let block_size = canvas_largest / pattern_largest in
+  let block_size = canvas_smallest / pattern_largest in
   c##.width := block_size * (pattern.substrate.max_x + 1);
   c##.height := block_size * (pattern.substrate.max_y + 1);
   {Canvas.canvas = c; block_size}
@@ -45,17 +45,19 @@ let load_pattern tag =
 
 let start _event =
   Lwt.ignore_result (
+    let d = Html.window##.document in
     load_pattern "json" >|= function
     | Error s ->
-      let d = Html.window##.document in
       let error_element = Html.getElementById "error" in
       let err = d##createTextNode (Js.string s) in
       Dom.appendChild error_element err;
       Lwt.return_unit
     | Ok pattern ->
-      let canvas = create_canvas pattern in
-      Canvas.render canvas pattern;
       let grid = Html.getElementById "grid" in
+      let max_width = Html.window##.innerWidth in
+      let max_height = Html.window##.innerHeight in
+      let canvas = create_canvas ~max_width ~max_height pattern in
+      Canvas.render canvas pattern;
       Dom.appendChild grid Canvas.(canvas.canvas);
       Lwt.return_unit
   );
