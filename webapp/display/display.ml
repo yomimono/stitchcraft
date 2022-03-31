@@ -76,7 +76,10 @@ let start _event =
       Dom.appendChild grid Canvas.(canvas.canvas);
       let bill_of_materials = Estimator.materials ~margin_inches:1. pattern in
       let ul = ul_of_threads bill_of_materials.threads in
+      let total = Estimator.totals bill_of_materials.threads in
       Dom.appendChild materials ul;
+      let summary = d##createTextNode (Js.string @@ Format.asprintf "Estimated total: %.2f USD, %d seconds" (fst total) (snd total)) in
+      Dom.appendChild materials summary;
       Lwt.return_unit
   );
   Js._false (* "If the handler returns false, the default action is prevented" *)
