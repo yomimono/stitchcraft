@@ -19,7 +19,7 @@ let upload request =
      <%s! Dream.csrf_tag request %>
      <label>Name Your Pattern: <input type="text" name="name" id="upload_name"></label><br/>
      <label>Pattern File: <input type="file" name="pattern" id="upload_pattern"></label><br/>
-%          Buffer.add_string ___eml_buffer tags;
+                                                                                         <%s! tags %>
      <button type="submit">Submit</button>
   </form>
   </div>
@@ -54,6 +54,7 @@ let display json =
     <body>
             <div id="error"></div>
             <div id="grid"></div>
+            <div id="pdf"></div>
             <div id="materials"><h3>Materials List</h3>
                                            <div id="materials_list">
                                            </div>
