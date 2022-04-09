@@ -1,0 +1,4 @@
+(executable
+  (name serve)
+  (libraries caqti-driver-postgresql dream lwt stitchy)
+)
