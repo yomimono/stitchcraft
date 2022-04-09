@@ -21,18 +21,16 @@ let try_serve_pattern id =
   fun (module Db : Caqti_lwt.CONNECTION) ->
   let find_pattern =
     let open Caqti_request.Infix in
-    Caqti_type.int -->! Caqti_type.string @:- {|
-      SELECT pattern FROM patterns WHERE id = ?
+    Caqti_type.int -->! Caqti_type.(tup2 string string) @:- {|
+      SELECT name, pattern FROM patterns WHERE id = ?
     |}
   in
   try
     Db.collect_list find_pattern @@ int_of_string id >>= function
-    | Ok (pattern::_) ->
-      Dream.html ~code:200 @@ Template.display pattern
-    | Ok [] ->
-      Dream.respond ~code:404 ""
-    | Error _ ->
-      Dream.respond ~code:500 ""
+    | Ok [] -> Dream.respond ~code:404 ""
+    | Error _ -> Dream.respond ~code:500 ""
+    | Ok ((name, pattern)::_) ->
+      Dream.html ~code:200 @@ Template.display ~name pattern
   with
   | Failure _ | Invalid_argument _ -> Dream.respond ~code:400 ""
 

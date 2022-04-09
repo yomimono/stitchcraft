@@ -5,10 +5,9 @@ open Lwt.Infix
 module Js = Js_of_ocaml.Js
 module CSS = Js_of_ocaml.CSS
 module Dom = Js_of_ocaml.Dom
+module Html = Js_of_ocaml.Dom_html
 
 let thread_to_css thread = CSS.Color.hex_of_rgb (DMC.Thread.to_rgb thread)
-
-module Html = Js_of_ocaml.Dom_html
 
 let create_canvas pattern ~max_width ~max_height =
   let d = Html.window##.document in
@@ -55,6 +54,11 @@ let ul_of_threads (threads : Estimator.thread_info list) =
   List.iter (Dom.appendChild ul) lis;
   ul
 
+let pp_time fmt = function
+  | n when n > 60 * 60 * 24 -> Format.fprintf fmt "%d hours" (n / 60 / 60)
+  | n when n > 60 * 60 -> Format.fprintf fmt "%d minutes" (n / 60)
+  | n -> Format.fprintf fmt "%d seconds" n
+
 let start _event =
   Lwt.ignore_result (
     let d = Html.window##.document in
@@ -78,7 +82,7 @@ let start _event =
       let ul = ul_of_threads bill_of_materials.threads in
       let total = Estimator.totals bill_of_materials.threads in
       Dom.appendChild materials ul;
-      let summary = d##createTextNode (Js.string @@ Format.asprintf "Estimated total: %.2f USD, %d seconds" (fst total) (snd total)) in
+      let summary = d##createTextNode (Js.string @@ Format.asprintf "Estimated total: %.2f USD, %a" (fst total) pp_time (snd total)) in
       Dom.appendChild materials summary;
       Lwt.return_unit
   );
