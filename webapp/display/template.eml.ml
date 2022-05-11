@@ -42,7 +42,7 @@ let index request =
     </body>
   </html>
 
-let display ~name json =
+let display id ~name json =
   <?xml version="1.0" encoding="utf-8"?>
   <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
             "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
@@ -56,7 +56,7 @@ let display ~name json =
             <hr/>
             <div id="error"></div>
             <div id="grid"></div>
-            <div id="purchase"></div>
+            <div id="purchase"><a href="/buy/<%s id %>">buy</a></div>
             <div id="materials"><h3>Materials List</h3>
                                            <div id="materials_list">
                                            </div>
@@ -66,7 +66,6 @@ let display ~name json =
             </div>
     </body>
   </html>
-
 
 let [@warning "-27"] link (id, name, max_x, max_y) =
   <a href="/pattern/<%i id %>"><%s name %> : <%i (max_x + 1) %> x <%i (max_y + 1) %></a>

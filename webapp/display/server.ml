@@ -17,7 +17,7 @@ let get_coding : type a. _ -> a Caqti_type.Field.t -> a Caqti_type.Field.coding 
 
 let string_array = Caqti_type.field String_array
 
-let try_serve_pattern id =
+let try_get_pattern id =
   fun (module Db : Caqti_lwt.CONNECTION) ->
   let find_pattern =
     let open Caqti_request.Infix in
@@ -27,12 +27,20 @@ let try_serve_pattern id =
   in
   try
     Db.collect_list find_pattern @@ int_of_string id >>= function
-    | Ok [] -> Dream.respond ~code:404 ""
-    | Error _ -> Dream.respond ~code:500 ""
+    | Ok [] -> Lwt.return @@ `Not_found
+    | Error _ -> Lwt.return @@ `Error
     | Ok ((name, pattern)::_) ->
-      Dream.html ~code:200 @@ Template.display ~name pattern
+      Lwt.return @@ `Pattern (name, pattern)
   with
-  | Failure _ | Invalid_argument _ -> Dream.respond ~code:400 ""
+  | Failure _ | Invalid_argument _ -> Lwt.return @@ `Error
+
+let try_serve_pattern id =
+  fun (module Db : Caqti_lwt.CONNECTION) ->
+    try_get_pattern id (module Db) >>= function
+    | `Not_found -> Dream.respond ~code:404 ""
+    | `Error -> Dream.respond ~code:500 ""
+    | `Pattern (name, pattern) ->
+      Dream.html ~code:200 @@ Template.display id ~name pattern
 
 let extract_values key l =
   List.filter_map
@@ -129,6 +137,7 @@ let () =
     Dream.get "/pattern/new" (fun request -> Dream.respond @@ Template.upload request);
     Dream.post "/pattern/new" (fun request -> Dream.sql request @@ create request);
     Dream.get "/pattern/:id" (fun request -> Dream.sql request @@ (try_serve_pattern @@ Dream.param request "id"));
+    Dream.get "/buy/:id" (fun request -> Dream.sql request @@ (try_sell @@ Dream.param request "id"));
     Dream.post "/search" (fun request -> Dream.sql request @@ search request);
     Dream.get "/" (fun request -> Dream.respond ~code:200 @@ Template.index request);
     Dream.get "/index.html" (fun request -> Dream.respond ~code:200 @@ Template.index request);

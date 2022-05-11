@@ -59,16 +59,16 @@ let try_fulfill request =
     try
       let json = Yojson.Safe.from_string body in
       Dream.debug (fun f -> f "json parsed from body");
-      let client_reference_id = Yojson.Safe.Util.member "client_reference_id" json in
-      match client_reference_id with
-      | `String s ->
-        (* try to find the `client_reference_id`, which gets echoed back to us
-         * and is supposed to correspond with something we know about *)
-        Dream.debug (fun f -> f "client reference id: %s" s);
-        Dream.respond ~code:501 ""
-      | _ ->
-        Dream.debug (fun f -> f "no client reference id: %a" Yojson.Safe.pp json);
+      match Stripe.message_of_yojson json with
+      | Error s -> Dream.debug (fun f -> f "message parsing failed: %s" s);
         Dream.respond ~code:400 ""
+      | Ok stripe_msg ->
+        let open Stripe in
+        (* TODO: I think what we care about here is really the "payment intent",
+         * which I think we make the ID for?  Nope, we POST and it gives us one, which is a little :/ 
+         * *)
+        Dream.debug (fun f -> f "client reference id %s got message type %s" stripe_msg.data.obj.client_reference_id stripe_msg.ty);
+        Dream.respond ~code:501 ""
     with
     | _ -> Dream.respond ~code:400 ""
 
