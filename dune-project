@@ -14,6 +14,9 @@
 (depends
   (dune (>= 2.7))
   (alcotest (>= 1.0.0))
+  (angstrom (>= 0.15.0))
+  (angstrom-lwt-unix (>= 0.15.0))
+  (angstrom-unix (>= 0.15.0))
   (astring (>= 0.8.0))
   (base64 (>= 3.0.0))
   (bos (>= 0.2.0))
