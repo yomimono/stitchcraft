@@ -25,6 +25,7 @@ depends: [
   "lwt" {>= "5.0.0"}
   "notty" {>= "0.2.2"}
   "otfm" {>= "0.4.0"}
+  "pgx_lwt_unix" {>= "2.0"}
   "ppx_cstruct" {>= "5.0.0"}
   "ppx_deriving" {>= "5.0"}
   "ppx_deriving_yojson" {>= "3.6.0"}
