@@ -80,6 +80,7 @@ let create request =
           {| INSERT INTO patterns (name, pattern, tags)
               SELECT ?, ?,
               (SELECT ARRAY (SELECT id FROM tags WHERE name = ANY (?)))
+             RETURNING id
           |} in
         let insert =
           let open Caqti_request.Infix in
@@ -91,8 +92,13 @@ let create request =
           Dream.log "error: %a" Caqti_error.pp s;
           Dream.respond ~code:500 ""
         | Ok () ->
-          Db.find insert (name, normalized_json, tags) >>= fun _rows ->
-          Dream.respond ~code:200 ""
+          Db.find insert (name, normalized_json, tags) >>= function
+          | Ok id ->
+            Dream.redirect request (Format.asprintf "/pattern/%d" id)
+          | Error s ->
+            let pp fmt params = Caqti_request.make_pp_with_param () fmt (insert, params) in
+            Dream.log "error inserting pattern: %a" Caqti_error.pp s;
+            Dream.respond ~code:500 ""
   end
   | _e -> Dream.respond ~code:400 "create form wasn't ok"
 
