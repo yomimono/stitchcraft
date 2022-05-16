@@ -143,7 +143,6 @@ let () =
     Dream.get "/pattern/new" (fun request -> Dream.respond @@ Template.upload request);
     Dream.post "/pattern/new" (fun request -> Dream.sql request @@ create request);
     Dream.get "/pattern/:id" (fun request -> Dream.sql request @@ (try_serve_pattern @@ Dream.param request "id"));
-    Dream.get "/buy/:id" (fun request -> Dream.sql request @@ (try_sell @@ Dream.param request "id"));
     Dream.post "/search" (fun request -> Dream.sql request @@ search request);
     Dream.get "/" (fun request -> Dream.respond ~code:200 @@ Template.index request);
     Dream.get "/index.html" (fun request -> Dream.respond ~code:200 @@ Template.index request);
