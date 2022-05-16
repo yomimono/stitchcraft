@@ -1,3 +1,30 @@
+let title = "Stitchcraft Cloud Experience for Makers 2022 Platinum Edition (TM)(R)"
+
+(* TODO: lol i18n *)
+let start_and_head =
+  <!DOCTYPE html>
+  <html lang="en-US">
+  <meta charset="utf-8">
+  <head>
+    <title>
+      <%s title %>
+    </title>
+  </head>
+
+let fin =
+  </html>
+
+let nav =
+  <nav>
+  <a href="/">search</a> <a href="/pattern/new">new</a>
+  </nav>
+
+let header =
+  <header>
+  <%s title %>
+  </header>
+  <%s! nav %>
+
 let tags =
   <label>Tag:
     <input type="text" required="true" id="tag" name="tag" />
@@ -10,48 +37,42 @@ let tags =
   <br/>
 
 let upload request =
-  <html>
-    <head><title>Upload Pattern</title>
-  </head>
+  <%s! start_and_head %>
   <body>
+  <%s! header %>
+  <script type="text/javascript" src="/tags.js"></script>
   <div id="upload">
   <form method="POST" action="/pattern/new" enctype="multipart/form-data">
      <%s! Dream.csrf_tag request %>
      <label>Name Your Pattern: <input type="text" name="name" id="upload_name"></label><br/>
      <label>Pattern File: <input type="file" name="pattern" id="upload_pattern"></label><br/>
-                                                                                         <%s! tags %>
+                            <%s! tags %>
      <button type="submit">Submit</button>
   </form>
   </div>
   </body>
-  </html>
-
+  <%s! fin %>
 
 let index request =
- <html>
-  <head> <title>stitch.website</title> </head>
-    <body>
+  <%s! start_and_head %>
+  <body>
+    <%s! header %>
       <script type="text/javascript" src="/tags.js"></script>
       <div id="search">
         <form method="POST" action="/search">
-             <%s! Dream.csrf_tag request %> </input>
+             <%s! Dream.csrf_tag request %>
 %                      Buffer.add_string ___eml_buffer tags;
              <button type="submit">Submit</button>
         </form>
       </div>
     </body>
-  </html>
+  <%s! fin %>
 
 let display id ~name json =
-  <?xml version="1.0" encoding="utf-8"?>
-  <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
-            "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-  <html xmlns="http://www.w3.org/1999/xhtml">
-    <head>
-      <title>stitch.website | <%s name %></title>
-      <script type="text/javascript" src="/display.js"></script>
-    </head>
+  <%s! start_and_head %>
     <body>
+    <%s! header %>
+      <script type="text/javascript" src="/display.js"></script>
             <h1><%s name %></h1>
             <hr/>
             <div id="error"></div>
@@ -65,7 +86,7 @@ let display id ~name json =
                 <%s json %>
             </div>
     </body>
-  </html>
+  <%s! fin %>
 
 let [@warning "-27"] link (id, name, max_x, max_y) =
   <a href="/pattern/<%i id %>"><%s name %> : <%i (max_x + 1) %> x <%i (max_y + 1) %></a>
