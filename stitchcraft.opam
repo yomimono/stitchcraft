@@ -11,6 +11,9 @@ bug-reports: "https://github.com/yomimono/stitchcraft/issues"
 depends: [
   "dune" {>= "2.7" & >= "2.7"}
   "alcotest" {>= "1.0.0"}
+  "angstrom" {>= "0.15.0"}
+  "angstrom-lwt-unix" {>= "0.15.0"}
+  "angstrom-unix" {>= "0.15.0"}
   "astring" {>= "0.8.0"}
   "base64" {>= "3.0.0"}
   "bos" {>= "0.2.0"}
@@ -22,6 +25,7 @@ depends: [
   "cstruct" {>= "5.0.0"}
   "fmt" {>= "0.8.0"}
   "imagelib" {>= "20200929"}
+  "inotify" {>= "2.0"}
   "lwt" {>= "5.0.0"}
   "notty" {>= "0.2.2"}
   "otfm" {>= "0.4.0"}
