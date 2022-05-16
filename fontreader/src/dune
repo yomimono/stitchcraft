@@ -1,10 +1,4 @@
 (library
- (name sqlite)
- (modules sqlite)
- (libraries bos caqti caqti-driver-sqlite3 caqti-lwt fontreader lwt sqlite3 stitchy)
-)
-
-(library
   (name postgres)
   (modules postgres)
   (libraries bos fontreader pgx pgx_lwt_unix stitchy)
@@ -14,11 +8,6 @@
  (public_name readpsf)
  (modules readpsf)
  (libraries cmdliner bos fontreader fmt)
-)
-(executable
- (public_name font2sqlite)
- (modules font2sqlite)
- (libraries cmdliner fontreader sqlite)
 )
 (executable
   (public_name font2postgres)
