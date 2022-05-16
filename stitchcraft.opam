@@ -23,9 +23,13 @@ depends: [
   "caqti-lwt" {>= "1.2.0"}
   "cmdliner" {>= "1.1.0"}
   "cstruct" {>= "5.0.0"}
+  "dream" {>= "1.0.0~alpha4"}
   "fmt" {>= "0.8.0"}
   "imagelib" {>= "20200929"}
   "inotify" {>= "2.0"}
+  "js_of_ocaml-compiler" {>= "4.0.0"}
+  "js_of_ocaml-lwt" {>= "4.0.0"}
+  "js_of_ocaml-ppx" {>= "4.0.0"}
   "lwt" {>= "5.0.0"}
   "notty" {>= "0.2.2"}
   "otfm" {>= "0.4.0"}
