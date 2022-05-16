@@ -24,12 +24,10 @@ depends: [
   "imagelib" {>= "20200929"}
   "lwt" {>= "5.0.0"}
   "notty" {>= "0.2.2"}
-  "notty.lwt" {>= "0.2.2"}
   "otfm" {>= "0.4.0"}
   "ppx_cstruct" {>= "5.0.0"}
-  "ppx_deriving.eq" {>= "5.0"}
+  "ppx_deriving" {>= "5.0"}
   "ppx_deriving_yojson" {>= "3.6.0"}
-  "ppx_deriving_yojson.runtime" {>= "3.6.0"}
   "rresult" {>= "0.6.0"}
   "uucp" {>= "13.0.0"}
   "uunf" {>= "13.0.0"}
