@@ -1,5 +1,0 @@
-(library
-  (name etsy)
-  (libraries uri yojson)
-  (preprocess (pps ppx_deriving_yojson))
-)

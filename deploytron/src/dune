@@ -1,4 +1,0 @@
-(executables
-  (names get list upload)
-  (libraries etsy bos cmdliner cohttp-lwt-unix fpath mirage-random mirage-crypto multipart_form multipart_form-lwt tls uri)
-)
