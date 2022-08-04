@@ -45,6 +45,7 @@ let load_pattern tag =
 let ul_of_threads (threads : Estimator.thread_info list) =
   let li_of_thread (thread : Estimator.thread_info) =
     let li = Html.createLi Html.window##.document in
+
     let b = Html.createB Html.window##.document in
     let p = Html.createP Html.window##.document in
     let name = Stitchy.DMC.Thread.to_string thread.thread in
