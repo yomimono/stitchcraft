@@ -24,7 +24,7 @@ let render_stitch {canvas; block_size} _stitch thread (x, y) =
 let render_backstitch {canvas; block_size} thread ((x1, y1), (x2, y2)) =
   let context = canvas##getContext (Js_of_ocaml.Dom_html._2d_) in
   context##.strokeStyle := Js_of_ocaml.Js.string @@ thread_to_css thread;
-  context##.lineWidth := no_index_width;
+  context##.lineWidth := major_index_width +. 1.;
   context##beginPath;
   context##moveTo (float_of_int (x1 * block_size)) (float_of_int (y1 * block_size));
   context##lineTo (float_of_int (x2 * block_size)) (float_of_int (y2 * block_size));

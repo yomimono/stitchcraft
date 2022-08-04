@@ -96,7 +96,7 @@ let create request =
           | Ok id ->
             Dream.redirect request (Format.asprintf "/pattern/%d" id)
           | Error s ->
-            let pp fmt params = Caqti_request.make_pp_with_param () fmt (insert, params) in
+            let _pp fmt params = Caqti_request.make_pp_with_param () fmt (insert, params) in
             Dream.log "error inserting pattern: %a" Caqti_error.pp s;
             Dream.respond ~code:500 ""
   end

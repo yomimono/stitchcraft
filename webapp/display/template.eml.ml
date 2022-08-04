@@ -68,7 +68,7 @@ let index request =
     </body>
   <%s! fin %>
 
-let display id ~name json =
+let display _id ~name json =
   <%s! start_and_head %>
     <body>
     <%s! header %>
@@ -77,7 +77,6 @@ let display id ~name json =
             <hr/>
             <div id="error"></div>
             <div id="grid"></div>
-            <div id="purchase"><a href="/buy/<%s id %>">buy</a></div>
             <div id="materials"><h3>Materials List</h3>
                                            <div id="materials_list">
                                            </div>
