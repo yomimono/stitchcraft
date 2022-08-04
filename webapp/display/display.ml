@@ -43,9 +43,13 @@ let load_pattern tag =
     Lwt.return @@ Error "this JSON is too big to parse as a pattern"
 
 let ul_of_threads (threads : Estimator.thread_info list) =
-  let li_of_thread thread =
+  let li_of_thread (thread : Estimator.thread_info) =
     let li = Html.createLi Html.window##.document in
-    li##.textContent := Js.Opt.return (Js.string @@ Format.asprintf "%a" Estimator.pp_thread_info thread);
+    let b = Html.createB Html.window##.document in
+    let name = Stitchy.DMC.Thread.to_string thread.thread in
+    li##.textContent := Js.Opt.return (Js.string @@ Format.asprintf "%d stitches (%.02f linear inches, %.02f standard skeins, USD %.02f, ~%d seconds)" thread.amount thread.length thread.skeins thread.cost thread.seconds);
+    b##.textContent := Js.Opt.return (Js.string name);
+    Dom.appendChild li b;
     li
   in
   let alphabetize = List.sort (fun (a : Estimator.thread_info) b -> Stitchy.DMC.Thread.compare a.thread b.thread) in

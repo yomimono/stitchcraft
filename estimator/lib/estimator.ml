@@ -128,6 +128,15 @@ type thread_info = {
   seconds : int;
 }
 
+let merge thread_1 thread_2 =
+  { thread = thread_1.thread;
+    amount = thread_1.amount + thread_2.amount;
+    length = thread_1.length +. thread_2.length;
+    skeins = thread_1.skeins +. thread_2.skeins;
+    cost = thread_1.cost +. thread_2.cost;
+    seconds = thread_1.seconds + thread_2.seconds;
+  }
+
 type materials = {
   threads : thread_info list;
   fabric : float * float;
@@ -164,5 +173,11 @@ let cross_thread_info grid (layer : layer) =
 let materials ~margin_inches pattern =
   let cross_threads = List.map (cross_thread_info pattern.substrate.grid) pattern.layers in
   let backstitch_threads = List.map (backstitch_thread_info pattern.substrate.grid) pattern.backstitch_layers in
-  { threads = cross_threads @ backstitch_threads;
+  let combined_threads =
+    List.fold_left (fun map (thread : thread_info) ->
+      match ThreadMap.find_opt thread.thread map with
+      | Some t1 -> ThreadMap.add thread.thread (merge t1 thread) map
+      | None -> ThreadMap.add thread.thread thread map
+    ) ThreadMap.empty (cross_threads @ backstitch_threads) in
+  { threads = ThreadMap.bindings combined_threads |> List.map snd;
     fabric = substrate_size_in_inches ~margin_inches pattern.substrate }
