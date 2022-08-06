@@ -77,9 +77,15 @@ let display _id ~name json =
             <hr/>
             <div id="error"></div>
             <div id="grid"></div>
-            <div id="materials"><h3>Materials List</h3>
-                                           <div id="materials_list">
-                                           </div>
+            <div id="materials"><h2>Materials List</h2>
+                 <div id="materials_list">
+                        <h3>Summary</h3>
+                        <div id="summary"></div>
+                        <h3>Thread</h3>
+                        <div id="thread"></div>
+                        <h3>Fabric</h3>
+                        <div id="fabric"></div>
+                 </div>
             </div>
             <div id="json" style="display:none">
                 <%s json %>

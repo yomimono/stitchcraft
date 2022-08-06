@@ -46,10 +46,11 @@ let ul_of_threads (threads : Estimator.thread_info list) =
   let li_of_thread (thread : Estimator.thread_info) =
     let li = Html.createLi Html.window##.document in
     let b = Html.createB Html.window##.document in
+    let p = Html.createP Html.window##.document in
     let name = Stitchy.DMC.Thread.to_string thread.thread in
-    li##.textContent := Js.Opt.return (Js.string @@ Format.asprintf "%d stitches (%.02f linear inches, %.02f standard skeins, USD %.02f, ~%d seconds)" thread.amount thread.length thread.skeins thread.cost thread.seconds);
+    p##.textContent := Js.Opt.return (Js.string @@ Format.asprintf "%d stitches (%.02f linear inches, %d standard skein(s))" thread.amount thread.length @@ int_of_float @@ Float.ceil thread.skeins );
     b##.textContent := Js.Opt.return (Js.string name);
-    Dom.appendChild li b;
+    List.iter (Dom.appendChild li) [b; p];
     li
   in
   let alphabetize = List.sort (fun (a : Estimator.thread_info) b -> Stitchy.DMC.Thread.compare a.thread b.thread) in
@@ -74,7 +75,7 @@ let start _event =
       Lwt.return_unit
     | Ok pattern ->
       let grid = Html.getElementById "grid"
-      and materials = Html.getElementById "materials_list"
+      and thread = Html.getElementById "thread"
       in
       let max_width = Html.window##.innerWidth
       and max_height = Html.window##.innerHeight
@@ -85,9 +86,9 @@ let start _event =
       let bill_of_materials = Estimator.materials ~margin_inches:1. pattern in
       let ul = ul_of_threads bill_of_materials.threads in
       let total = Estimator.totals bill_of_materials.threads in
-      Dom.appendChild materials ul;
       let summary = d##createTextNode (Js.string @@ Format.asprintf "Estimated total: %.2f USD, %a" (fst total) pp_time (snd total)) in
-      Dom.appendChild materials summary;
+      Dom.appendChild (Html.getElementById "summary") summary;
+      Dom.appendChild thread ul;
       Lwt.return_unit
   );
   Js._false (* "If the handler returns false, the default action is prevented" *)
