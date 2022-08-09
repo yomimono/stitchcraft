@@ -3,6 +3,13 @@
  (deps template.eml.ml)
  (action (run dream_eml %{deps} --workspace %{workspace_root})))
 
+(library
+  (name js_canvas)
+  (modules canvas)
+  (libraries base64 js_of_ocaml js_of_ocaml-lwt stitchy estimator)
+  (preprocess (pps js_of_ocaml-ppx))
+)
+
 (executable
   (name server)
   (modules server template)
@@ -10,10 +17,18 @@
 
 (executable
  (name display)
- (modules display canvas)
+ (modules display)
  (modes js)
- (libraries base64 js_of_ocaml js_of_ocaml-lwt stitchy estimator)
+ (libraries js_canvas base64 js_of_ocaml js_of_ocaml-lwt stitchy estimator)
  (preprocess (pps js_of_ocaml-ppx))
+)
+
+(executable
+  (name create)
+  (modules create)
+  (modes js)
+  (libraries js_canvas js_of_ocaml js_of_ocaml-lwt stitchy estimator textstitch)
+  (preprocess (pps js_of_ocaml-ppx))
 )
 
 (executable
@@ -26,7 +41,7 @@
 
 (rule
   (alias runtest)
-  (deps tags.bc.js display.bc.js server.exe)
+  (deps tags.bc.js display.bc.js create.bc.js server.exe)
   (action
     (run ./server.exe)
     ))

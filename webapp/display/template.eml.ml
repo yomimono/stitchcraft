@@ -16,7 +16,7 @@ let fin =
 
 let nav =
   <nav>
-  <a href="/">search</a> <a href="/pattern/new">new</a>
+  <a href="/">search</a> <a href="/pattern/new">upload</a>
   </nav>
 
 let header =
@@ -92,6 +92,16 @@ let display _id ~name json =
             </div>
     </body>
   <%s! fin %>
+
+let create _request =
+  <%s! start_and_head %>
+  <body>
+  <%s! header %>
+      <script type="text/javascript" src="/display.js"></script>
+
+  </body>
+  <%s! fin %>
+
 
 let [@warning "-27"] link (id, name, max_x, max_y) =
   <a href="/pattern/<%i id %>"><%s name %> : <%i (max_x + 1) %> x <%i (max_y + 1) %></a>

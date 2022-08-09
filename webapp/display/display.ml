@@ -7,20 +7,22 @@ module CSS = Js_of_ocaml.CSS
 module Dom = Js_of_ocaml.Dom
 module Html = Js_of_ocaml.Dom_html
 
+module Canvas = Js_canvas.Canvas
+
 let thread_to_css thread = CSS.Color.hex_of_rgb (DMC.Thread.to_rgb thread)
 
 let create_canvas pattern ~max_width ~max_height =
   let d = Html.window##.document in
-  let c = Html.createCanvas d in
+  let html_canvas = Html.createCanvas d in
   let w = max_width
   and h = max_height
   in
   let canvas_smallest = max 1 (min w h) in
   let pattern_largest = (max pattern.substrate.max_x pattern.substrate.max_y) + 1 in
   let block_size = canvas_smallest / pattern_largest in
-  c##.width := block_size * (pattern.substrate.max_x + 1);
-  c##.height := block_size * (pattern.substrate.max_y + 1);
-  {Canvas.canvas = c; block_size}
+  html_canvas##.width := block_size * (pattern.substrate.max_x + 1);
+  html_canvas##.height := block_size * (pattern.substrate.max_y + 1);
+  Canvas.({canvas = html_canvas; block_size})
 
 let load_pattern tag =
   let d = Html.window##.document in

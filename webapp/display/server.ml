@@ -146,6 +146,7 @@ let () =
     Dream.post "/search" (fun request -> Dream.sql request @@ search request);
     Dream.get "/" (fun request -> Dream.respond ~code:200 @@ Template.index request);
     Dream.get "/index.html" (fun request -> Dream.respond ~code:200 @@ Template.index request);
+    Dream.get "/create" (fun request -> Dream.respond ~code:200 @@ Template.create request);
     Dream.get "/display.js" @@ Dream.from_filesystem "" "display.bc.js";
     Dream.get "/tags.js" @@ Dream.from_filesystem "" "tags.bc.js";
   ]
