@@ -1,6 +1,6 @@
 (executable
  (name lib_test)
- (libraries alcotest textsay stitchy)
+ (libraries alcotest textstitch stitchy)
 )
 
 (rule

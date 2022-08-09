@@ -1,4 +1,4 @@
 (library
- (name textsay)
+ (name textstitch)
  (libraries astring lwt stitchy uucp uunf uunf.string uutf)
 )
