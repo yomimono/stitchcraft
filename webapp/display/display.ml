@@ -66,6 +66,7 @@ let pp_time fmt = function
   | n -> Format.fprintf fmt "%d seconds" n
 
 let start _event =
+  let margin_inches = 1. in
   Lwt.ignore_result (
     let d = Html.window##.document in
     load_pattern "json" >|= function
@@ -84,12 +85,16 @@ let start _event =
       let canvas = create_canvas ~max_width ~max_height pattern in
       Canvas.render canvas pattern;
       Dom.appendChild grid Canvas.(canvas.canvas);
-      let bill_of_materials = Estimator.materials ~margin_inches:1. pattern in
+      let bill_of_materials = Estimator.materials ~margin_inches pattern in
+      (* TODO: don't hardcode 14-count Aida everywhere *)
+      let fabric = Js.string @@ Format.asprintf "a %.02f in. x %.02f in. piece of %d-count Aida cloth (including %.02f in. margin on every side left blank for mounting)" (fst bill_of_materials.fabric) (snd bill_of_materials.fabric) 14 margin_inches in
       let ul = ul_of_threads bill_of_materials.threads in
-      let total = Estimator.totals bill_of_materials.threads in
+      let total = Estimator.totals bill_of_materials in
       let summary = d##createTextNode (Js.string @@ Format.asprintf "Estimated total: %.2f USD, %a" (fst total) pp_time (snd total)) in
+      let fabric = d##createTextNode fabric in
       Dom.appendChild (Html.getElementById "summary") summary;
       Dom.appendChild thread ul;
+      Dom.appendChild (Html.getElementById "fabric") fabric;
       Lwt.return_unit
   );
   Js._false (* "If the handler returns false, the default action is prevented" *)

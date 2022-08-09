@@ -142,9 +142,17 @@ type materials = {
   fabric : float * float;
 }
 
-let totals threads =
+let thread_totals threads =
   List.fold_left (fun (total_cost, total_seconds) {cost; seconds; _} ->
      (total_cost +. cost, total_seconds + seconds)) (0., 0) threads
+
+let fabric_total (w, h) =
+  w *. h *. aida_price_per_square_inch
+
+let totals {threads; fabric} =
+  let fabric_money = fabric_total fabric in
+  let thread_money, thread_time = thread_totals threads in
+  (thread_money +. fabric_money), thread_time
 
 let pp_thread_info fmt {thread; amount; length; skeins; cost; seconds } =
   Format.fprintf fmt "%s: %d stitches (%.02f linear inches, %.02f standard skeins, USD %.02f, ~%d seconds)\n%!"
