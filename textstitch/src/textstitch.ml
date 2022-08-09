@@ -120,7 +120,7 @@ let stitch_t = Cmdliner.Term.(const stitch $ font_name $ db_t $ textcolor $ bgco
 
 let info =
   let doc = "make a stitch file repesenting a phrase in a known font" in
-  Cmdliner.Cmd.info "c64stitch" ~doc
+  Cmdliner.Cmd.info "textstitch" ~doc
 
 let () =
   exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info stitch_t
