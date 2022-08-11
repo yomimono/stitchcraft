@@ -2,6 +2,7 @@
 
 ## sessions
 
+* authentication via another identity provider
 * bio/profile
 * privacy/permissions
 * favorite tracking
