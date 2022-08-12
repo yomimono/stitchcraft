@@ -7,5 +7,4 @@
 
 (alias
  (name install)
- (deps grid.js index.html))
-
+ (deps grid.bc.js index.html))
