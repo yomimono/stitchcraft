@@ -74,7 +74,7 @@ let db_t =
 
 let make_pattern font {host; port; database; password; user } textcolor background gridsize phrase interline output =
   let open Lwt.Infix in
-  let uchars = Textsay.Assemble.uchars_of_phrase phrase in
+  let uchars = Textstitch.Assemble.uchars_of_phrase phrase in
   Pgx_lwt_unix.connect ~host ~port ~database ~password ~user () >>= fun connection ->
   let to_lookup = List.sort_uniq Uchar.compare uchars in
   let params = List.map (fun u -> Pgx.Value.[of_string font; of_int (Uchar.to_int u)]) to_lookup in
@@ -109,7 +109,7 @@ let make_pattern font {host; port; database; password; user } textcolor backgrou
     ) Stitchy.Types.UcharMap.empty (List.flatten rows)
   in
   let lookup letter = Stitchy.Types.UcharMap.find_opt letter map in
-  let pattern = Textsay.Assemble.stitch lookup textcolor background gridsize uchars interline in
+  let pattern = Textstitch.Assemble.stitch lookup textcolor background gridsize uchars interline in
   let json = Stitchy.Types.pattern_to_yojson pattern in
   Lwt.return @@ Stitchy.Files.stdout_or_file json output
 
