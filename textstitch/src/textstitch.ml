@@ -33,7 +33,7 @@ let gridsize =
 let font_name =
   let doc = "font to use (should match a database name)" in
   let env = Cmdliner.Cmd.Env.info "STITCH_FONT" ~doc in
-  Cmdliner.Arg.(value & opt string "Bm437_PhoenixEGA_8x8" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
+  Cmdliner.Arg.(value & opt string "c64" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
 
 type db = { host : string;
             port : int;
