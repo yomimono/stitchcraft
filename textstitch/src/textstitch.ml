@@ -76,7 +76,7 @@ let make_pattern font {host; port; database; password; user } textcolor backgrou
   let open Lwt.Infix in
   let uchars = Textstitch.Assemble.uchars_of_phrase phrase in
   Pgx_lwt_unix.connect ~host ~port ~database ~password ~user () >>= fun connection ->
-  let to_lookup = List.sort_uniq Uchar.compare uchars in
+  let to_lookup = List.sort_uniq Uchar.compare (Textstitch.Assemble.default_char::uchars) in
   let params = List.map (fun u -> Pgx.Value.[of_string font; of_int (Uchar.to_int u)]) to_lookup in
   let query = {|WITH font_id AS (
     SELECT id FROM fonts WHERE name=$1
