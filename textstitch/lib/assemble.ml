@@ -74,16 +74,13 @@ let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread uchars
           let _, height = get_dims lookup default_char in
           let y_increase = height + interline in
           (0, y_off + y_increase, stitches, max_x, max_y + y_increase)
-        | `Zs ->
-          let width, _ = get_dims lookup default_char in
-          let new_max_x = max (x_off + width) max_x in
-          ((x_off + width), y_off, stitches, new_max_x, max_y)
         | `Ll | `Lm | `Lo | `Lt | `Lu
         (* for the moment, we ignore all combining marks *)
         (* there are many fonts for which we could do the right thing here -- TODO *)
         | `Nd | `Nl | `No
         | `Pc | `Pd | `Pe | `Pf | `Pi | `Po | `Ps
-        | `Sc | `Sk | `Sm | `So ->
+        | `Sc | `Sk | `Sm | `So
+        | `Zs ->
           let width, _ = get_dims lookup uchar in
           let new_max_x = max (x_off + width) max_x in
           let stitches = add_stitches_for_glyph ~x_off ~y_off uchar stitches in
