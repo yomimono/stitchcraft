@@ -4,3 +4,8 @@
   (libraries angstrom-lwt-unix angstrom-unix cmdliner lwt lwt.unix patreader rresult stitchy)
   )
 
+(executable
+  (public_name patbrowser)
+  (modules patbrowser)
+  (libraries angstrom-lwt-unix angstrom-unix cmdliner lwt lwt.unix notty notty.lwt rresult stitchy)
+)
