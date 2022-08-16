@@ -29,7 +29,7 @@ let search_patterns (module Caqti_db : Caqti_lwt.CONNECTION) (tags : string list
     Lwt.return (Ok ())
   | Error _ as e -> Lwt.return e
 
-let go {Db.CLI.host; port; database; user; password } file name tags =
+let go db file name tags =
   match Stitchy.Files.stdin_or_file file with
   | Error s -> Error s
   | Ok json ->
@@ -38,7 +38,7 @@ let go {Db.CLI.host; port; database; user; password } file name tags =
     | Ok pattern ->
       let open Lwt.Infix in
       Lwt_main.run (
-        let uri = Uri.with_password (Uri.make ~scheme:"postgresql" ~host ~port ~userinfo:user ~path:database ()) (Some password) in
+        let uri = Db.CLI.uri_of_db db in
         Caqti_lwt.connect uri >>= function
         | Error _ as e -> Lwt.return e
         | Ok m ->

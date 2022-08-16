@@ -57,12 +57,16 @@ module CLI = struct
       Cmdliner.Arg.(value & opt string "s3kr1t" & info ["pass"] ~docv:"PGPASSWORD" ~doc ~env)
     in
     Cmdliner.Term.(const set_db $ host $ port $ database $ user $ password)
+
+  let uri_of_db {host; port; user; password; database} =
+    Uri.with_password (Uri.make ~scheme:"postgresql" ~host ~port ~userinfo:user ~path:database ()) (Some password)
+
 end
 
 module ORM = struct
   open Caqti_request.Infix
   module Glyphs = struct
-    let create = {|
+    let create = Caqti_type.unit ->. Caqti_type.unit @@ {|
       CREATE TABLE IF NOT EXISTS glyphs (
         id              bigserial PRIMARY KEY,
         height          integer NOT NULL,
@@ -86,7 +90,7 @@ module ORM = struct
   end
 
   module Fonts = struct
-    let create = {|
+    let create = Caqti_type.unit ->. Caqti_type.unit @@ {|
         CREATE TABLE IF NOT EXISTS fonts (
         id      bigserial PRIMARY KEY,
         name    text NOT NULL,
@@ -96,7 +100,7 @@ module ORM = struct
   end
 
   module Fonts_Glyphs = struct
-    let create = {|
+    let create = Caqti_type.unit ->. Caqti_type.unit @@ {|
     CREATE TABLE IF NOT EXISTS fonts_glyphs (
         font integer references fonts(id),
         uchar integer NOT NULL,
@@ -105,7 +109,11 @@ module ORM = struct
         )
     |}
 
-    let insert = {|
+    let insert =
+      let open Caqti_request.Infix in
+      let open Caqti_type in
+      (tup4 (tup2 int int) string string int) -->. unit @:-
+      {|
       WITH selected_font AS (
         SELECT id FROM fonts WHERE name = $4 LIMIT 1
       ),

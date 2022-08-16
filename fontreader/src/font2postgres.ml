@@ -35,11 +35,14 @@ let ingest fmt db src font_name debug =
 let go fmt db src font_name debug =
   match ingest fmt db src font_name debug with
   | Error (`Msg s) -> Format.eprintf "%s\n%!" s; Error s
+  | Error (#Caqti_error.t as e) ->
+    let s = Format.asprintf "%a" Caqti_error.pp e in
+    Format.eprintf "%s\n%!" s; Error s
   | Ok l -> Ok l
 
 let ingest_t = Cmdliner.Term.(const go $ fmt $ Db.CLI.db_t $ src $ font_name $ debug)
 
-let info = Cmdliner.Cmd.info "populate a postgres database with font information"
+let info = Cmdliner.Cmd.info "font2postgres"
 
 let () =
   exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info ingest_t

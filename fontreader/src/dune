@@ -1,7 +1,7 @@
 (library
   (name postgres)
   (modules postgres)
-  (libraries bos fontreader pgx pgx_lwt_unix stitchy stitchcraft.db)
+  (libraries bos fontreader caqti caqti-lwt caqti-driver-postgresql stitchy stitchcraft.db)
 )
 
 (executable
