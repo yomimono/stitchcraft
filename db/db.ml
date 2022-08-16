@@ -165,16 +165,17 @@ module ORM = struct
       let normalized_json = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string in
       Caqti_db.find insert (name, normalized_json, tags)
 
-    let insert = {|
-      INSERT INTO patterns (name, pattern, tags)
-      SELECT $1, $2, (SELECT ARRAY (SELECT id FROM tags WHERE name = ANY ($3) ))
-      |}
-
     let search_by_tag = {|
       SELECT id, name, pattern, tags
       FROM patterns
       WHERE tags @> (SELECT ARRAY (SELECT id FROM tags WHERE name = ANY($1)))
       |}
+
+    let get_by_id =
+      let open Caqti_request.Infix in
+      Caqti_type.int -->! Caqti_type.(tup2 string string) @:- {|
+      SELECT name, pattern FROM patterns WHERE id = ?
+    |}
 
   end
 
@@ -186,7 +187,10 @@ module ORM = struct
     )
     |}
 
-    let insert = {|
+    let insert =
+      let open Caqti_request.Infix in
+      string_array -->. Caqti_type.unit @:-
+      {|
         INSERT INTO tags (name) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING
     |}
       

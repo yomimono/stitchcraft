@@ -2,14 +2,8 @@ open Lwt.Infix
 
 let try_get_pattern id =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
-  let find_pattern =
-    let open Caqti_request.Infix in
-    Caqti_type.int -->! Caqti_type.(tup2 string string) @:- {|
-      SELECT name, pattern FROM patterns WHERE id = ?
-    |}
-  in
   try
-    Caqti_db.collect_list find_pattern @@ int_of_string id >>= function
+    Caqti_db.collect_list Db.ORM.Patterns.get_by_id @@ int_of_string id >>= function
     | Ok [] -> Lwt.return @@ `Not_found
     | Error _ -> Lwt.return @@ `Error
     | Ok ((name, pattern)::_) ->
@@ -34,11 +28,6 @@ let count_matching_tags =
   let open Caqti_request.Infix in
   Db.string_array -->! Caqti_type.int @:-
   "SELECT count(id) FROM tags WHERE name = ANY(?)"
-
-let ensure_tags =
-  let open Caqti_request.Infix in
-  Db.string_array -->. Caqti_type.unit @:-
-  "INSERT INTO tags (name) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING"
 
 let create request =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
@@ -71,7 +60,7 @@ let create request =
           Caqti_type.int @:-
           make_pattern
         in
-        Caqti_db.exec ensure_tags tags >>= function
+        Caqti_db.exec Db.ORM.Tags.insert tags >>= function
         | Error s -> Dream.log "failure ensuring %d tags; aborting pattern creation" (List.length tags); 
           Dream.log "error: %a" Caqti_error.pp s;
           Dream.respond ~code:500 ""

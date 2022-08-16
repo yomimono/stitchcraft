@@ -12,10 +12,6 @@ let tags =
   let doc = "tags to associate with the pattern" in
   Cmdliner.Arg.(value & opt_all string [] & info ["t"; "tag"] ~doc ~docv:"TAG")
 
-let ensure_tags =
-  let open Caqti_request.Infix in
-  Db.string_array -->. Caqti_type.unit @:- Db.ORM.Tags.insert
-
 let search_patterns (module Caqti_db : Caqti_lwt.CONNECTION) (tags : string list) =
   Caqti_db.collect_list Db.ORM.Tags.find tags >>= function
   | Ok ((id, name, _w, _h)::[]) ->
@@ -46,7 +42,7 @@ let go db file name tags =
           let module Caqti_db = (val m) in
           Caqti_db.exec Db.ORM.Patterns.create () >>= fun () ->
           Caqti_db.exec Db.ORM.Tags.create () >>= fun () ->
-          Caqti_db.exec ensure_tags tags >>= fun () ->
+          Caqti_db.exec Db.ORM.Tags.insert tags >>= fun () ->
           Db.ORM.Patterns.insert_with_tags m name tags pattern >>= fun id ->
           Format.printf "pattern inserted with id %d\n%!" id;
           search_patterns m tags >>= fun () ->
