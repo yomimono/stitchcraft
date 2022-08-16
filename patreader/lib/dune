@@ -1,5 +1,4 @@
 (library
   (name patreader)
-  (modules patreader translator)
   (libraries angstrom fmt)
 )
