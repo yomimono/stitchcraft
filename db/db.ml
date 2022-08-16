@@ -76,7 +76,11 @@ module ORM = struct
         )
       |}
 
-    let query =  {|WITH font_id AS (
+    let query =
+      let open Caqti_request.Infix in
+      let open Caqti_type in
+      (tup2 string int) -->! tup4 int int int string @:-
+      {|WITH font_id AS (
     SELECT id FROM fonts WHERE name=$1
     ), glyph_id AS (
     SELECT glyph FROM fonts_glyphs
