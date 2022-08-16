@@ -12,56 +12,49 @@ let tags =
   let doc = "tags to associate with the pattern" in
   Cmdliner.Arg.(value & opt_all string [] & info ["t"; "tag"] ~doc ~docv:"TAG")
 
-let create_patterns connection =
-  Pgx_lwt_unix.execute_unit connection ~params:[] Db.ORM.Patterns.create
+let ensure_tags =
+  let open Caqti_request.Infix in
+  Db.string_array -->. Caqti_type.unit @:- Db.ORM.Tags.insert
 
-let create_tags connection =
-  Pgx_lwt_unix.execute_unit connection ~params:[] Db.ORM.Tags.create
-
-let ensure_tags connection tags =
-  let params = List.map (fun t -> Pgx.Value.[of_string t]) tags in
-  Pgx_lwt_unix.execute_many connection ~params ~query:Db.ORM.Tags.insert >>= fun _rows ->
-  Lwt.return_unit
-
-let insert_pattern_with_tags connection pattern name tags =
-  let pat_str = Yojson.Safe.to_string pattern in
-  let params = Pgx.Value.[
-      of_string name;
-      of_string pat_str;
-      of_list (List.map of_string tags)]
-  in
-  Pgx_lwt_unix.execute connection ~params Db.ORM.Patterns.insert >>= fun _rows ->
-  Lwt.return_unit
-
-let search_patterns connection (tags : string list) =
-  let params = Pgx.Value.[of_list @@ List.map of_string tags] in
-  Pgx_lwt_unix.execute connection ~params Db.ORM.Patterns.search_by_tag >>= function
-  | (i::n::_p::_t)::_ ->
-    let id = Pgx.Value.to_int_exn i
-    and name = Pgx.Value.to_string_exn n
-    in
+let search_patterns (module Caqti_db : Caqti_lwt.CONNECTION) (tags : string list) =
+  Caqti_db.collect_list Db.ORM.Tags.find tags >>= function
+  | Ok ((id, name, _w, _h)::[]) ->
     Format.eprintf "pattern %d (%s) matches\n%!" id name;
-    Lwt.return_unit
-  | [] ->
+    Lwt.return (Ok ())
+  | Ok [] ->
     Format.eprintf "no matches\n%!";
-    Lwt.return_unit
-  | l ->
+    Lwt.return (Ok ())
+  | Ok l ->
     Format.eprintf "lots of matches: %d\n%!" (List.length l);
-    Lwt.return_unit
+    Lwt.return (Ok ())
+  | Error _ as e -> Lwt.return e
 
 let go {Db.CLI.host; port; database; user; password } file name tags =
   match Stitchy.Files.stdin_or_file file with
   | Error s -> Error s
-  | Ok pattern ->
-    Lwt_main.run (
-      Pgx_lwt_unix.connect ~host ~port ~database ~user ~password () >>= fun connection ->
-      create_patterns connection >>= fun () ->
-      create_tags connection >>= fun () ->
-      ensure_tags connection tags >>= fun () ->
-      insert_pattern_with_tags connection pattern name tags >>= fun _ ->
-      search_patterns connection tags >>= fun () ->
-      Lwt.return @@ Ok ()
-    )
+  | Ok json ->
+    match Stitchy.Types.pattern_of_yojson json with
+    | Error s -> Error s
+    | Ok pattern ->
+      let open Lwt.Infix in
+      Lwt_main.run (
+        let uri = Uri.with_password (Uri.make ~scheme:"postgresql" ~host ~port ~userinfo:user ~path:database ()) (Some password) in
+        Caqti_lwt.connect uri >>= function
+        | Error _ as e -> Lwt.return e
+        | Ok m ->
+          let open Lwt_result.Infix in
+          let module Caqti_db = (val m) in
+          Caqti_db.exec Db.ORM.Patterns.create () >>= fun () ->
+          Caqti_db.exec Db.ORM.Tags.create () >>= fun () ->
+          Caqti_db.exec ensure_tags tags >>= fun () ->
+          Db.ORM.Patterns.insert_with_tags m name tags pattern >>= fun id ->
+          Format.printf "pattern inserted with id %d\n%!" id;
+          search_patterns m tags >>= fun () ->
+          Lwt.return @@ Ok ()
+      ) |> function
+      | Ok () -> Ok ()
+      | Error (`Msg s) -> Error s
+      | Error (#Caqti_error.t as e)-> Error (Format.asprintf "%a" Caqti_error.pp e)
 
 let go_t = Cmdliner.Term.(const go $ Db.CLI.db_t $ input $ p_name $ tags)
 let info = Cmdliner.Cmd.info "ingest"

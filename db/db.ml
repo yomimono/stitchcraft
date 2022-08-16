@@ -1,3 +1,24 @@
+(* Caqti types are now also allowed to be string arrays *)
+(* We include this at the top-level because it needs to be evaluated by our users *)
+type _ Caqti_type.field +=
+  | String_array : (string list) Caqti_type.field
+
+let string_array = Caqti_type.field String_array
+
+let string_array_to_pgsql_array l =
+  let quoted_string fmt s = Format.fprintf fmt "\"%s\"" s in
+  Ok (Format.asprintf "{%a}" Fmt.(list ~sep:comma quoted_string) l)
+
+let get_coding : type a. _ -> a Caqti_type.Field.t -> a Caqti_type.Field.coding = fun _ -> function
+  | String_array ->
+    let encode = string_array_to_pgsql_array
+    and decode _ = Error "string array decoding is not implemented" (* TODO; for now we don't care *)
+    in
+    Caqti_type.Field.Coding {rep = Caqti_type.String; encode; decode}
+  | _ -> assert false
+
+let () = Caqti_type.Field.define_coding String_array {get_coding}
+
 module CLI = struct
 
   type db = { host : string;
@@ -39,6 +60,7 @@ module CLI = struct
 end
 
 module ORM = struct
+  open Caqti_request.Infix
   module Glyphs = struct
     let create = {|
       CREATE TABLE IF NOT EXISTS glyphs (
@@ -106,7 +128,7 @@ module ORM = struct
   end
 
   module Patterns = struct
-    let create = {|
+    let create = Caqti_type.unit ->. Caqti_type.unit @@ {|
     CREATE TABLE IF NOT EXISTS patterns (
         id bigserial PRIMARY KEY,
         name text NOT NULL,
@@ -114,6 +136,22 @@ module ORM = struct
         tags bigint[]
     )
     |}
+
+    let insert_with_tags (module Caqti_db : Caqti_lwt.CONNECTION) name tags pattern =
+      let make_pattern =
+        {| INSERT INTO patterns (name, pattern, tags)
+            SELECT ?, ?,
+            (SELECT ARRAY (SELECT id FROM tags WHERE name = ANY (?)))
+           RETURNING id
+        |} in
+      let insert =
+        let open Caqti_request.Infix in
+        Caqti_type.tup3 Caqti_type.string Caqti_type.string string_array -->!
+        Caqti_type.int @:-
+        make_pattern
+      in
+      let normalized_json = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string in
+      Caqti_db.find insert (name, normalized_json, tags)
 
     let insert = {|
       INSERT INTO patterns (name, pattern, tags)
@@ -129,7 +167,7 @@ module ORM = struct
   end
 
   module Tags = struct
-    let create = {|
+    let create = Caqti_type.unit ->. Caqti_type.unit @@ {|
     CREATE TABLE IF NOT EXISTS tags (
         id bigserial PRIMARY KEY,
         name text UNIQUE NOT NULL
@@ -137,13 +175,26 @@ module ORM = struct
     |}
 
     let insert = {|
-        INSERT INTO tags (name) VALUES ($1)
-        ON CONFLICT DO NOTHING
+        INSERT INTO tags (name) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING
     |}
       
     let names = {|
         WITH unnested_tags AS (select unnest(tags) from patterns) select name from unnested_tags join tags on unnest = tags.id;
       |}
+
+    let find =
+      let open Caqti_request.Infix in
+      string_array -->* Caqti_type.(tup4 int string int int) @:-
+      {|
+        SELECT
+        id, name, pattern->'substrate'->'max_x', pattern->'substrate'->'max_y'
+        FROM patterns
+        WHERE tags @>
+          (SELECT ARRAY
+             (SELECT id FROM tags WHERE name = ANY(?)))
+      |}
+
+
   end
 
 end

@@ -13,7 +13,7 @@
 (executable
   (name server)
   (modules server template)
-  (libraries caqti-driver-postgresql dream stitchy))
+  (libraries stitchcraft.db caqti-driver-postgresql dream stitchy))
 
 (executable
  (name display)
