@@ -1,0 +1,5 @@
+(library
+  (name db)
+  (public_name stitchcraft.db)
+  (libraries stitchy caqti caqti-lwt caqti-driver-postgresql cmdliner)
+)

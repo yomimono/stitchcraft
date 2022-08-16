@@ -1,4 +1,4 @@
 (executable
  (public_name textstitch)
- (libraries textstitch astring cmdliner stitchy uutf pgx pgx_lwt_unix)
+ (libraries textstitch astring cmdliner stitchy stitchcraft.db uutf pgx pgx_lwt_unix)
 )

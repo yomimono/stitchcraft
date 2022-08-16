@@ -1,62 +1,17 @@
 open Lwt.Infix
 
-type db = { host : string;
-            port : int;
-            database : string;
-            user : string;
-            password : string;
-          }
-
 let make_glyphs_table connection =
   (* TODO: we definitely want uniqueness here; writes are way more rare than reads *)
-  Pgx_lwt_unix.execute_unit connection {|
-    CREATE TABLE IF NOT EXISTS glyphs (
-        id              bigserial PRIMARY KEY,
-        height          integer NOT NULL,
-        width           integer NOT NULL,
-        stitches        json NOT NULL,
-        CONSTRAINT positive CHECK (height >= 0 AND width >= 0)
-        )
-    |}
+  Pgx_lwt_unix.execute_unit connection Db.ORM.Glyphs.create
 
 let make_fonts_table connection =
-  Pgx_lwt_unix.execute_unit connection {|
-    CREATE TABLE IF NOT EXISTS fonts (
-        id      bigserial PRIMARY KEY,
-        name    text NOT NULL,
-        CONSTRAINT unique_name UNIQUE(name)
-        )
-    |}
+  Pgx_lwt_unix.execute_unit connection Db.ORM.Fonts.create
 
 let make_fonts_glyphs_table connection =
-  Pgx_lwt_unix.execute_unit connection {|
-    CREATE TABLE IF NOT EXISTS fonts_glyphs (
-        font integer references fonts(id),
-        uchar integer NOT NULL,
-        glyph integer references glyphs(id),
-        CONSTRAINT positive CHECK (uchar >= 0)
-        )
-    |}
+  Pgx_lwt_unix.execute_unit connection Db.ORM.Fonts_Glyphs.create
 
 let insert debug connection font glyphmap =
-  let glyph_cte = {|
-  WITH selected_font AS (
-    SELECT id FROM fonts WHERE name = $4 LIMIT 1
-  ),
-  inserted_font AS (
-    INSERT INTO fonts (name) VALUES ($4)
-    ON CONFLICT DO NOTHING
-    RETURNING id
-  ),
-  glyph AS (
-    INSERT INTO glyphs (width, height, stitches) VALUES ($1, $2, $3) RETURNING id
-  )
-  INSERT INTO fonts_glyphs (font, glyph, uchar)
-    SELECT selected_font.id, glyph.id, $5::integer FROM selected_font, glyph
-    UNION
-    SELECT inserted_font.id, glyph.id, $5::integer FROM inserted_font, glyph
-    LIMIT 1
-  |}
+  let glyph_cte = Db.ORM.Fonts_Glyphs.insert
   in
   (* if we get a (glyph * uchar list) list,
    * we need to generate the list of glyph-uchar pairings for each element,
@@ -85,7 +40,7 @@ let insert debug connection font glyphmap =
     Ok ()
 
 module Populate(Reader : Fontreader.Readfiles.INTERPRETER) = struct
-  let populate {host; port; user; database; password} src font debug =
+  let populate {Db.CLI.host; port; user; database; password} src font debug =
     match Bos.OS.File.read (Fpath.v src) with
     | Error e -> Error e
     | Ok s ->

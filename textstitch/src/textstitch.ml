@@ -78,17 +78,7 @@ let make_pattern font {host; port; database; password; user } textcolor backgrou
   Pgx_lwt_unix.connect ~host ~port ~database ~password ~user () >>= fun connection ->
   let to_lookup = List.sort_uniq Uchar.compare (Textstitch.Assemble.default_char::uchars) in
   let params = List.map (fun u -> Pgx.Value.[of_string font; of_int (Uchar.to_int u)]) to_lookup in
-  let query = {|WITH font_id AS (
-    SELECT id FROM fonts WHERE name=$1
-    ), glyph_id AS (
-    SELECT glyph FROM fonts_glyphs
-    JOIN font_id on font_id.id = fonts_glyphs.font
-    AND fonts_glyphs.uchar = $2
-    )
-    SELECT $2, width, height, stitches FROM glyphs
-    INNER JOIN glyph_id ON glyph_id.glyph = glyphs.id
-    |} in
-  Pgx_lwt_unix.execute_many connection ~params ~query >>= fun rows ->
+  Pgx_lwt_unix.execute_many connection ~params ~query:Db.ORM.Glyphs.query >>= fun rows ->
   let map = List.fold_left (fun map r ->
       match r with
       | u::w::h::s::[] -> begin

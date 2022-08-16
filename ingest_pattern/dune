@@ -1,4 +1,4 @@
 (executable
   (public_name ingest)
-  (libraries bos cmdliner stitchy pgx_lwt_unix)
+  (libraries bos cmdliner stitchy stitchcraft.db pgx_lwt_unix)
 )

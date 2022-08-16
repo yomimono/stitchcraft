@@ -1,7 +1,7 @@
 (library
   (name postgres)
   (modules postgres)
-  (libraries bos fontreader pgx pgx_lwt_unix stitchy)
+  (libraries bos fontreader pgx pgx_lwt_unix stitchy stitchcraft.db)
 )
 
 (executable
@@ -12,5 +12,5 @@
 (executable
   (public_name font2postgres)
   (modules font2postgres)
-  (libraries cmdliner fontreader postgres)
+  (libraries cmdliner fontreader postgres stitchcraft.db)
 )
