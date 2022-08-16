@@ -24,11 +24,6 @@ let extract_values key l =
      (fun (k, v) -> if String.(equal (lowercase_ascii k) (lowercase_ascii key))
        then Some v else None) l
 
-let count_matching_tags =
-  let open Caqti_request.Infix in
-  Db.string_array -->! Caqti_type.int @:-
-  "SELECT count(id) FROM tags WHERE name = ANY(?)"
-
 let create request =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
   Dream.log "evaluating multipart request...";
@@ -48,28 +43,15 @@ let create request =
       | Ok pattern ->
         Dream.log "decoded a pattern; will try to save it as requested";
         let normalized_json = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string in
-        let make_pattern =
-          {| INSERT INTO patterns (name, pattern, tags)
-              SELECT ?, ?,
-              (SELECT ARRAY (SELECT id FROM tags WHERE name = ANY (?)))
-             RETURNING id
-          |} in
-        let insert =
-          let open Caqti_request.Infix in
-          Caqti_type.tup3 Caqti_type.string Caqti_type.string Db.string_array -->!
-          Caqti_type.int @:-
-          make_pattern
-        in
         Caqti_db.exec Db.ORM.Tags.insert tags >>= function
         | Error s -> Dream.log "failure ensuring %d tags; aborting pattern creation" (List.length tags); 
           Dream.log "error: %a" Caqti_error.pp s;
           Dream.respond ~code:500 ""
         | Ok () ->
-          Caqti_db.find insert (name, normalized_json, tags) >>= function
+          Caqti_db.find Db.ORM.Patterns.insert_with_tags (name, normalized_json, tags) >>= function
           | Ok id ->
             Dream.redirect request (Format.asprintf "/pattern/%d" id)
           | Error s ->
-            let _pp fmt params = Caqti_request.make_pp_with_param () fmt (insert, params) in
             Dream.log "error inserting pattern: %a" Caqti_error.pp s;
             Dream.respond ~code:500 ""
   end
@@ -81,7 +63,7 @@ let search request =
   Dream.form request >>= function
   | `Ok l -> begin
     let tags = extract_values "tag" l in
-    Caqti_db.find count_matching_tags tags >>= function
+    Caqti_db.find Db.ORM.Tags.count tags >>= function
     | Error _ -> Dream.html ~code:500 "error finding tags"
     | Ok n when n <> List.length tags -> Dream.respond ~code:400 
                                            (Format.asprintf

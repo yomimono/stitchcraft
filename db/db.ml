@@ -149,21 +149,17 @@ module ORM = struct
     )
     |}
 
-    let insert_with_tags (module Caqti_db : Caqti_lwt.CONNECTION) name tags pattern =
+    let insert_with_tags =
       let make_pattern =
         {| INSERT INTO patterns (name, pattern, tags)
             SELECT ?, ?,
             (SELECT ARRAY (SELECT id FROM tags WHERE name = ANY (?)))
            RETURNING id
         |} in
-      let insert =
-        let open Caqti_request.Infix in
-        Caqti_type.tup3 Caqti_type.string Caqti_type.string string_array -->!
-        Caqti_type.int @:-
-        make_pattern
-      in
-      let normalized_json = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string in
-      Caqti_db.find insert (name, normalized_json, tags)
+      let open Caqti_request.Infix in
+      Caqti_type.tup3 Caqti_type.string Caqti_type.string string_array -->!
+      Caqti_type.int @:-
+      make_pattern
 
     let search_by_tag = {|
       SELECT id, name, pattern, tags
@@ -210,6 +206,10 @@ module ORM = struct
              (SELECT id FROM tags WHERE name = ANY(?)))
       |}
 
+    let count =
+      let open Caqti_request.Infix in
+      string_array -->! Caqti_type.int @:-
+      "SELECT count(id) FROM tags WHERE name = ANY(?)"
 
   end
 

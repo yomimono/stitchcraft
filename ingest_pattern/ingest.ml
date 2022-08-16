@@ -43,7 +43,8 @@ let go db file name tags =
           Caqti_db.exec Db.ORM.Patterns.create () >>= fun () ->
           Caqti_db.exec Db.ORM.Tags.create () >>= fun () ->
           Caqti_db.exec Db.ORM.Tags.insert tags >>= fun () ->
-          Db.ORM.Patterns.insert_with_tags m name tags pattern >>= fun id ->
+          let normalized_json = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string in
+          Caqti_db.find Db.ORM.Patterns.insert_with_tags (name, normalized_json, tags) >>= fun id ->
           Format.printf "pattern inserted with id %d\n%!" id;
           search_patterns m tags >>= fun () ->
           Lwt.return @@ Ok ()
