@@ -1,0 +1,5 @@
+(executable
+ (public_name patbrowser)
+ (name patbrowser)
+ (libraries cmdliner notty notty.lwt patbrowser_canvas stitchy estimator)
+)

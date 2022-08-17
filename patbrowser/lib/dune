@@ -1,0 +1,4 @@
+(library
+ (name patbrowser_canvas)
+ (libraries astring cmdliner notty stitchy)
+)
