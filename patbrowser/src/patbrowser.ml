@@ -36,11 +36,7 @@ let disp input =
     match start_state |> pattern_of_yojson with
     | Error e -> failwith (Printf.sprintf "failed to parse input json: %s" e)
     | Ok pattern ->
-      (* we don't care about the fabric part of the estimate,
-       * so it's OK to pass 0 for margin inches here *)
-      let thread_totals = Estimator.((materials ~margin_inches:0.
-                                 pattern).threads |> thread_totals) in
-      Notty_lwt.Term.image term @@ main_view pattern start_view thread_totals (Notty_lwt.Term.size term) >>= fun () ->
+      Notty_lwt.Term.image term @@ main_view pattern start_view (Notty_lwt.Term.size term) >>= fun () ->
       create_streams watch_input >>= fun stream ->
       let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
         (Lwt_stream.last_new stream) >>= function
@@ -49,9 +45,7 @@ let disp input =
             | Error _ -> loop pattern view
             | Ok pattern ->
               let size = Notty_lwt.Term.size term in
-              let thread_totals = Estimator.((materials ~margin_inches:0.
-                                 pattern).threads |> thread_totals) in
-              Notty_lwt.Term.image term (main_view pattern view thread_totals size) >>= fun () ->
+              Notty_lwt.Term.image term (main_view pattern view size) >>= fun () ->
               loop pattern view
           end
         | `Terminal event ->
@@ -60,8 +54,6 @@ let disp input =
           | None ->
             Notty_lwt.Term.release term
           | Some (refresh_pattern, view) ->
-            let thread_totals = Estimator.((materials ~margin_inches:0.
-                                 pattern).threads |> thread_totals) in
             let pattern =
               if refresh_pattern then begin
                 match update_pattern input with
@@ -70,7 +62,7 @@ let disp input =
               end
               else pattern
             in
-            Notty_lwt.Term.image term (main_view pattern view thread_totals size) >>= fun () ->
+            Notty_lwt.Term.image term (main_view pattern view size) >>= fun () ->
             loop pattern view
       in
       loop pattern start_view

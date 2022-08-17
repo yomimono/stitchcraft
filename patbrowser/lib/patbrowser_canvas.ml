@@ -142,22 +142,15 @@ let key_help view =
     | `Solid -> "ymbol view"
     | `Symbol -> "olid view"
   in
-  let refresh = I.string highlight "R" <|> I.string lowlight "efresh"
-  and nav_text = I.string highlight "←↑→↓" <|> I.string lowlight " to scroll"
+  let nav_text = I.string highlight "←↑→↓" <|> I.string lowlight " to scroll"
   and shift_text = I.string highlight "Shift + ←↑→↓" <|> I.string lowlight " to page"
   and quit = I.string highlight "Q" <|> I.string lowlight "uit"
   and symbol = I.string highlight "S" <|> I.string lowlight symbol_text
   and sp = I.void 1 1
   in
-  quit <|> sp <|> symbol <|> sp <|> refresh <|> sp <|> nav_text <|> sp <|> shift_text
+  quit <|> sp <|> symbol <|> sp <|> nav_text <|> sp <|> shift_text
 
-let totals_pane (total_cost, total_seconds) =
-  let open Notty.Infix in
-  Notty.I.strf "$: %.02G " total_cost
-  <->
-  Notty.I.strf "time: %.02G hours" ((float_of_int total_seconds) /. 3600.)
-
-let main_view {substrate; layers; backstitch_layers;} view totals (width, height) =
+let main_view {substrate; layers; backstitch_layers;} view (width, height) =
   let open Notty.Infix in
   let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
   let left_pane = left_pane substrate (width, height) in
@@ -167,7 +160,7 @@ let main_view {substrate; layers; backstitch_layers;} view totals (width, height
       {substrate; layers; backstitch_layers;}
   in
   let color_key = color_key substrate symbol_map view colors in
-  (stitch_grid <|> (color_key <-> (totals_pane totals)))
+  (stitch_grid <|> (color_key))
   <->
   key_help view
 
