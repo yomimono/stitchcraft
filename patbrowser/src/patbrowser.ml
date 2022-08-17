@@ -7,61 +7,32 @@ let dir =
 
 let start_view = { Patbrowser_canvas__Controls.x_off = 0; y_off = 0; zoom = 1; block_display = `Symbol }
 
+let ingest filename =
+  (try
+    Ok (Yojson.Safe.from_file filename)
+  with _ -> Error "not json")
+  |> function
+  | Ok j -> Stitchy.Types.pattern_of_yojson j
+  | Error _ as e -> e
+
+(* we don't assume the patterns will update.
+ * we're dealing with static, predetermined stuff *)
 let disp input =
   let open Lwt.Infix in
-  let initialize_pattern input =
-    match String.compare input "-" with
-    | 0 -> begin
-        try Yojson.Safe.from_channel stdin, false
-        with _ -> failwith "couldn't read input from stdin"
-      end
-    | _ ->
-      try Yojson.Safe.from_file input, true
-      with _ -> failwith "couldn't read input file"
-  in
-  let update_pattern input =
-    try Yojson.Safe.from_file input |> pattern_of_yojson
-    with _ -> failwith "reading updated file failed"
-  in
   let aux () : unit Lwt.t =
     let term = Notty_lwt.Term.create () in
-    let user_input_stream = Lwt_stream.map
-        (fun event -> `Terminal event)
-        (Notty_lwt.Term.events term)
-    in
-    let create_streams = function
-      | _ -> Lwt.return user_input_stream
-    in
-    let (start_state, watch_input) = initialize_pattern input in
-    match start_state |> pattern_of_yojson with
-    | Error e -> failwith (Printf.sprintf "failed to parse input json: %s" e)
+    let user_input_stream = Notty_lwt.Term.events term in
+    match ingest input with
+    | Error _ -> Notty_lwt.Term.image term (Notty.I.string Notty.A.empty "nope")
     | Ok pattern ->
       Notty_lwt.Term.image term @@ main_view pattern start_view (Notty_lwt.Term.size term) >>= fun () ->
-      create_streams watch_input >>= fun stream ->
       let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
-        (Lwt_stream.last_new stream) >>= function
-        | `Pattern -> begin
-            match update_pattern input with
-            | Error _ -> loop pattern view
-            | Ok pattern ->
-              let size = Notty_lwt.Term.size term in
-              Notty_lwt.Term.image term (main_view pattern view size) >>= fun () ->
-              loop pattern view
-          end
-        | `Terminal event ->
+        (Lwt_stream.last_new user_input_stream) >>= fun event ->
           let size = Notty_lwt.Term.size term in
           match step pattern view size event with
           | None ->
             Notty_lwt.Term.release term
-          | Some (refresh_pattern, view) ->
-            let pattern =
-              if refresh_pattern then begin
-                match update_pattern input with
-                | Ok new_pattern -> new_pattern
-                | Error _ -> pattern
-              end
-              else pattern
-            in
+          | Some (_refresh_pattern, view) ->
             Notty_lwt.Term.image term (main_view pattern view size) >>= fun () ->
             loop pattern view
       in
