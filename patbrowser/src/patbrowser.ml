@@ -14,29 +14,30 @@ let start_view = { Patbrowser_canvas__Controls.x_off = 0; y_off = 0; zoom = 1; b
 
 let rec ingest dir traverse =
   match List.nth_opt traverse.contents traverse.n with
-  | None -> Error "off end of list"
+  | None -> Error "no more files to try"
   | Some filename ->
-    match Bos.OS.File.read filename with
-    | Error _ ->
-      (* are there additional files to try? *)
-      ingest dir {traverse with n = traverse.n + 1}
-    | Ok contents ->
-      (try
-         Ok (Yojson.Safe.from_string contents)
-       with _ -> Error "not json")
-      |> function
-      | Ok j -> Stitchy.Types.pattern_of_yojson j
-      | Error _ as e -> e
+    try
+      match Bos.OS.File.read filename with
+      | Error _ ->
+        (* are there additional files to try? *)
+        ingest dir {traverse with n = traverse.n + 1}
+      | Ok contents ->
+        (try
+           Ok (Yojson.Safe.from_string contents)
+         with _ -> Error "not json")
+        |> function
+        | Ok j -> Stitchy.Types.pattern_of_yojson j
+        | Error _ as e -> e
+    with
+    | Unix.Unix_error _ -> ingest dir {traverse with n = traverse.n + 1}
 
-(* we don't assume the patterns will update.
- * we're dealing with static, predetermined stuff *)
 let disp dir =
   let open Lwt.Infix in
+  let term = Notty_lwt.Term.create () in
   let rec aux dir traverse : unit Lwt.t =
-    let term = Notty_lwt.Term.create () in
     let user_input_stream = Notty_lwt.Term.events term in
     match ingest dir traverse with
-    | Error _ -> Notty_lwt.Term.image term (Notty.I.string Notty.A.empty "nope")
+    | Error s -> Format.eprintf "error: %s\n%!" s; Notty_lwt.Term.release term
     | Ok pattern ->
       Notty_lwt.Term.image term @@ main_view pattern start_view (Notty_lwt.Term.size term) >>= fun () ->
       let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
