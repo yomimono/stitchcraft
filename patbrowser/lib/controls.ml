@@ -1,10 +1,16 @@
 open Stitchy.Types
 
+type selection = {
+  start_cell : (int * int);
+  end_cell : (int * int);
+}
+
 type view = {
   x_off : int;
   y_off : int;
   block_display : [ `Symbol | `Solid ];
   zoom : int;
+  selection : selection option;
 }
 
 type pane = {

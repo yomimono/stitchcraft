@@ -5,7 +5,12 @@ let dir =
   let doc = "directory from which to read." in
   Cmdliner.Arg.(value & pos 0 dir "." & info [] ~doc)
 
-let start_view = { Patbrowser_canvas__Controls.x_off = 0; y_off = 0; zoom = 1; block_display = `Symbol }
+let start_view = { Patbrowser_canvas__Controls.x_off = 0;
+                   y_off = 0;
+                   zoom = 1;
+                   block_display = `Symbol;
+                   selection = None;
+                 }
 
 let rec ingest dir traverse =
   match List.nth_opt traverse.contents traverse.n with

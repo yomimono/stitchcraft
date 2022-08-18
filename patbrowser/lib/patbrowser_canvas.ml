@@ -107,12 +107,21 @@ let left_pane substrate (width, height) =
 let show_left_pane {substrate; layers; backstitch_layers} symbol_map view left_pane =
   let open Notty.Infix in
   let background = Notty.A.(bg @@ color_map substrate.background) in
-  let c x y = match Stitchy.Types.stitches_at {substrate; layers; backstitch_layers}
-                      (x + view.Controls.x_off, y + view.y_off) with
-    | [] -> (* no stitch here *)
-      (* TODO: column/row display? *)
+  let c x y =
+    let stitches_here =
+      Stitchy.Types.stitches_at {substrate; layers; backstitch_layers}
+        (x + view.Controls.x_off, y + view.y_off)
+    in
+    match stitches_here, view.selection with
+    | [], Some {start_cell; _} ->
+      (* TODO: actually figure out whether it's in between *)
+      let selection_x, selection_y = start_cell in
+      if selection_x = x && selection_y = y then Notty.I.char Notty.A.(bg cyan) ' ' 1 1
+      else Notty.I.char background ' ' 1 1
+    | [], None ->
+      (* no stitch here *)
       Notty.I.char background ' ' 1 1
-    | (stitch, thread)::_ ->
+    | ((stitch, thread)::_), _ ->
       let symbol = match view.block_display with
         | `Symbol -> symbol_of_thread symbol_map (stitch, thread)
         | `Solid -> uchar_of_stitch stitch
@@ -158,17 +167,28 @@ let main_view traverse {substrate; layers; backstitch_layers;} view (width, heig
   <->
   key_help view
 
-let step pattern view (width, height) event =
+let step pattern (view : Controls.view) (width, height) event =
   let left_pane = left_pane pattern.substrate (width, height) in
   match event with
-  | `Resize _ | `Mouse _ | `Paste _ -> `None, view
+  | `Resize _ | `Paste _ -> `None, let _ = view.selection in view
+  | `Mouse ((`Press (`Left)), (x, y), _) ->
+    let empty_corner = left_pane.empty_corner in
+    if x < empty_corner.width || y < empty_corner.height then
+      `None, view
+    else
+      let selection_x = x - empty_corner.width
+      and selection_y = y - empty_corner.height
+      in
+      let selection = (selection_x, selection_y) in
+    `None, {view with selection = Some {start_cell = selection; end_cell = selection}}
+  | `Mouse _ -> `None, view
   | `Key (key, mods) -> begin
       match key, mods with
       | (`Escape, _) | (`ASCII 'q', _) -> `Quit, view
       | (`Arrow dir, l) when List.mem `Shift l -> `None, Controls.page pattern.substrate view left_pane dir
       | (`Arrow dir, _) -> `None, Controls.scroll pattern.substrate view dir
       | (`ASCII 's', _) -> `None, Controls.switch_view view
-      | (`ASCII 'n', _) -> `Next, {view with x_off = 0; y_off = 0; zoom = 0;}
-      | (`ASCII 'p', _) -> `Prev, {view with x_off = 0; y_off = 0; zoom = 0;}
+      | (`ASCII 'n', _) -> `Next, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
+      | (`ASCII 'p', _) -> `Prev, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
       | _ -> (`None, view)
     end
