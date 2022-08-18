@@ -168,7 +168,7 @@ let step pattern view (width, height) event =
       | (`Arrow dir, l) when List.mem `Shift l -> `None, Controls.page pattern.substrate view left_pane dir
       | (`Arrow dir, _) -> `None, Controls.scroll pattern.substrate view dir
       | (`ASCII 's', _) -> `None, Controls.switch_view view
-      | (`ASCII 'n', _) -> `Next, view
-      | (`ASCII 'p', _) -> `Prev, view
+      | (`ASCII 'n', _) -> `Next, {view with x_off = 0; y_off = 0; zoom = 0;}
+      | (`ASCII 'p', _) -> `Prev, {view with x_off = 0; y_off = 0; zoom = 0;}
       | _ -> (`None, view)
     end

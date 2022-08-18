@@ -29,13 +29,13 @@ let rec ingest dir traverse =
 let disp db dir =
   let open Lwt.Infix in
   let term = Notty_lwt.Term.create () in
-  let rec aux dir traverse =
+  let rec aux dir traverse view =
     fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
     let user_input_stream = Notty_lwt.Term.events term in
     match ingest dir traverse with
     | Error s -> Format.eprintf "error: %s\n%!" s; Notty_lwt.Term.release term
     | Ok pattern ->
-      Notty_lwt.Term.image term @@ main_view traverse pattern start_view (Notty_lwt.Term.size term) >>= fun () ->
+      Notty_lwt.Term.image term @@ main_view traverse pattern view (Notty_lwt.Term.size term) >>= fun () ->
       let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
         (Lwt_stream.last_new user_input_stream) >>= fun event ->
           let size = Notty_lwt.Term.size term in
@@ -44,10 +44,10 @@ let disp db dir =
           | `None, view ->
             Notty_lwt.Term.image term (main_view traverse pattern view size) >>= fun () ->
             loop pattern view
-          | `Next, _view -> aux dir {traverse with n = traverse.n + 1} (module Caqti_db)
-          | `Prev, _view -> aux dir {traverse with n = max 0 @@ traverse.n - 1} (module Caqti_db)
+          | `Next, view -> aux dir {traverse with n = traverse.n + 1} view (module Caqti_db)
+          | `Prev, view -> aux dir {traverse with n = max 0 @@ traverse.n - 1} view (module Caqti_db)
       in
-      loop pattern start_view
+      loop pattern view
   in
   (
     let open Rresult.R in
@@ -66,7 +66,7 @@ let disp db dir =
       | Error e -> Format.eprintf "error connecting to database: %a\n%!" Caqti_error.pp e;
         Lwt.return_unit
       | Ok m ->
-        aux dir traverse m
+        aux dir traverse start_view m
       );
       Ok ()
   ) |> function
