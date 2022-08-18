@@ -26,10 +26,11 @@ let rec ingest dir traverse =
     with
     | Unix.Unix_error _ -> ingest dir {traverse with n = traverse.n + 1}
 
-let disp dir =
+let disp db dir =
   let open Lwt.Infix in
   let term = Notty_lwt.Term.create () in
-  let rec aux dir traverse : unit Lwt.t =
+  let rec aux dir traverse =
+    fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
     let user_input_stream = Notty_lwt.Term.events term in
     match ingest dir traverse with
     | Error s -> Format.eprintf "error: %s\n%!" s; Notty_lwt.Term.release term
@@ -43,8 +44,8 @@ let disp dir =
           | `None, view ->
             Notty_lwt.Term.image term (main_view traverse pattern view size) >>= fun () ->
             loop pattern view
-          | `Next, _view -> aux dir {traverse with n = traverse.n + 1}
-          | `Prev, _view -> aux dir {traverse with n = max 0 @@ traverse.n - 1}
+          | `Next, _view -> aux dir {traverse with n = traverse.n + 1} (module Caqti_db)
+          | `Prev, _view -> aux dir {traverse with n = max 0 @@ traverse.n - 1} (module Caqti_db)
       in
       loop pattern start_view
   in
@@ -59,7 +60,15 @@ let disp dir =
         n = 0;
         contents;
       } in
-      Lwt_main.run @@ aux dir traverse; Ok ()
+      Lwt_main.run (
+        let open Lwt.Infix in
+        Caqti_lwt.connect (Db.CLI.uri_of_db db) >>= function
+      | Error e -> Format.eprintf "error connecting to database: %a\n%!" Caqti_error.pp e;
+        Lwt.return_unit
+      | Ok m ->
+        aux dir traverse m
+      );
+      Ok ()
   ) |> function
   | Ok () -> Ok ()
   | Error (`Msg s) -> Format.eprintf "%s\n%!" s; Error s
@@ -68,7 +77,7 @@ let info =
   let doc = "slice, dice, and tag patterns" in
   Cmdliner.Cmd.info "patbrowser" ~doc
 
-let disp_t = Cmdliner.Term.(const disp $ dir)
+let disp_t = Cmdliner.Term.(const disp $ Db.CLI.db_t $ dir)
 
 let () =
   exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info disp_t

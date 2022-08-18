@@ -5,16 +5,14 @@ type traverse = {
   contents : Fpath.t list;
 }
 
-let filesystem_pane {n; contents} =
-  let open Notty.I in
-  List.mapi (fun i filename ->
-      if i = n then
-        string Notty.A.(bg yellow ++ st bold) (Fpath.basename filename)
+let filesystem_pane {n; contents} (_width, _height) =
+  List.fold_left (fun (i, acc) filename ->
+      if i < n then (i + 1, acc)
+      else if i = n then
+        (i + 1, Notty.I.(vcat [acc; string Notty.A.(bg yellow ++ st bold) @@ Fpath.basename filename]))
       else
-        string Notty.A.empty (Fpath.basename filename)
-    ) contents
-    |>
-  List.fold_left (fun acc item -> acc <-> item) Notty.I.empty
+        (i + 1, Notty.I.(vcat [acc; string Notty.A.empty @@ Fpath.basename filename]))
+    ) (0, Notty.I.empty) contents |> snd
 
 let symbol_map colors =
   let lookups = List.mapi (fun index thread ->
@@ -156,7 +154,7 @@ let main_view traverse {substrate; layers; backstitch_layers;} view (width, heig
   let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
   let left_pane = left_pane substrate (width, height) in
   let stitch_grid = show_left_pane {substrate; layers; backstitch_layers;} symbol_map view left_pane in
-  (stitch_grid <|> (filesystem_pane traverse))
+  (stitch_grid <|> Notty.I.void 1 1 <|> (filesystem_pane traverse (width, height)))
   <->
   key_help view
 
