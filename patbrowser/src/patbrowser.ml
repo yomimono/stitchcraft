@@ -5,11 +5,6 @@ let dir =
   let doc = "directory from which to read." in
   Cmdliner.Arg.(value & pos 0 dir "." & info [] ~doc)
 
-type traverse = {
-  n : int;
-  contents : Fpath.t list;
-}
-
 let start_view = { Patbrowser_canvas__Controls.x_off = 0; y_off = 0; zoom = 1; block_display = `Symbol }
 
 let rec ingest dir traverse =
@@ -39,14 +34,14 @@ let disp dir =
     match ingest dir traverse with
     | Error s -> Format.eprintf "error: %s\n%!" s; Notty_lwt.Term.release term
     | Ok pattern ->
-      Notty_lwt.Term.image term @@ main_view pattern start_view (Notty_lwt.Term.size term) >>= fun () ->
+      Notty_lwt.Term.image term @@ main_view traverse pattern start_view (Notty_lwt.Term.size term) >>= fun () ->
       let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
         (Lwt_stream.last_new user_input_stream) >>= fun event ->
           let size = Notty_lwt.Term.size term in
           match step pattern view size event with
           | `Quit, _ -> Notty_lwt.Term.release term
           | `None, view ->
-            Notty_lwt.Term.image term (main_view pattern view size) >>= fun () ->
+            Notty_lwt.Term.image term (main_view traverse pattern view size) >>= fun () ->
             loop pattern view
           | `Next, _view -> aux dir {traverse with n = traverse.n + 1}
           | `Prev, _view -> aux dir {traverse with n = max 0 @@ traverse.n - 1}
@@ -59,6 +54,7 @@ let disp dir =
     Bos.OS.Dir.contents dir >>= function
     | [] -> Error (`Msg "no patterns")
     | contents ->
+      let contents = List.sort Fpath.compare contents in
       let traverse = {
         n = 0;
         contents;

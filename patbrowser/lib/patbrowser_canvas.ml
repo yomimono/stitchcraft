@@ -1,5 +1,21 @@
 open Stitchy.Types
 
+type traverse = {
+  n : int;
+  contents : Fpath.t list;
+}
+
+let filesystem_pane {n; contents} =
+  let open Notty.I in
+  List.mapi (fun i filename ->
+      if i = n then
+        string Notty.A.(bg yellow ++ st bold) (Fpath.basename filename)
+      else
+        string Notty.A.empty (Fpath.basename filename)
+    ) contents
+    |>
+  List.fold_left (fun acc item -> acc <-> item) Notty.I.empty
+
 let symbol_map colors =
   let lookups = List.mapi (fun index thread ->
       match List.nth_opt Stitchy.Symbol.printable_symbols index with
@@ -40,21 +56,6 @@ let symbol_of_thread symbols (stitch, thread) =
   match SymbolMap.find_opt thread symbols with
   | Some a -> a
   | None -> uchar_of_stitch stitch
-
-let color_key substrate symbols view colors =
-  List.map (fun c ->
-      let open Notty.Infix in
-      let needle = Stitchy.DMC.Thread.to_rgb c in
-      let style = Notty.A.(fg (color_map needle) ++ bg (color_map substrate.background)) in
-      let symbol =
-        if view.Controls.block_display = `Solid then Uchar.of_int 0x2588 else
-        match SymbolMap.find_opt c symbols with
-        | Some a -> a
-        | None -> Uchar.of_int 0x2588
-      in
-      Notty.(I.uchar style symbol 1 1) <|> Notty.I.void 1 0 <|>
-      Notty.(I.string style @@ Stitchy.DMC.Thread.to_string c)
-    ) colors |> Notty.I.vcat
 
 let label_size n = Notty.(I.width @@ I.strf "%d" n)
 
@@ -150,17 +151,12 @@ let key_help view =
   in
   quit <|> sp <|> symbol <|> sp <|> nav_text <|> sp <|> shift_text
 
-let main_view {substrate; layers; backstitch_layers;} view (width, height) =
+let main_view traverse {substrate; layers; backstitch_layers;} view (width, height) =
   let open Notty.Infix in
   let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
   let left_pane = left_pane substrate (width, height) in
   let stitch_grid = show_left_pane {substrate; layers; backstitch_layers;} symbol_map view left_pane in
-  let colors = colors ~x_off:view.x_off ~y_off:view.y_off
-      ~width:left_pane.stitch_grid.width ~height:left_pane.stitch_grid.height
-      {substrate; layers; backstitch_layers;}
-  in
-  let color_key = color_key substrate symbol_map view colors in
-  (stitch_grid <|> (color_key))
+  (stitch_grid <|> (filesystem_pane traverse))
   <->
   key_help view
 
