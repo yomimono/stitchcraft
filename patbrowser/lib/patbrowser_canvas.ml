@@ -167,13 +167,14 @@ let main_view {substrate; layers; backstitch_layers;} view (width, height) =
 let step pattern view (width, height) event =
   let left_pane = left_pane pattern.substrate (width, height) in
   match event with
-  | `Resize _ | `Mouse _ | `Paste _ -> Some (false, view)
+  | `Resize _ | `Mouse _ | `Paste _ -> `None, view
   | `Key (key, mods) -> begin
       match key, mods with
-      | (`Escape, _) | (`ASCII 'q', _) -> None
-      | (`Arrow dir, l) when List.mem `Shift l -> Some (false, Controls.page pattern.substrate view left_pane dir)
-      | (`Arrow dir, _) -> Some (false, Controls.scroll pattern.substrate view dir)
-      | (`ASCII 's', _) -> Some (false, Controls.switch_view view)
-      | (`ASCII 'r', _) -> Some (true, view)
-      | _ -> Some (false, view)
+      | (`Escape, _) | (`ASCII 'q', _) -> `Quit, view
+      | (`Arrow dir, l) when List.mem `Shift l -> `None, Controls.page pattern.substrate view left_pane dir
+      | (`Arrow dir, _) -> `None, Controls.scroll pattern.substrate view dir
+      | (`ASCII 's', _) -> `None, Controls.switch_view view
+      | (`ASCII 'n', _) -> `Next, view
+      | (`ASCII 'p', _) -> `Prev, view
+      | _ -> (`None, view)
     end
