@@ -113,10 +113,13 @@ let show_left_pane {substrate; layers; backstitch_layers} symbol_map view left_p
         (x + view.Controls.x_off, y + view.y_off)
     in
     match stitches_here, view.selection with
-    | [], Some {start_cell; _} ->
+    | [], Some {start_cell; end_cell} ->
+      let start_x, start_y = start_cell
+      and end_x, end_y = end_cell
+      in
       (* TODO: actually figure out whether it's in between *)
-      let selection_x, selection_y = start_cell in
-      if selection_x = x && selection_y = y then Notty.I.char Notty.A.(bg cyan) ' ' 1 1
+      if start_x <= x && x <= end_x && start_y <= y && y <= end_y then
+        Notty.I.char Notty.A.(bg cyan) ' ' 1 1
       else Notty.I.char background ' ' 1 1
     | [], None ->
       (* no stitch here *)
@@ -169,18 +172,32 @@ let main_view traverse {substrate; layers; backstitch_layers;} view (width, heig
 
 let step pattern (view : Controls.view) (width, height) event =
   let left_pane = left_pane pattern.substrate (width, height) in
-  match event with
-  | `Resize _ | `Paste _ -> `None, let _ = view.selection in view
-  | `Mouse ((`Press (`Left)), (x, y), _) ->
+  let offset_click (x, y) =
     let empty_corner = left_pane.empty_corner in
     if x < empty_corner.width || y < empty_corner.height then
-      `None, view
+      `None
     else
       let selection_x = x - empty_corner.width
       and selection_y = y - empty_corner.height
       in
       let selection = (selection_x, selection_y) in
-    `None, {view with selection = Some {start_cell = selection; end_cell = selection}}
+      `Grid selection
+  in
+  match event with
+  | `Resize _ | `Paste _ -> `None, let _ = view.selection in view
+  | `Mouse ((`Press (`Left)), (x, y), _) ->
+    begin
+    match offset_click (x, y) with
+    | `None -> `None, view
+    | `Grid selection ->
+      `None, {view with selection = Some {start_cell = selection; end_cell = selection}}
+  end
+  | `Mouse (`Release, (x, y), _) -> begin
+    match view.selection, offset_click (x, y) with
+    | None, _ | _, `None -> `None, view
+    | (Some {start_cell; _}), (`Grid selection) ->
+      `None, {view with selection = Some {start_cell; end_cell = selection}}
+  end
   | `Mouse _ -> `None, view
   | `Key (key, mods) -> begin
       match key, mods with
