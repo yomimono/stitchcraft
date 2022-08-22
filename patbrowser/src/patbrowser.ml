@@ -36,9 +36,6 @@ let disp db dir =
   let term = Notty_lwt.Term.create () in
   let rec aux dir traverse view =
     fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
-    Format.eprintf "hello from aux, everything is great, how are you\n%!";
-    Format.eprintf "hello from aux, everything is great, how are you\n%!";
-    Format.eprintf "hello from aux, everything is great, how are you\n%!";
     let user_input_stream = Notty_lwt.Term.events term in
     match ingest dir traverse with
     | Error s -> Format.eprintf "error: %s\n%!" s; Notty_lwt.Term.release term
@@ -59,46 +56,26 @@ let disp db dir =
   in
   (
     let open Rresult.R in
-    Format.eprintf "hey yall its ya boi\n%!";
     Fpath.of_string dir >>= fun dir ->
     Bos.OS.Dir.contents dir >>= function
     | [] -> Error (`Msg "no patterns")
     | contents ->
-      Format.eprintf "comin' at y'all with a brand new sound\n%!";
       let contents = List.sort Fpath.compare contents in
       let traverse = {
         n = 0;
         contents;
       } in
-      Format.eprintf "I got %d patterns to show to you\n%!" @@ List.length contents;
       Lwt_main.run (
-        Lwt.catch (fun () ->
-            let open Lwt.Infix in
-            Format.eprintf "and now I'm gonna take the mound\n%!";
-            let uri = Db.CLI.uri_of_db db in
-            Format.eprintf "uri get\n%!";
-            Caqti_lwt.connect uri >>= fun thing ->
-            Format.eprintf "our connection attempt finished\n%!";
-            match thing with
-            | Error e ->
-              Format.eprintf "error connecting to database: %a\n%!" Caqti_error.pp e;
-              exit 1
-            | Ok m ->
-              Format.eprintf "uh sure ok\n%!";
-              Format.eprintf "connected\n%!";
-              aux dir traverse start_view m >>= fun () ->
-              Format.eprintf "I did it!!!!\n%!";
-              Lwt.return_unit
-          )
-          (
-            fun _ -> Format.eprintf "fuck\n%!"; Lwt.return_unit
-          )
-      ) |>
-      fun () ->
-      Format.eprintf "whomst among us\n%!";
+        let open Lwt.Infix in
+        Caqti_lwt.connect (Db.CLI.uri_of_db db) >>= function
+      | Error e -> Format.eprintf "error connecting to database: %a\n%!" Caqti_error.pp e;
+        Lwt.return_unit
+      | Ok m ->
+        aux dir traverse start_view m
+      );
       Ok ()
   ) |> function
-  | Ok () -> Format.eprintf "ok im done\n%!"; Ok ()
+  | Ok () -> Ok ()
   | Error (`Msg s) -> Format.eprintf "%s\n%!" s; Error s
 
 let info =
