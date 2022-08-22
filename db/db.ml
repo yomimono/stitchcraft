@@ -189,9 +189,15 @@ module ORM = struct
       {|
         INSERT INTO tags (name) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING
     |}
-      
-    let names = {|
-        WITH unnested_tags AS (select unnest(tags) from patterns) select name from unnested_tags join tags on unnest = tags.id;
+
+    let all_names =
+      Caqti_type.unit -->* Caqti_type.string @:-
+      {|
+      SELECT name FROM tags
+    |}
+
+    let names_in_use = {|
+        WITH unnested_tags AS (select unnest(tags) from patterns) select name from unnested_tags join tags on unnest = tags.id
       |}
 
     let find =

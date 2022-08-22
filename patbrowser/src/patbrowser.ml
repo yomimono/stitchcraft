@@ -45,8 +45,11 @@ let disp db dir =
       Notty_lwt.Term.release term >>= fun () ->
       Lwt.return @@ Error (`Msg s)
     | Ok (pattern, traverse) ->
-      (* TODO db queries go here *)
-      let db_info = {filename_matches = []; tags = []} in
+      (Caqti_db.collect_list Db.ORM.Tags.all_names () >|= function
+      | Error _ -> []
+      | Ok tags -> tags
+      ) >>= fun tags ->
+      let db_info = {filename_matches = []; tags;} in
       Notty_lwt.Term.image term @@ main_view traverse db_info pattern view (Notty_lwt.Term.size term) >>= fun () ->
       let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
         (Lwt_stream.last_new user_input_stream) >>= fun event ->
