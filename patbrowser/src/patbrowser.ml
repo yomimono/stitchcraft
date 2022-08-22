@@ -13,18 +13,24 @@ let start_view = { Patbrowser_canvas__Controls.x_off = 0;
                  }
 
 let rec ingest dir traverse =
-  let next_index = match traverse.direction with
-    | Up -> max 0 @@ traverse.n - 1
-    | Down -> min ((List.length traverse.contents) - 1) @@ traverse.n + 1
+  let to_get =
+    if traverse.n < 0 && traverse.direction = Down then 0
+    else if traverse.n >= (List.length traverse.contents) && traverse.direction = Down then (List.length traverse.contents) - 1
+    else traverse.n
   in
-  match List.nth_opt traverse.contents traverse.n with
+  match List.nth_opt traverse.contents to_get with
   | None -> Error "no more files to try"
   | Some filename ->
+    let next_index =
+      match traverse.direction with
+      | Up -> to_get - 1
+      | Down -> to_get + 1
+    in
     try
       match Bos.OS.File.read filename with
       | Error _ ->
         (* are there additional files to try? *)
-        ingest dir {traverse with n = next_index}
+        ingest dir {traverse with n = to_get}
       | Ok contents ->
         match (Stitchy.Types.pattern_of_yojson @@ Yojson.Safe.from_string contents) with
         | Ok p -> Ok (p, traverse)
@@ -38,10 +44,11 @@ let find_filename_tags traverse =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
   let open Lwt.Infix in
   (* what's the filename? *)
-  let filename = Fpath.to_string @@ List.nth traverse.contents traverse.n in
+  let filename = String.lowercase_ascii @@ Fpath.basename @@ List.nth traverse.contents traverse.n in
   (* is there a tag for it? *)
   Caqti_db.find Db.ORM.Tags.count [filename] >>= function
-  | Error _ | Ok 0 -> Lwt.return []
+  | Error _ -> Lwt.return []
+  | Ok 0 -> Lwt.return []
   | Ok _ ->
     (* do any patterns have the tag? *)
     Caqti_db.collect_list Db.ORM.Patterns.find [filename] >|= function

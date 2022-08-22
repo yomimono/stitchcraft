@@ -208,7 +208,7 @@ let step pattern (view : Controls.view) (width, height) event =
       `Grid selection
   in
   match event with
-  | `Resize _ | `Paste _ -> `None, let _ = view.selection in view
+  | `Resize _ | `Paste _ -> `None, view
   | `Mouse ((`Press (`Left)), (x, y), _) ->
     begin
     match offset_click (x, y) with
