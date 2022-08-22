@@ -161,11 +161,18 @@ module ORM = struct
       Caqti_type.int @:-
       make_pattern
 
-    let search_by_tag = {|
-      SELECT id, name, pattern, tags
-      FROM patterns
-      WHERE tags @> (SELECT ARRAY (SELECT id FROM tags WHERE name = ANY($1)))
+    let find =
+      let open Caqti_request.Infix in
+      string_array -->* Caqti_type.(tup4 int string int int) @:-
+      {|
+        SELECT
+        id, name, pattern->'substrate'->'max_x', pattern->'substrate'->'max_y'
+        FROM patterns
+        WHERE tags @>
+          (SELECT ARRAY
+             (SELECT id FROM tags WHERE name = ANY(?)))
       |}
+
 
     let get_by_id =
       let open Caqti_request.Infix in
@@ -198,18 +205,6 @@ module ORM = struct
 
     let names_in_use = {|
         WITH unnested_tags AS (select unnest(tags) from patterns) select name from unnested_tags join tags on unnest = tags.id
-      |}
-
-    let find =
-      let open Caqti_request.Infix in
-      string_array -->* Caqti_type.(tup4 int string int int) @:-
-      {|
-        SELECT
-        id, name, pattern->'substrate'->'max_x', pattern->'substrate'->'max_y'
-        FROM patterns
-        WHERE tags @>
-          (SELECT ARRAY
-             (SELECT id FROM tags WHERE name = ANY(?)))
       |}
 
     let count =

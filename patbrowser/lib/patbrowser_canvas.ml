@@ -9,7 +9,7 @@ type traverse = {
 }
 
 type db_info = {
-  filename_matches : Stitchy.Types.pattern list;
+  filename_matches : (int * string * int * int) list;
   tags : string list;
 }
 

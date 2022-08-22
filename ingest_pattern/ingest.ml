@@ -13,7 +13,7 @@ let tags =
   Cmdliner.Arg.(value & opt_all string [] & info ["t"; "tag"] ~doc ~docv:"TAG")
 
 let search_patterns (module Caqti_db : Caqti_lwt.CONNECTION) (tags : string list) =
-  Caqti_db.collect_list Db.ORM.Tags.find tags >>= function
+  Caqti_db.collect_list Db.ORM.Patterns.find tags >>= function
   | Ok ((id, name, _w, _h)::[]) ->
     Format.eprintf "pattern %d (%s) matches\n%!" id name;
     Lwt.return (Ok ())

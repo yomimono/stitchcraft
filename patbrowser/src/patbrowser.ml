@@ -49,7 +49,12 @@ let disp db dir =
       | Error _ -> []
       | Ok tags -> tags
       ) >>= fun tags ->
-      let db_info = {filename_matches = []; tags;} in
+      let filename = Fpath.to_string @@ List.nth traverse.contents traverse.n in
+      (Caqti_db.collect_list Db.ORM.Patterns.find [filename] >|= function
+      | Error _ -> []
+      | Ok l -> l
+      ) >>= fun filename_matches ->
+      let db_info = {filename_matches; tags;} in
       Notty_lwt.Term.image term @@ main_view traverse db_info pattern view (Notty_lwt.Term.size term) >>= fun () ->
       let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
         (Lwt_stream.last_new user_input_stream) >>= fun event ->

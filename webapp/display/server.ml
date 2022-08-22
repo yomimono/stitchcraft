@@ -69,7 +69,7 @@ let search request =
                                            (Format.asprintf
                                               "only %d tags of %d were found" n (List.length tags))
     | Ok _ ->
-      Caqti_db.collect_list Db.ORM.Tags.find tags >>= function
+      Caqti_db.collect_list Db.ORM.Patterns.find tags >>= function
       | Error s -> Dream.html ~code:500 @@ Format.asprintf "%a" Caqti_error.pp s
       | Ok [] -> Dream.respond ~code:404 "no results"
       | Ok l -> begin
