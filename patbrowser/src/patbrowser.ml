@@ -22,14 +22,13 @@ let rec ingest dir traverse =
         (* are there additional files to try? *)
         ingest dir {traverse with n = traverse.n + 1}
       | Ok contents ->
-        (try
-           Ok (Yojson.Safe.from_string contents)
-         with _ -> Error "not json")
-        |> function
-        | Ok j -> Stitchy.Types.pattern_of_yojson j
-        | Error _ as e -> e
+        match (Stitchy.Types.pattern_of_yojson @@ Yojson.Safe.from_string contents) with
+        | Ok p -> Ok (p, traverse)
+        | Error _ ->
+          ingest dir {traverse with n = traverse.n + 1}
     with
     | Unix.Unix_error _ -> ingest dir {traverse with n = traverse.n + 1}
+    | Yojson.Json_error _ -> ingest dir {traverse with n = traverse.n + 1}
 
 let disp db dir =
   let open Lwt.Infix in
@@ -38,19 +37,26 @@ let disp db dir =
     fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
     let user_input_stream = Notty_lwt.Term.events term in
     match ingest dir traverse with
-    | Error s -> Format.eprintf "error: %s\n%!" s; Notty_lwt.Term.release term
-    | Ok pattern ->
+    | Error s ->
+      Notty_lwt.Term.release term >>= fun () ->
+      Lwt.return @@ Error (`Msg s)
+    | Ok (pattern, traverse) ->
       Notty_lwt.Term.image term @@ main_view traverse pattern view (Notty_lwt.Term.size term) >>= fun () ->
       let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
         (Lwt_stream.last_new user_input_stream) >>= fun event ->
           let size = Notty_lwt.Term.size term in
           match step pattern view size event with
-          | `Quit, _ -> Notty_lwt.Term.release term
+          | `Quit, _ -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
           | `None, view ->
             Notty_lwt.Term.image term (main_view traverse pattern view size) >>= fun () ->
             loop pattern view
-          | `Next, view -> aux dir {traverse with n = traverse.n + 1} view (module Caqti_db)
           | `Prev, view -> aux dir {traverse with n = max 0 @@ traverse.n - 1} view (module Caqti_db)
+          | `Next, view ->
+            let next = 
+              if traverse.n = List.length traverse.contents then traverse.n
+              else traverse.n + 1
+            in
+            aux dir {traverse with n = next} view (module Caqti_db)
       in
       loop pattern view
   in
@@ -68,12 +74,12 @@ let disp db dir =
       Lwt_main.run (
         let open Lwt.Infix in
         Caqti_lwt.connect (Db.CLI.uri_of_db db) >>= function
-      | Error e -> Format.eprintf "error connecting to database: %a\n%!" Caqti_error.pp e;
-        Lwt.return_unit
-      | Ok m ->
-        aux dir traverse start_view m
-      );
-      Ok ()
+        | Error e -> Lwt.return (Error (`Msg 
+          (Format.asprintf "error connecting to database: %a\n%!" Caqti_error.pp e)
+                                     ))
+        | Ok m ->
+          aux dir traverse start_view m
+      )
   ) |> function
   | Ok () -> Ok ()
   | Error (`Msg s) -> Format.eprintf "%s\n%!" s; Error s
