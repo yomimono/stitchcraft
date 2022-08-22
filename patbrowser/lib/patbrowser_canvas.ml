@@ -17,6 +17,8 @@ let filesystem_pane {n; contents; _} (_width, _height) =
         (i + 1, Notty.I.(vcat [acc; string Notty.A.empty @@ Fpath.basename filename]))
     ) (0, Notty.I.empty) contents |> snd
 
+let database_pane _ _ = Notty.I.empty
+
 let symbol_map colors =
   let lookups = List.mapi (fun index thread ->
       match List.nth_opt Stitchy.Symbol.printable_symbols index with
@@ -169,7 +171,15 @@ let main_view traverse {substrate; layers; backstitch_layers;} view (width, heig
   let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
   let left_pane = left_pane substrate (width, height) in
   let stitch_grid = show_left_pane {substrate; layers; backstitch_layers;} symbol_map view left_pane in
-  (stitch_grid <|> Notty.I.void 1 1 <|> (filesystem_pane traverse (width, height)))
+  (* to separate into two panes vertically, divide then remove 2 more rows for spacer and key help *)
+  let half_vertical = height / 2 - 2 in
+  let fs_and_db = (Notty.I.vsnap ~align:`Top half_vertical @@ filesystem_pane traverse (width, half_vertical)
+                  <->
+                  Notty.I.void 1 1
+                  <->
+                  Notty.I.vsnap ~align:`Top half_vertical @@ database_pane traverse (width, half_vertical))
+  in
+  (stitch_grid <|> Notty.I.void 1 1 <|> fs_and_db)
   <->
   key_help view
 
