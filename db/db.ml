@@ -54,7 +54,7 @@ module CLI = struct
     let password =
       let doc = "postgresql user's password" in
       let env = Cmdliner.Cmd.Env.info "PGPASSWORD" in
-      Cmdliner.Arg.(value & opt string "s3kr1t" & info ["pass"] ~docv:"PGPASSWORD" ~doc ~env)
+      Cmdliner.Arg.(value & opt string "s3kr1t" & info ["pass"; "password"] ~docv:"PGPASSWORD" ~doc ~env)
     in
     Cmdliner.Term.(const set_db $ host $ port $ database $ user $ password)
 
