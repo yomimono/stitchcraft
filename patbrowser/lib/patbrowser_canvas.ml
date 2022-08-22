@@ -8,11 +8,6 @@ type traverse = {
   direction : direction;
 }
 
-type db_info = {
-  filename_matches : Stitchy.Types.pattern list;
-  tags : string list;
-}
-
 let filesystem_pane {n; contents; _} (_width, _height) =
   List.fold_left (fun (i, acc) filename ->
       if i < n then (i + 1, acc)
@@ -22,13 +17,7 @@ let filesystem_pane {n; contents; _} (_width, _height) =
         (i + 1, Notty.I.(vcat [acc; string Notty.A.empty @@ Fpath.basename filename]))
     ) (0, Notty.I.empty) contents |> snd
 
-let database_pane db_info (_width, _height) =
-  let open Notty.Infix in
-  Notty.I.strf Notty.A.empty "%d patterns tagged w/this filename" @@ List.length db_info.filename_matches
-  <->
-  Notty.I.string Notty.A.(st bold) "tags"
-  <->
-  Notty.I.vcat (List.map (Notty.I.string Notty.A.empty) db_info.tags)
+let database_pane _ _ = Notty.I.empty
 
 let symbol_map colors =
   let lookups = List.mapi (fun index thread ->
