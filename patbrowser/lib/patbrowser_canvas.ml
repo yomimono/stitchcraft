@@ -1,11 +1,14 @@
 open Stitchy.Types
 
+type direction = | Up | Down
+
 type traverse = {
   n : int;
   contents : Fpath.t list;
+  direction : direction;
 }
 
-let filesystem_pane {n; contents} (_width, _height) =
+let filesystem_pane {n; contents; _} (_width, _height) =
   List.fold_left (fun (i, acc) filename ->
       if i < n then (i + 1, acc)
       else if i = n then

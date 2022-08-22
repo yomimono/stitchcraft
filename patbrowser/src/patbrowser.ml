@@ -13,6 +13,10 @@ let start_view = { Patbrowser_canvas__Controls.x_off = 0;
                  }
 
 let rec ingest dir traverse =
+  let next_index = match traverse.direction with
+    | Up -> max 0 @@ traverse.n - 1
+    | Down -> min ((List.length traverse.contents) - 1) @@ traverse.n + 1
+  in
   match List.nth_opt traverse.contents traverse.n with
   | None -> Error "no more files to try"
   | Some filename ->
@@ -20,23 +24,23 @@ let rec ingest dir traverse =
       match Bos.OS.File.read filename with
       | Error _ ->
         (* are there additional files to try? *)
-        ingest dir {traverse with n = traverse.n + 1}
+        ingest dir {traverse with n = next_index}
       | Ok contents ->
         match (Stitchy.Types.pattern_of_yojson @@ Yojson.Safe.from_string contents) with
         | Ok p -> Ok (p, traverse)
         | Error _ ->
-          ingest dir {traverse with n = traverse.n + 1}
+          ingest dir {traverse with n = next_index}
     with
-    | Unix.Unix_error _ -> ingest dir {traverse with n = traverse.n + 1}
-    | Yojson.Json_error _ -> ingest dir {traverse with n = traverse.n + 1}
+    | Unix.Unix_error _ -> ingest dir {traverse with n = next_index}
+    | Yojson.Json_error _ -> ingest dir {traverse with n = next_index}
 
 let disp db dir =
   let open Lwt.Infix in
   let term = Notty_lwt.Term.create () in
-  let rec aux dir traverse view =
+  let rec aux dir traverse' view =
     fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
     let user_input_stream = Notty_lwt.Term.events term in
-    match ingest dir traverse with
+    match ingest dir traverse' with
     | Error s ->
       Notty_lwt.Term.release term >>= fun () ->
       Lwt.return @@ Error (`Msg s)
@@ -50,13 +54,13 @@ let disp db dir =
           | `None, view ->
             Notty_lwt.Term.image term (main_view traverse pattern view size) >>= fun () ->
             loop pattern view
-          | `Prev, view -> aux dir {traverse with n = max 0 @@ traverse.n - 1} view (module Caqti_db)
+          | `Prev, view -> aux dir {traverse with n = max 0 @@ traverse.n - 1; direction = Up} view (module Caqti_db)
           | `Next, view ->
             let next = 
               if traverse.n = List.length traverse.contents then traverse.n
               else traverse.n + 1
             in
-            aux dir {traverse with n = next} view (module Caqti_db)
+            aux dir {traverse with n = next; direction = Down} view (module Caqti_db)
       in
       loop pattern view
   in
@@ -70,6 +74,7 @@ let disp db dir =
       let traverse = {
         n = 0;
         contents;
+        direction = Down;
       } in
       Lwt_main.run (
         let open Lwt.Infix in
