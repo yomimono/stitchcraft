@@ -34,6 +34,20 @@ let rec ingest dir traverse =
     | Unix.Unix_error _ -> ingest dir {traverse with n = next_index}
     | Yojson.Json_error _ -> ingest dir {traverse with n = next_index}
 
+let find_filename_tags traverse =
+  fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
+  let open Lwt.Infix in
+  (* what's the filename? *)
+  let filename = Fpath.to_string @@ List.nth traverse.contents traverse.n in
+  (* is there a tag for it? *)
+  Caqti_db.find Db.ORM.Tags.count [filename] >>= function
+  | Error _ | Ok 0 -> Lwt.return []
+  | Ok _ ->
+    (* do any patterns have the tag? *)
+    Caqti_db.collect_list Db.ORM.Patterns.find [filename] >|= function
+    | Error _ -> []
+    | Ok l -> l
+
 let disp db dir =
   let open Lwt.Infix in
   let term = Notty_lwt.Term.create () in
@@ -49,11 +63,7 @@ let disp db dir =
       | Error _ -> []
       | Ok tags -> tags
       ) >>= fun tags ->
-      let filename = Fpath.to_string @@ List.nth traverse.contents traverse.n in
-      (Caqti_db.collect_list Db.ORM.Patterns.find [filename] >|= function
-      | Error _ -> []
-      | Ok l -> l
-      ) >>= fun filename_matches ->
+      find_filename_tags traverse (module Caqti_db) >>= fun filename_matches ->
       let db_info = {filename_matches; tags;} in
       Notty_lwt.Term.image term @@ main_view traverse db_info pattern view (Notty_lwt.Term.size term) >>= fun () ->
       let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
