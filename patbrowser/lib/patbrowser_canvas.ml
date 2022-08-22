@@ -8,6 +8,11 @@ type traverse = {
   direction : direction;
 }
 
+type db_info = {
+  filename_matches : Stitchy.Types.pattern list;
+  tags : string list;
+}
+
 let filesystem_pane {n; contents; _} (_width, _height) =
   List.fold_left (fun (i, acc) filename ->
       if i < n then (i + 1, acc)
@@ -17,7 +22,13 @@ let filesystem_pane {n; contents; _} (_width, _height) =
         (i + 1, Notty.I.(vcat [acc; string Notty.A.empty @@ Fpath.basename filename]))
     ) (0, Notty.I.empty) contents |> snd
 
-let database_pane _ _ = Notty.I.empty
+let database_pane db_info (_width, _height) =
+  let open Notty.Infix in
+  Notty.I.strf "%d patterns tagged w/this filename" @@ List.length db_info.filename_matches
+  <->
+  Notty.I.string Notty.A.(st bold) "tags"
+  <->
+  Notty.I.vcat (List.map (Notty.I.string Notty.A.empty) db_info.tags)
 
 let symbol_map colors =
   let lookups = List.mapi (fun index thread ->
@@ -166,7 +177,7 @@ let key_help view =
   in
   quit <|> sp <|> symbol <|> sp <|> nav_text <|> sp <|> shift_text
 
-let main_view traverse {substrate; layers; backstitch_layers;} view (width, height) =
+let main_view traverse db_info {substrate; layers; backstitch_layers;} view (width, height) =
   let open Notty.Infix in
   let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
   let left_pane = left_pane substrate (width, height) in
@@ -177,7 +188,7 @@ let main_view traverse {substrate; layers; backstitch_layers;} view (width, heig
                   <->
                   Notty.I.void 1 1
                   <->
-                  Notty.I.vsnap ~align:`Top half_vertical @@ database_pane traverse (width, half_vertical))
+                  Notty.I.vsnap ~align:`Top half_vertical @@ database_pane db_info (width, half_vertical))
   in
   (stitch_grid <|> Notty.I.void 1 1 <|> fs_and_db)
   <->
