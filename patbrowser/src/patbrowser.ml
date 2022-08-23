@@ -78,6 +78,9 @@ let disp db dir =
           let size = Notty_lwt.Term.size term in
           match step pattern view size event with
           | `Quit, _ -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
+          | `Add, view ->
+            Notty_lwt.Term.image term (add_view traverse db_info pattern view size) >>= fun () ->
+            loop pattern view
           | `None, view ->
             Notty_lwt.Term.image term (main_view traverse db_info pattern view size) >>= fun () ->
             loop pattern view

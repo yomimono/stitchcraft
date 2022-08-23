@@ -130,19 +130,16 @@ let show_left_pane {substrate; layers; backstitch_layers} symbol_map view left_p
         (x + view.Controls.x_off, y + view.y_off)
     in
     match stitches_here, view.selection with
-    | [], Some {start_cell; end_cell} ->
-      let start_x, start_y = start_cell
-      and end_x, end_y = end_cell
-      in
-      let min_x = min start_x end_x and max_x = max start_x end_x
-      and min_y = min start_y end_y and max_y = max start_y end_y
-      in
+    | [], None -> Notty.I.char background ' ' 1 1
+    | [], Some selection ->
+      (* get the bounds for the selection *)
+      let {Controls.start_cell; end_cell} = Controls.normalize_selection selection in
+      let min_x, min_y = start_cell and max_x, max_y = end_cell in
+      (* if (x, y) is in bounds, set the background color to the inverse *)
       if min_x <= x && x <= max_x && min_y <= y && y <= max_y then
         Notty.I.char Notty.A.(bg @@ color_map @@ invert substrate.background) ' ' 1 1
+      (* for (x, y) out of bounds, leave the empty background *)
       else Notty.I.char background ' ' 1 1
-    | [], None ->
-      (* no stitch here *)
-      Notty.I.char background ' ' 1 1
     | ((stitch, thread)::_), _ ->
       let symbol = match view.block_display with
         | `Symbol -> symbol_of_thread symbol_map (stitch, thread)
@@ -197,6 +194,46 @@ let main_view traverse db_info {substrate; layers; backstitch_layers;} view (wid
   <->
   key_help view
 
+let add_view _traverse _db_info source_pattern (view : Controls.view) (width, height) =
+  match view.selection with
+  | None ->
+    Notty.I.hsnap width @@ Notty.I.vsnap height @@
+    Notty.I.string Notty.A.empty "Make a selection first."
+  | Some s ->
+    let {Controls.start_cell; end_cell} = Controls.normalize_selection s in
+    let min_x, min_y = start_cell and max_x, max_y = end_cell in
+    match source_pattern.backstitch_layers with
+    | _::_ ->
+      (* TODO: backstitch is going to introduce serious problems here. For now, refuse *)
+      Notty.I.hsnap width @@ Notty.I.vsnap height @@
+      Notty.I.string Notty.A.empty "This pattern contains backstitch. Don't do it."
+    | [] ->
+      (* because `transform` wants a pattern, we somewhat counterintuitively
+       * transform all the stitches first, then ask for the subview on
+       * the selected area *)
+      let shifted =
+        Stitchy.Operations.transform_all_stitches
+          ~f:(fun (x, y) -> x - min_x, y - min_y)
+          source_pattern
+      in
+      let layers = Stitchy.Types.submap
+          ~x_off:0 ~y_off:0
+          ~width:(max_x - min_x + 1) ~height:(max_y - min_y + 1)
+      shifted.layers in
+      let substrate = { source_pattern.substrate with max_x = max_x - min_x;
+                                                      max_y = max_y - min_y;
+                      } in
+      let pattern = { layers;
+                      backstitch_layers = [];
+                      substrate;
+                    }
+      in
+      let view = {view with x_off = 0; y_off = 0; selection = None} in
+      let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
+      let left_pane = left_pane substrate (width, height) in
+      let stitch_grid = show_left_pane pattern symbol_map view left_pane in
+      stitch_grid
+
 let handle_mouse (view : Controls.view) left_pane button =
   let offset_click (x, y) =
     let empty_corner = left_pane.Controls.empty_corner in
@@ -232,11 +269,17 @@ let step pattern (view : Controls.view) (width, height) event =
   | `Mouse button -> handle_mouse view left_pane button
   | `Key (key, mods) -> begin
       match key, mods with
+      (* application control *)
       | (`Escape, _) | (`ASCII 'q', _) -> `Quit, view
+      (* view control *)
       | (`Arrow dir, l) when List.mem `Shift l -> `None, Controls.page pattern.substrate view left_pane dir
       | (`Arrow dir, _) -> `None, Controls.scroll pattern.substrate view dir
       | (`ASCII 's', _) -> `None, Controls.switch_view view
+      (* pattern control *)
       | (`ASCII 'n', _) -> `Next, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
       | (`ASCII 'p', _) -> `Prev, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
+      (* database interaction *)
+      | (`ASCII 'a', _) -> `Add, view
+      (* default *)
       | _ -> (`None, view)
     end

@@ -18,6 +18,20 @@ type pane = {
   height : int;
 }
 
+(* selections can happen from any corner to any other corner,
+ * but it's usually most convenient to treat them in code
+ * as if the start cell was the upper left corner
+ * and the end cell is the lower right *)
+let normalize_selection {start_cell; end_cell} =
+  let start_x, start_y = start_cell
+  and end_x, end_y = end_cell
+  in
+  let min_x = min start_x end_x and max_x = max start_x end_x
+  and min_y = min start_y end_y and max_y = max start_y end_y
+  in
+  {start_cell = (min_x, min_y); end_cell = (max_x, max_y)}
+
+
 (* dimensions of the x-axis labels and y-axis labels
    (the upper-right and lower-left rectangles respectively)
    are implicitly defined by the empty corner and stitch grid
