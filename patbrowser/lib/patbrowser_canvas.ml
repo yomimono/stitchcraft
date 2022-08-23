@@ -194,10 +194,9 @@ let main_view traverse db_info {substrate; layers; backstitch_layers;} view (wid
   <->
   key_help view
 
-let step pattern (view : Controls.view) (width, height) event =
-  let left_pane = left_pane pattern.substrate (width, height) in
+let handle_mouse (view : Controls.view) left_pane button =
   let offset_click (x, y) =
-    let empty_corner = left_pane.empty_corner in
+    let empty_corner = left_pane.Controls.empty_corner in
     if x < empty_corner.width || y < empty_corner.height then
       `None
     else
@@ -207,22 +206,27 @@ let step pattern (view : Controls.view) (width, height) event =
       let selection = (selection_x, selection_y) in
       `Grid selection
   in
-  match event with
-  | `Resize _ | `Paste _ -> `None, view
-  | `Mouse ((`Press (`Left)), (x, y), _) ->
+  match button with
+  | ((`Press (`Left)), (x, y), _) ->
     begin
     match offset_click (x, y) with
     | `None -> `None, view
     | `Grid selection ->
       `None, {view with selection = Some {start_cell = selection; end_cell = selection}}
   end
-  | `Mouse (`Release, (x, y), _) | `Mouse (`Drag, (x, y), _) -> begin
+  | (`Release, (x, y), _) | (`Drag, (x, y), _) -> begin
     match view.selection, offset_click (x, y) with
     | None, _ | _, `None -> `None, view
     | (Some {start_cell; _}), (`Grid selection) ->
       `None, {view with selection = Some {start_cell; end_cell = selection}}
   end
-  | `Mouse _ -> `None, view
+  | _ -> `None, view
+
+let step pattern (view : Controls.view) (width, height) event =
+  let left_pane = left_pane pattern.substrate (width, height) in
+  match event with
+  | `Resize _ | `Paste _ -> `None, view
+  | `Mouse button -> handle_mouse view left_pane button
   | `Key (key, mods) -> begin
       match key, mods with
       | (`Escape, _) | (`ASCII 'q', _) -> `Quit, view
