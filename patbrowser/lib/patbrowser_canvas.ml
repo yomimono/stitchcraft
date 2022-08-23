@@ -40,6 +40,9 @@ let symbol_map colors =
       SymbolMap.add thread symbol map
     ) SymbolMap.empty lookups
 
+let invert (r, g, b) =
+  (255 - r, 255 - g, 255 - b)
+
 let color_map (r, g, b) =
   Notty.A.rgb_888 ~r ~g ~b
 
@@ -135,7 +138,7 @@ let show_left_pane {substrate; layers; backstitch_layers} symbol_map view left_p
       and min_y = min start_y end_y and max_y = max start_y end_y
       in
       if min_x <= x && x <= max_x && min_y <= y && y <= max_y then
-        Notty.I.char Notty.A.(bg cyan) ' ' 1 1
+        Notty.I.char Notty.A.(bg @@ color_map @@ invert substrate.background) ' ' 1 1
       else Notty.I.char background ' ' 1 1
     | [], None ->
       (* no stitch here *)
