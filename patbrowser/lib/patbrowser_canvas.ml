@@ -40,10 +40,8 @@ let symbol_map colors =
       SymbolMap.add thread symbol map
     ) SymbolMap.empty lookups
 
-let color_map (a, b, c) =
-  let to_6_channels n = n / ((256 / 6) + 1) in
-  Notty.A.rgb ~r:(to_6_channels a)
-      ~g:(to_6_channels b) ~b:(to_6_channels c)
+let color_map (r, g, b) =
+  Notty.A.rgb_888 ~r ~g ~b
 
 let colors ~x_off ~y_off ~width ~height pattern =
   (* give an accounting of which colors are represented in the box
