@@ -131,8 +131,10 @@ let show_left_pane {substrate; layers; backstitch_layers} symbol_map view left_p
       let start_x, start_y = start_cell
       and end_x, end_y = end_cell
       in
-      (* TODO: actually figure out whether it's in between *)
-      if start_x <= x && x <= end_x && start_y <= y && y <= end_y then
+      let min_x = min start_x end_x and max_x = max start_x end_x
+      and min_y = min start_y end_y and max_y = max start_y end_y
+      in
+      if min_x <= x && x <= max_x && min_y <= y && y <= max_y then
         Notty.I.char Notty.A.(bg cyan) ' ' 1 1
       else Notty.I.char background ' ' 1 1
     | [], None ->
@@ -214,7 +216,7 @@ let step pattern (view : Controls.view) (width, height) event =
     | `Grid selection ->
       `None, {view with selection = Some {start_cell = selection; end_cell = selection}}
   end
-  | `Mouse (`Release, (x, y), _) -> begin
+  | `Mouse (`Release, (x, y), _) | `Mouse (`Drag, (x, y), _) -> begin
     match view.selection, offset_click (x, y) with
     | None, _ | _, `None -> `None, view
     | (Some {start_cell; _}), (`Grid selection) ->
