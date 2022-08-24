@@ -203,7 +203,7 @@ let main_view traverse db_info {substrate; layers; backstitch_layers;} state (wi
   <->
   key_help state.view
 
-let crop_view traverse db_info source_pattern state (width, height) =
+let crop_then_view traverse db_info source_pattern state (width, height) =
   match state.Controls.selection with
   | None ->
     Notty.I.hsnap width @@ Notty.I.vsnap height @@

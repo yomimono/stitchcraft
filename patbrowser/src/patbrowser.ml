@@ -90,7 +90,7 @@ let disp db dir =
           | `Quit, _ -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
           (* we should be able to further subselect stuff when in the preview *)
           | `Crop, state ->
-            Notty_lwt.Term.image term (View.crop_view traverse db_info pattern state size) >>= fun () ->
+            Notty_lwt.Term.image term (View.crop_then_view traverse db_info pattern state size) >>= fun () ->
             loop pattern state
           (*  `n` and `p` exit preview mode and go to the next/prior item,
            *  so we match on both Browse and Preview *)
