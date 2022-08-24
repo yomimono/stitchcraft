@@ -212,22 +212,30 @@ let tag_view _traverse _db _pattern state (width, height) =
     Notty.I.hcat active_tag
   )
 
-let main_view traverse db_info {substrate; layers; backstitch_layers;} state (width, height) =
+let main_view traverse db_info pattern state (width, height) =
   let open Notty.Infix in
-  let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
-  let left_pane = left_pane substrate (width, height) in
-  let stitch_grid = show_left_pane {substrate; layers; backstitch_layers;} symbol_map state left_pane in
-  (* to separate into two panes vertically, divide then remove 2 more rows for spacer and key help *)
-  let half_vertical = height / 2 - 2 in
-  let fs_and_db = (Notty.I.vsnap ~align:`Top half_vertical @@ filesystem_pane traverse (width, half_vertical)
-                  <->
-                  Notty.I.void 1 1
-                  <->
-                  Notty.I.vsnap ~align:`Top half_vertical @@ database_pane db_info (width, half_vertical))
+  let aux {substrate; layers; backstitch_layers} =
+    let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
+    let left_pane = left_pane substrate (width, height) in
+    let stitch_grid = show_left_pane {substrate; layers; backstitch_layers;} symbol_map state left_pane in
+    (* to separate into two panes vertically, divide then remove 2 more rows for spacer and key help *)
+    let half_vertical = height / 2 - 2 in
+    let fs_and_db = (Notty.I.vsnap ~align:`Top half_vertical @@ filesystem_pane traverse (width, half_vertical)
+                                                                <->
+                                                                Notty.I.void 1 1
+                                                                <->
+                                                                Notty.I.vsnap ~align:`Top half_vertical @@ database_pane db_info (width, half_vertical))
+    in
+    (stitch_grid <|> Notty.I.void 1 1 <|> fs_and_db)
+    <->
+    key_help state.view
   in
-  (stitch_grid <|> Notty.I.void 1 1 <|> fs_and_db)
-  <->
-  key_help state.view
+  match state.Controls.mode with
+  | Tag _ -> Notty.I.string Notty.A.empty "mode confusion: Tag in main_view"
+  | Browse -> aux pattern
+  | Preview ->
+    (* in the preview mode, see how it looks tiled *)
+    aux Stitchy.Operations.(vrepeat (hrepeat pattern 3) 3)
 
 let crop_then_view traverse db_info source_pattern state (width, height) =
   match state.Controls.selection with
