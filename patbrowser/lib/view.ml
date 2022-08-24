@@ -210,6 +210,8 @@ let tag_view _traverse _db _pattern state (width, height) =
     Notty.I.string Notty.A.(st bold) "tag in progress:"
     <->
     Notty.I.hcat active_tag
+    <->
+    Notty.I.string Notty.A.empty "<Tab> to end a tag, <Enter> to finish entering tags"
   )
 
 let main_view traverse db_info pattern state (width, height) =
@@ -317,11 +319,10 @@ let handle_typing state tags (key, mods) =
   | `ASCII a, _ ->
     let active = (Uchar.of_char a) :: (tags.active) in
     `Tag, {state with mode = Tag {tags with active;};}
-  | `Enter, l when not (List.mem `Ctrl l) ->
+  | `Tab, _ ->
      let tags = finalize_tags tags in
     `Tag, {state with mode = Tag tags;}
   | `Enter, _ ->
-    (* ctrl-enter finishes tag entering state *)
     let tags = finalize_tags tags in
     `Insert, {state with mode = Tag tags;}
   | _ ->
