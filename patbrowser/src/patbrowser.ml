@@ -5,14 +5,17 @@ let dir =
   let doc = "directory from which to read." in
   Cmdliner.Arg.(value & pos 0 dir "." & info [] ~doc)
 
-let start_view = { Patbrowser.Controls.x_off = 0;
-                   y_off = 0;
-                   zoom = 1;
-                   block_display = `Symbol;
-                   selection = None;
-                 }
-
-let start_mode = Controls.Browse
+let start_state =
+  let open Controls in
+  let view = { x_off = 0;
+               y_off = 0;
+               block_display = `Symbol;
+             }
+  and selection = None
+  in
+  { mode = Browse;
+    view;
+    selection }
 
 let rec ingest dir traverse =
   let to_get =
@@ -60,7 +63,7 @@ let find_filename_tags traverse =
 let disp db dir =
   let open Lwt.Infix in
   let term = Notty_lwt.Term.create () in
-  let rec aux dir traverse' view =
+  let rec aux dir traverse' state =
     fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
     let user_input_stream = Notty_lwt.Term.events term in
     match ingest dir traverse' with
@@ -76,42 +79,36 @@ let disp db dir =
       let db_info = {View.filename_matches; tags;} in
       (* show the initial view before waiting for events *)
       Notty_lwt.Term.image term @@
-      View.main_view start_mode traverse db_info pattern view (Notty_lwt.Term.size term)
+      View.main_view traverse db_info pattern state (Notty_lwt.Term.size term)
       >>= fun () ->
 
-      let rec loop (mode : Controls.mode) (pattern : pattern) (view : Controls.view) =
+      let rec loop (pattern : pattern) (state : Controls.state) =
         (Lwt_stream.last_new user_input_stream) >>= fun event ->
           let size = Notty_lwt.Term.size term in
-          match mode, View.step mode pattern view size event with
-          | _, (`Quit, _) -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
+          match View.step state pattern size event with
+          (* base case: let's bail *)
+          | `Quit, _ -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
           (* we should be able to further subselect stuff when in the preview *)
-          | Browse, (`Crop, view) | Preview, (`Crop, view) ->
-            let mode = Controls.Preview in
-            Notty_lwt.Term.image term (View.crop_view mode traverse db_info pattern view size) >>= fun () ->
-            loop mode pattern view
+          | `Crop, state ->
+            Notty_lwt.Term.image term (View.crop_view traverse db_info pattern state size) >>= fun () ->
+            loop pattern state
           (*  `n` and `p` exit preview mode and go to the next/prior item,
            *  so we match on both Browse and Preview *)
-          | Browse, (`Prev, view) | Preview, (`Prev, view) -> aux dir {traverse with n = max 0 @@ traverse.n - 1; direction = Up} view (module Caqti_db)
-          | Browse, (`Next, view) | Preview, (`Next, view) ->
+          | `Prev, state -> aux dir {traverse with n = max 0 @@ traverse.n - 1; direction = Up} state (module Caqti_db)
+          | `Next, state ->
             let next = 
               if traverse.n = List.length traverse.contents then traverse.n
               else traverse.n + 1
             in
-            aux dir {traverse with n = next; direction = Down} view (module Caqti_db)
-          | Tag _tags, (`Typing new_tags, view) ->
-            Notty_lwt.Term.image term (View.tag_view new_tags view size) >>= fun () ->
-            loop (Tag new_tags) pattern view
-          | Tag _, (`Done _tags, view) ->
-            (* TODO insert with tags *)
-            aux dir traverse view (module Caqti_db)
-          | _, (_, view) ->
-            Notty_lwt.Term.image term (View.main_view mode traverse db_info pattern view size) >>= fun () ->
-            loop mode pattern view
+            aux dir {traverse with n = next; direction = Down} state (module Caqti_db)
+          | (_, state) ->
+            Notty_lwt.Term.image term (View.main_view traverse db_info pattern state size) >>= fun () ->
+            loop pattern state
       in
-      loop start_mode pattern view
+      loop pattern start_state
   in
   (
-    let open Rresult.R in
+   let open Rresult.R in
     Fpath.of_string dir >>= fun dir ->
     Bos.OS.Dir.contents dir >>= function
     | [] -> Error (`Msg "no patterns")
@@ -129,7 +126,7 @@ let disp db dir =
           (Format.asprintf "error connecting to database: %a\n%!" Caqti_error.pp e)
                                      ))
         | Ok m ->
-          aux dir traverse start_view m
+          aux dir traverse start_state m
       )
   ) |> function
   | Ok () -> Ok ()

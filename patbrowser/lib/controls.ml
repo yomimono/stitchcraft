@@ -1,32 +1,36 @@
 open Stitchy.Types
 
+type tags = {
+  completed : string list;
+  active : Uchar.t list; (* probably reversed *)
+}
+
 type selection = {
   start_cell : (int * int);
   end_cell : (int * int);
-}
-
-type view = {
-  x_off : int;
-  y_off : int;
-  block_display : [ `Symbol | `Solid ];
-  zoom : int;
-  selection : selection option;
-}
-
-type pane = {
-  width : int;
-  height : int;
-}
-
-type tags = {
-  completed : string list;
-  active : string;
 }
 
 type mode = 
   | Browse
   | Preview
   | Tag of tags
+
+type view = {
+  x_off : int;
+  y_off : int;
+  block_display : [ `Symbol | `Solid ];
+}
+
+type state = {
+  view : view;
+  selection : selection option;
+  mode : mode;
+}
+
+type pane = {
+  width : int;
+  height : int;
+}
 
 (* selections can happen from any corner to any other corner,
  * but it's usually most convenient to treat them in code

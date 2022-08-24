@@ -13,6 +13,10 @@ type db_info = {
   tags : string list;
 }
 
+let reset_view view = Controls.({
+  view with x_off = 0; y_off = 0;
+})
+
 let filesystem_pane {n; contents; _} (_width, _height) =
   List.fold_left (fun (i, acc) filename ->
       if i < n then (i + 1, acc)
@@ -121,15 +125,15 @@ let left_pane substrate (width, height) =
   let width = width * 2 / 3 in
   subdivide_left_pane ~left_pane_width:width ~left_pane_height:height substrate
 
-let show_left_pane {substrate; layers; backstitch_layers} symbol_map view left_pane =
+let show_left_pane {substrate; layers; backstitch_layers} symbol_map state left_pane =
   let open Notty.Infix in
   let background = Notty.A.(bg @@ color_map substrate.background) in
   let c x y =
     let stitches_here =
       Stitchy.Types.stitches_at {substrate; layers; backstitch_layers}
-        (x + view.Controls.x_off, y + view.y_off)
+        (x + state.Controls.view.x_off, y + state.view.y_off)
     in
-    match stitches_here, view.selection with
+    match stitches_here, state.selection with
     | [], None -> Notty.I.char background ' ' 1 1
     | [], Some selection ->
       (* get the bounds for the selection *)
@@ -141,13 +145,14 @@ let show_left_pane {substrate; layers; backstitch_layers} symbol_map view left_p
       (* for (x, y) out of bounds, leave the empty background *)
       else Notty.I.char background ' ' 1 1
     | ((stitch, thread)::_), _ ->
-      let symbol = match view.block_display with
+      let symbol = match state.Controls.view.block_display with
         | `Symbol -> symbol_of_thread symbol_map (stitch, thread)
         | `Solid -> uchar_of_stitch stitch
       in
       let fg_color = color_map @@ Stitchy.DMC.Thread.to_rgb thread in
       Notty.(I.uchar A.(background ++ fg fg_color) symbol 1 1)
   in
+  let view = state.view in
   let max_x = min substrate.max_x Controls.((view.x_off + left_pane.stitch_grid.width) - 1)
   and max_y = min substrate.max_y Controls.((view.y_off + left_pane.stitch_grid.height) - 1)
   in
@@ -181,11 +186,11 @@ let tag_view _tags _view (width, height) =
   Notty.I.hsnap width @@ Notty.I.vsnap height @@
   Notty.I.string Notty.A.empty "they're tags"
 
-let main_view _mode traverse db_info {substrate; layers; backstitch_layers;} view (width, height) =
+let main_view traverse db_info {substrate; layers; backstitch_layers;} state (width, height) =
   let open Notty.Infix in
   let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
   let left_pane = left_pane substrate (width, height) in
-  let stitch_grid = show_left_pane {substrate; layers; backstitch_layers;} symbol_map view left_pane in
+  let stitch_grid = show_left_pane {substrate; layers; backstitch_layers;} symbol_map state left_pane in
   (* to separate into two panes vertically, divide then remove 2 more rows for spacer and key help *)
   let half_vertical = height / 2 - 2 in
   let fs_and_db = (Notty.I.vsnap ~align:`Top half_vertical @@ filesystem_pane traverse (width, half_vertical)
@@ -196,10 +201,10 @@ let main_view _mode traverse db_info {substrate; layers; backstitch_layers;} vie
   in
   (stitch_grid <|> Notty.I.void 1 1 <|> fs_and_db)
   <->
-  key_help view
+  key_help state.view
 
-let crop_view mode traverse db_info source_pattern (view : Controls.view) (width, height) =
-  match view.selection with
+let crop_view traverse db_info source_pattern state (width, height) =
+  match state.Controls.selection with
   | None ->
     Notty.I.hsnap width @@ Notty.I.vsnap height @@
     Notty.I.string Notty.A.empty "Make a selection first."
@@ -232,10 +237,10 @@ let crop_view mode traverse db_info source_pattern (view : Controls.view) (width
                       substrate;
                     }
       in
-      let view = {view with x_off = 0; y_off = 0; selection = None;} in
-      main_view mode traverse db_info pattern view (width, height)
+      let state = {state with view = reset_view state.view; selection = None} in
+      main_view traverse db_info pattern state (width, height)
 
-let handle_mouse (view : Controls.view) left_pane button =
+let handle_mouse state left_pane button =
   let offset_click (x, y) =
     let empty_corner = left_pane.Controls.empty_corner in
     if x < empty_corner.width || y < empty_corner.height then
@@ -251,36 +256,43 @@ let handle_mouse (view : Controls.view) left_pane button =
   | ((`Press (`Left)), (x, y), _) ->
     begin
     match offset_click (x, y) with
-    | `None -> `None, view
+    | `None -> `None, state
     | `Grid selection ->
-      `None, {view with selection = Some {start_cell = selection; end_cell = selection}}
+      `None, {state with Controls.selection = Some {start_cell = selection; end_cell = selection}}
   end
   | (`Release, (x, y), _) | (`Drag, (x, y), _) -> begin
-    match view.selection, offset_click (x, y) with
-    | None, _ | _, `None -> `None, view
+    match state.selection, offset_click (x, y) with
+    | None, _ | _, `None -> `None, state
     | (Some {start_cell; _}), (`Grid selection) ->
-      `None, {view with selection = Some {start_cell; end_cell = selection}}
+      `None, {state with selection = Some {start_cell; end_cell = selection}}
   end
-  | _ -> `None, view
+  | _ -> `None, state
 
-let step mode pattern (view : Controls.view) (width, height) event =
+let handle_typing state (_key, _mods) =
+  (* TODO LOL *)
+  `Quit, state
+
+let step state pattern (width, height) event =
   let left_pane = left_pane pattern.substrate (width, height) in
   match event with
-  | `Resize _ | `Paste _ -> `None, view
-  | `Mouse button -> handle_mouse view left_pane button
+  | `Resize _ | `Paste _ -> `None, state
+  | `Mouse button -> handle_mouse state left_pane button
   | `Key (key, mods) -> begin
-      match mode, key, mods with
-      (* application control *)
-      | (_, `Escape, _) | (_, `ASCII 'q', _) -> `Quit, view
-      (* view control *)
-      | (Controls.Browse, `Arrow dir, l) when List.mem `Shift l -> `None, Controls.page pattern.substrate view left_pane dir
-      | (Browse, `Arrow dir, _) -> `None, Controls.scroll pattern.substrate view dir
-      | (Browse, `ASCII 's', _) -> `None, Controls.switch_view view
-      (* pattern control *)
-      | (Browse, `ASCII 'n', _) -> `Next, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
-      | (Browse, `ASCII 'p', _) -> `Prev, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
-      (* database interaction *)
-      | (Browse, `ASCII 'c', _) -> `Crop, view
-      (* default *)
-      | _ -> (`None, view)
+      match state.mode with
+      | Tag _ -> handle_typing state (key, mods)
+      | Browse | Preview ->
+        match key, mods with
+        (* application control *)
+        | (`Escape, _) | (`ASCII 'q', _) -> `Quit, state
+        (* view control *)
+        | (`Arrow dir, l) when List.mem `Shift l -> `None, {state with view = Controls.page pattern.substrate state.view left_pane dir}
+        | (`Arrow dir, _) -> `None, {state with view = Controls.scroll pattern.substrate state.view dir }
+        | (`ASCII 's', _) -> `None, {state with view = Controls.switch_view state.view}
+        (* pattern control *)
+        | ( `ASCII 'n', _) -> `Next, {state with view = reset_view state.view; selection = None}
+        | (`ASCII 'p', _) -> `Prev, {state with view = reset_view state.view; selection = None}
+        (* database interaction *)
+        | (`ASCII 'c', _) -> `Crop, {state with mode = Preview}
+        (* default *)
+        | _ -> (`None, state)
     end
