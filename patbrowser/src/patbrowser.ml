@@ -60,6 +60,13 @@ let find_filename_tags traverse =
     | Error _ -> []
     | Ok l -> l
 
+let insert_pattern traverse pattern tags =
+  fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
+  (* what's the filename? *)
+  let filename = String.lowercase_ascii @@ Fpath.basename @@ List.nth traverse.View.contents traverse.n in
+  let s = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string in
+  Caqti_db.find Db.ORM.Patterns.insert_with_tags (filename, s, tags.Controls.completed)
+
 let disp db dir =
   let open Lwt.Infix in
   let term = Notty_lwt.Term.create () in
@@ -105,11 +112,18 @@ let disp db dir =
           | (`Tag, state) ->
             Notty_lwt.Term.image term (View.tag_view traverse db_info pattern state size) >>= fun () ->
             loop pattern state
-          | (`Insert, _state) ->
-            (* TODO insert the pattern with the tags *)
-            let state = start_state in
-            Notty_lwt.Term.image term (View.main_view traverse db_info pattern state size) >>= fun () ->
-            loop pattern state
+          | (`Insert tags, _state) -> begin
+            insert_pattern traverse pattern tags (module Caqti_db) >>= function
+            | Ok id ->
+              Notty_lwt.Term.image term (View.db_success size id) >>= fun () ->
+              let state = start_state in
+              loop pattern state
+            | Error e ->
+              let s = Format.asprintf "%a" Caqti_error.pp e in
+              Notty_lwt.Term.image term (View.db_failure size s) >>= fun () ->
+              let state = start_state in
+              loop pattern state
+          end
           | (`None, state) ->
             Notty_lwt.Term.image term (View.main_view traverse db_info pattern state size) >>= fun () ->
             loop pattern state

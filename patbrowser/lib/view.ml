@@ -34,6 +34,14 @@ let database_pane db_info (_width, _height) =
   <->
   Notty.I.vcat (List.map (Notty.I.string Notty.A.empty) db_info.tags)
 
+let db_success (width, height) id = 
+    Notty.I.hsnap width @@ Notty.I.vsnap height @@
+    Notty.I.strf ~attr:Notty.A.(bg green ++ fg white ++ st bold) "database entry succeeded: %d" id
+
+let db_failure (width, height) s =
+    Notty.I.hsnap width @@ Notty.I.vsnap height @@
+    Notty.I.strf ~attr:Notty.A.(bg red ++ fg white ++ st bold) "database entry failed: %s" s
+
 let symbol_map colors =
   let lookups = List.mapi (fun index thread ->
       match List.nth_opt Stitchy.Symbol.printable_symbols index with
@@ -203,15 +211,15 @@ let tag_view _traverse _db _pattern state (width, height) =
     in
     let open Notty.Infix in
     Notty.I.hsnap width @@ Notty.I.vsnap height (
+    Notty.I.string Notty.A.empty "<Tab> to end a tag, <Enter> to finish entering tags"
+    <->
     Notty.I.string Notty.A.(st bold) "tags so far:"
     <->
     completed_tags
     <->
     Notty.I.string Notty.A.(st bold) "tag in progress:"
     <->
-    Notty.I.hcat active_tag
-    <->
-    Notty.I.string Notty.A.empty "<Tab> to end a tag, <Enter> to finish entering tags"
+    (Notty.I.hcat active_tag <|> Notty.I.char Notty.A.empty '.' 1 1)
   )
 
 let main_view traverse db_info pattern state (width, height) =
@@ -304,7 +312,8 @@ let handle_mouse state left_pane button =
   end
   | _ -> `None, state
 
-let handle_typing state tags (key, mods) =
+let handle_typing state tags (key, mods) :
+  ([> `Crop | `Insert of Controls.tags | `Next | `None | `Prev | `Quit | `Tag ] * Controls.state) =
   let open Controls in
   match key, mods with
   | `Backspace, _ ->
@@ -324,7 +333,7 @@ let handle_typing state tags (key, mods) =
     `Tag, {state with mode = Tag tags;}
   | `Enter, _ ->
     let tags = finalize_tags tags in
-    `Insert, {state with mode = Tag tags;}
+    (`Insert tags), {state with mode = Tag tags;}
   | _ ->
     `None, {state with mode = Browse}
 
@@ -349,8 +358,11 @@ let step state pattern (width, height) event =
         | (`ASCII 'p', _) -> `Prev, {state with view = reset_view state.view; selection = None}
         | (`ASCII 'c', _) -> `Crop, {state with mode = Preview}
         (* tag control *)
-        | (`ASCII 't', _) ->
-          `Tag, {state with mode = Controls.(Tag {completed = []; active = [];})}
+        | (`ASCII 't', _) -> begin
+            match state.Controls.mode with
+            | Preview -> `Tag, {state with mode = Controls.(Tag {completed = []; active = [];})}
+            | _ -> `None, state
+        end
         (* default *)
         | _ -> (`None, state)
     end
