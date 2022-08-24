@@ -18,6 +18,16 @@ type pane = {
   height : int;
 }
 
+type tags = {
+  completed : string list;
+  active : string;
+}
+
+type mode = 
+  | Browse
+  | Preview
+  | Tag of tags
+
 (* selections can happen from any corner to any other corner,
  * but it's usually most convenient to treat them in code
  * as if the start cell was the upper left corner

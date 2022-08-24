@@ -1,20 +1,22 @@
 open Stitchy.Types
-open Patbrowser_canvas
+open Patbrowser
 
 let dir =
   let doc = "directory from which to read." in
   Cmdliner.Arg.(value & pos 0 dir "." & info [] ~doc)
 
-let start_view = { Patbrowser_canvas__Controls.x_off = 0;
+let start_view = { Patbrowser.Controls.x_off = 0;
                    y_off = 0;
                    zoom = 1;
                    block_display = `Symbol;
                    selection = None;
                  }
 
+let start_mode = Controls.Browse
+
 let rec ingest dir traverse =
   let to_get =
-    if traverse.n < 0 && traverse.direction = Down then 0
+    if traverse.View.n < 0 && traverse.direction = Down then 0
     else if traverse.n >= (List.length traverse.contents) && traverse.direction = Down then (List.length traverse.contents) - 1
     else traverse.n
   in
@@ -44,7 +46,7 @@ let find_filename_tags traverse =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
   let open Lwt.Infix in
   (* what's the filename? *)
-  let filename = String.lowercase_ascii @@ Fpath.basename @@ List.nth traverse.contents traverse.n in
+  let filename = String.lowercase_ascii @@ Fpath.basename @@ List.nth traverse.View.contents traverse.n in
   (* is there a tag for it? *)
   Caqti_db.find Db.ORM.Tags.count [filename] >>= function
   | Error _ -> Lwt.return []
@@ -71,28 +73,42 @@ let disp db dir =
       | Ok tags -> tags
       ) >>= fun tags ->
       find_filename_tags traverse (module Caqti_db) >>= fun filename_matches ->
-      let db_info = {filename_matches; tags;} in
-      Notty_lwt.Term.image term @@ main_view traverse db_info pattern view (Notty_lwt.Term.size term) >>= fun () ->
-      let rec loop (pattern : pattern) (view : Patbrowser_canvas__Controls.view) =
+      let db_info = {View.filename_matches; tags;} in
+      (* show the initial view before waiting for events *)
+      Notty_lwt.Term.image term @@
+      View.main_view start_mode traverse db_info pattern view (Notty_lwt.Term.size term)
+      >>= fun () ->
+
+      let rec loop (mode : Controls.mode) (pattern : pattern) (view : Controls.view) =
         (Lwt_stream.last_new user_input_stream) >>= fun event ->
           let size = Notty_lwt.Term.size term in
-          match step pattern view size event with
-          | `Quit, _ -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
-          | `Add, view ->
-            Notty_lwt.Term.image term (add_view traverse db_info pattern view size) >>= fun () ->
-            loop pattern view
-          | `None, view ->
-            Notty_lwt.Term.image term (main_view traverse db_info pattern view size) >>= fun () ->
-            loop pattern view
-          | `Prev, view -> aux dir {traverse with n = max 0 @@ traverse.n - 1; direction = Up} view (module Caqti_db)
-          | `Next, view ->
+          match mode, View.step mode pattern view size event with
+          | _, (`Quit, _) -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
+          (* we should be able to further subselect stuff when in the preview *)
+          | Browse, (`Crop, view) | Preview, (`Crop, view) ->
+            let mode = Controls.Preview in
+            Notty_lwt.Term.image term (View.crop_view mode traverse db_info pattern view size) >>= fun () ->
+            loop mode pattern view
+          (*  `n` and `p` exit preview mode and go to the next/prior item,
+           *  so we match on both Browse and Preview *)
+          | Browse, (`Prev, view) | Preview, (`Prev, view) -> aux dir {traverse with n = max 0 @@ traverse.n - 1; direction = Up} view (module Caqti_db)
+          | Browse, (`Next, view) | Preview, (`Next, view) ->
             let next = 
               if traverse.n = List.length traverse.contents then traverse.n
               else traverse.n + 1
             in
             aux dir {traverse with n = next; direction = Down} view (module Caqti_db)
+          | Tag _tags, (`Typing new_tags, view) ->
+            Notty_lwt.Term.image term (View.tag_view new_tags view size) >>= fun () ->
+            loop (Tag new_tags) pattern view
+          | Tag _, (`Done _tags, view) ->
+            (* TODO insert with tags *)
+            aux dir traverse view (module Caqti_db)
+          | _, (_, view) ->
+            Notty_lwt.Term.image term (View.main_view mode traverse db_info pattern view size) >>= fun () ->
+            loop mode pattern view
       in
-      loop pattern view
+      loop start_mode pattern view
   in
   (
     let open Rresult.R in
@@ -102,7 +118,7 @@ let disp db dir =
     | contents ->
       let contents = List.sort Fpath.compare contents in
       let traverse = {
-        n = 0;
+        View.n = 0;
         contents;
         direction = Down;
       } in

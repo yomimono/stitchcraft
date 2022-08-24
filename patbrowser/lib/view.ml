@@ -26,7 +26,7 @@ let database_pane db_info (_width, _height) =
   let open Notty.Infix in
   Notty.I.strf "%d patterns tagged w/this filename" @@ List.length db_info.filename_matches
   <->
-  Notty.I.string Notty.A.(st bold) "tags"
+  Notty.I.string Notty.A.(st bold) "all tags"
   <->
   Notty.I.vcat (List.map (Notty.I.string Notty.A.empty) db_info.tags)
 
@@ -177,7 +177,11 @@ let key_help view =
   in
   quit <|> sp <|> symbol <|> sp <|> nav_text <|> sp <|> shift_text
 
-let main_view traverse db_info {substrate; layers; backstitch_layers;} view (width, height) =
+let tag_view _tags _view (width, height) =
+  Notty.I.hsnap width @@ Notty.I.vsnap height @@
+  Notty.I.string Notty.A.empty "they're tags"
+
+let main_view _mode traverse db_info {substrate; layers; backstitch_layers;} view (width, height) =
   let open Notty.Infix in
   let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
   let left_pane = left_pane substrate (width, height) in
@@ -194,7 +198,7 @@ let main_view traverse db_info {substrate; layers; backstitch_layers;} view (wid
   <->
   key_help view
 
-let add_view _traverse _db_info source_pattern (view : Controls.view) (width, height) =
+let crop_view mode traverse db_info source_pattern (view : Controls.view) (width, height) =
   match view.selection with
   | None ->
     Notty.I.hsnap width @@ Notty.I.vsnap height @@
@@ -206,7 +210,7 @@ let add_view _traverse _db_info source_pattern (view : Controls.view) (width, he
     | _::_ ->
       (* TODO: backstitch is going to introduce serious problems here. For now, refuse *)
       Notty.I.hsnap width @@ Notty.I.vsnap height @@
-      Notty.I.string Notty.A.empty "This pattern contains backstitch. Don't do it."
+      Notty.I.string Notty.A.(st bold) "This pattern contains backstitch. Don't do it."
     | [] ->
       (* because `transform` wants a pattern, we somewhat counterintuitively
        * transform all the stitches first, then ask for the subview on
@@ -228,11 +232,8 @@ let add_view _traverse _db_info source_pattern (view : Controls.view) (width, he
                       substrate;
                     }
       in
-      let view = {view with x_off = 0; y_off = 0; selection = None} in
-      let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
-      let left_pane = left_pane substrate (width, height) in
-      let stitch_grid = show_left_pane pattern symbol_map view left_pane in
-      stitch_grid
+      let view = {view with x_off = 0; y_off = 0; selection = None;} in
+      main_view mode traverse db_info pattern view (width, height)
 
 let handle_mouse (view : Controls.view) left_pane button =
   let offset_click (x, y) =
@@ -262,24 +263,24 @@ let handle_mouse (view : Controls.view) left_pane button =
   end
   | _ -> `None, view
 
-let step pattern (view : Controls.view) (width, height) event =
+let step mode pattern (view : Controls.view) (width, height) event =
   let left_pane = left_pane pattern.substrate (width, height) in
   match event with
   | `Resize _ | `Paste _ -> `None, view
   | `Mouse button -> handle_mouse view left_pane button
   | `Key (key, mods) -> begin
-      match key, mods with
+      match mode, key, mods with
       (* application control *)
-      | (`Escape, _) | (`ASCII 'q', _) -> `Quit, view
+      | (_, `Escape, _) | (_, `ASCII 'q', _) -> `Quit, view
       (* view control *)
-      | (`Arrow dir, l) when List.mem `Shift l -> `None, Controls.page pattern.substrate view left_pane dir
-      | (`Arrow dir, _) -> `None, Controls.scroll pattern.substrate view dir
-      | (`ASCII 's', _) -> `None, Controls.switch_view view
+      | (Controls.Browse, `Arrow dir, l) when List.mem `Shift l -> `None, Controls.page pattern.substrate view left_pane dir
+      | (Browse, `Arrow dir, _) -> `None, Controls.scroll pattern.substrate view dir
+      | (Browse, `ASCII 's', _) -> `None, Controls.switch_view view
       (* pattern control *)
-      | (`ASCII 'n', _) -> `Next, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
-      | (`ASCII 'p', _) -> `Prev, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
+      | (Browse, `ASCII 'n', _) -> `Next, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
+      | (Browse, `ASCII 'p', _) -> `Prev, {view with x_off = 0; y_off = 0; zoom = 0; selection = None}
       (* database interaction *)
-      | (`ASCII 'a', _) -> `Add, view
+      | (Browse, `ASCII 'c', _) -> `Crop, view
       (* default *)
       | _ -> (`None, view)
     end

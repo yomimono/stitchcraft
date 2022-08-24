@@ -1,4 +1,4 @@
 (library
- (name patbrowser_canvas)
+ (name patbrowser)
  (libraries astring cmdliner fpath notty stitchy)
 )

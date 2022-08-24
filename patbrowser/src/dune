@@ -1,5 +1,5 @@
 (executable
  (public_name patbrowser)
  (name patbrowser)
- (libraries bos cmdliner notty notty.lwt patbrowser_canvas stitchy stitchcraft.db caqti caqti-lwt caqti-driver-postgresql)
+ (libraries bos cmdliner notty notty.lwt patbrowser stitchy stitchcraft.db caqti caqti-lwt caqti-driver-postgresql)
 )
