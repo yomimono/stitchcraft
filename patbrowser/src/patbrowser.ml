@@ -63,6 +63,7 @@ let find_filename_tags traverse =
 let disp db dir =
   let open Lwt.Infix in
   let term = Notty_lwt.Term.create () in
+
   let rec aux dir traverse' state =
     fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
     let user_input_stream = Notty_lwt.Term.events term in
@@ -101,7 +102,15 @@ let disp db dir =
               else traverse.n + 1
             in
             aux dir {traverse with n = next; direction = Down} state (module Caqti_db)
-          | (_, state) ->
+          | (`Tag, state) ->
+            Notty_lwt.Term.image term (View.tag_view traverse db_info pattern state size) >>= fun () ->
+            loop pattern state
+          | (`Insert, _state) ->
+            (* TODO insert the pattern with the tags *)
+            let state = start_state in
+            Notty_lwt.Term.image term (View.main_view traverse db_info pattern state size) >>= fun () ->
+            loop pattern state
+          | (`None, state) ->
             Notty_lwt.Term.image term (View.main_view traverse db_info pattern state size) >>= fun () ->
             loop pattern state
       in

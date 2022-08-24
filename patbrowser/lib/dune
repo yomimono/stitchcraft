@@ -1,4 +1,4 @@
 (library
  (name patbrowser)
- (libraries astring cmdliner fpath notty stitchy)
+ (libraries astring cmdliner fpath notty stitchy uutf)
 )

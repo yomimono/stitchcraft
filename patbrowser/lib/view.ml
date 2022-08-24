@@ -182,9 +182,35 @@ let key_help view =
   in
   quit <|> sp <|> symbol <|> sp <|> nav_text <|> sp <|> shift_text
 
-let tag_view _tags _view (width, height) =
-  Notty.I.hsnap width @@ Notty.I.vsnap height @@
-  Notty.I.string Notty.A.empty "they're tags"
+let finalize_tags tags =
+  match tags.Controls.active with
+  | [] -> tags
+  | uchars ->
+    (* TODO: this definitely isn't right, but I don't know what is *)
+    let buffer = Buffer.create (List.length uchars) in 
+    List.iter (Buffer.add_utf_8_uchar buffer) @@ List.rev uchars;
+    {Controls.active = []; completed = ((Buffer.contents buffer)::tags.completed)}
+
+let tag_view _traverse _db _pattern state (width, height) =
+  match state.Controls.mode with
+  | Browse | Preview -> Notty.I.string Notty.A.empty "mode confusion. PULL UP"
+  | Tag tags ->
+    (* reverse the order, so new tags go on the bottom *)
+    let completed_tags = Notty.I.vcat @@ List.rev_map (Notty.I.string Notty.A.empty) tags.Controls.completed in
+    let active_tag = 
+      (* reverse the order, so new uchars go on the end *)
+      List.rev_map (fun u -> Notty.I.uchar Notty.A.empty u 1 1) tags.Controls.active
+    in
+    let open Notty.Infix in
+    Notty.I.hsnap width @@ Notty.I.vsnap height (
+    Notty.I.string Notty.A.(st bold) "tags so far:"
+    <->
+    completed_tags
+    <->
+    Notty.I.string Notty.A.(st bold) "tag in progress:"
+    <->
+    Notty.I.hcat active_tag
+  )
 
 let main_view traverse db_info {substrate; layers; backstitch_layers;} state (width, height) =
   let open Notty.Infix in
@@ -268,9 +294,30 @@ let handle_mouse state left_pane button =
   end
   | _ -> `None, state
 
-let handle_typing state (_key, _mods) =
-  (* TODO LOL *)
-  `Quit, state
+let handle_typing state tags (key, mods) =
+  let open Controls in
+  match key, mods with
+  | `Backspace, _ ->
+    begin
+      match tags.active with
+      | [] -> `Tag, state
+      | _::l -> `Tag, {state with mode = Tag {tags with active = l}}
+    end
+  | `Uchar u, _ ->
+    let active = u :: (tags.active) in
+    `Tag, {state with mode = Tag {tags with active;};}
+  | `ASCII a, _ ->
+    let active = (Uchar.of_char a) :: (tags.active) in
+    `Tag, {state with mode = Tag {tags with active;};}
+  | `Enter, l when not (List.mem `Ctrl l) ->
+     let tags = finalize_tags tags in
+    `Tag, {state with mode = Tag tags;}
+  | `Enter, _ ->
+    (* ctrl-enter finishes tag entering state *)
+    let tags = finalize_tags tags in
+    `Insert, {state with mode = Tag tags;}
+  | _ ->
+    `None, {state with mode = Browse}
 
 let step state pattern (width, height) event =
   let left_pane = left_pane pattern.substrate (width, height) in
@@ -279,7 +326,7 @@ let step state pattern (width, height) event =
   | `Mouse button -> handle_mouse state left_pane button
   | `Key (key, mods) -> begin
       match state.mode with
-      | Tag _ -> handle_typing state (key, mods)
+      | Tag tags -> handle_typing state tags (key, mods)
       | Browse | Preview ->
         match key, mods with
         (* application control *)
@@ -291,8 +338,10 @@ let step state pattern (width, height) event =
         (* pattern control *)
         | ( `ASCII 'n', _) -> `Next, {state with view = reset_view state.view; selection = None}
         | (`ASCII 'p', _) -> `Prev, {state with view = reset_view state.view; selection = None}
-        (* database interaction *)
         | (`ASCII 'c', _) -> `Crop, {state with mode = Preview}
+        (* tag control *)
+        | (`ASCII 't', _) ->
+          `Tag, {state with mode = Controls.(Tag {completed = []; active = [];})}
         (* default *)
         | _ -> (`None, state)
     end
