@@ -102,8 +102,10 @@ let disp db dir =
           | `Quit, _ -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
           (* we should be able to further subselect stuff when in the preview *)
           | `Crop, state ->
-            Notty_lwt.Term.image term (View.crop_then_view traverse db_info pattern state size) >>= fun () ->
-            loop pattern state
+            let subpattern = View.crop pattern state in
+            let state = {state with mode = Preview; selection = None} in
+            Notty_lwt.Term.image term (View.main_view traverse db_info subpattern state size) >>= fun () ->
+            loop subpattern state
           (*  `n` and `p` exit preview mode and go to the next/prior item,
            *  so we match on both Browse and Preview *)
           | `Prev, state -> aux dir {traverse with n = max 0 @@ traverse.n - 1; direction = Up} state (module Caqti_db)

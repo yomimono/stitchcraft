@@ -247,19 +247,14 @@ let main_view traverse db_info pattern state (width, height) =
     (* in the preview mode, see how it looks tiled *)
     aux Stitchy.Operations.(vrepeat (hrepeat pattern 3) 3)
 
-let crop_then_view traverse db_info source_pattern state (width, height) =
+let crop source_pattern state =
   match state.Controls.selection with
-  | None ->
-    Notty.I.hsnap width @@ Notty.I.vsnap height @@
-    Notty.I.string Notty.A.empty "Make a selection first."
+  | None -> source_pattern
   | Some s ->
     let {Controls.start_cell; end_cell} = Controls.normalize_selection s in
     let min_x, min_y = start_cell and max_x, max_y = end_cell in
     match source_pattern.backstitch_layers with
-    | _::_ ->
-      (* TODO: backstitch is going to introduce serious problems here. For now, refuse *)
-      Notty.I.hsnap width @@ Notty.I.vsnap height @@
-      Notty.I.string Notty.A.(st bold) "This pattern contains backstitch. Don't do it."
+    | _::_ -> source_pattern
     | [] ->
       (* because `transform` wants a pattern, we somewhat counterintuitively
        * transform all the stitches first, then ask for the subview on
@@ -276,13 +271,10 @@ let crop_then_view traverse db_info source_pattern state (width, height) =
       let substrate = { source_pattern.substrate with max_x = max_x - min_x;
                                                       max_y = max_y - min_y;
                       } in
-      let pattern = { layers;
-                      backstitch_layers = [];
-                      substrate;
-                    }
-      in
-      let state = {state with view = reset_view state.view; selection = None} in
-      main_view traverse db_info pattern state (width, height)
+      { layers;
+        backstitch_layers = [];
+        substrate;
+      }
 
 let handle_mouse state left_pane button =
   let offset_click (x, y) =
