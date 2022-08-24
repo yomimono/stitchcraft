@@ -62,10 +62,14 @@ let find_filename_tags traverse =
 
 let insert_pattern traverse pattern tags =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
+  let open Lwt.Infix in
   (* what's the filename? *)
   let filename = String.lowercase_ascii @@ Fpath.basename @@ List.nth traverse.View.contents traverse.n in
   let s = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string in
-  Caqti_db.find Db.ORM.Patterns.insert_with_tags (filename, s, tags.Controls.completed)
+  Caqti_db.exec Db.ORM.Tags.insert tags.Controls.completed >>= function
+  | Ok () ->
+    Caqti_db.find Db.ORM.Patterns.insert_with_tags (filename, s, tags.Controls.completed)
+  | Error _ as e -> Lwt.return e
 
 let disp db dir =
   let open Lwt.Infix in
