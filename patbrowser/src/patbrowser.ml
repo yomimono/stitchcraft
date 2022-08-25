@@ -45,20 +45,15 @@ let rec ingest dir traverse =
     | Unix.Unix_error _ -> ingest dir {traverse with n = next_index}
     | Yojson.Json_error _ -> ingest dir {traverse with n = next_index}
 
-let find_filename_tags traverse =
+let count_patterns_named traverse =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
   let open Lwt.Infix in
   (* what's the filename? *)
   let filename = String.lowercase_ascii @@ Fpath.basename @@ List.nth traverse.View.contents traverse.n in
-  (* is there a tag for it? *)
-  Caqti_db.find Db.ORM.Tags.count [filename] >>= function
-  | Error _ -> Lwt.return []
-  | Ok 0 -> Lwt.return []
-  | Ok _ ->
-    (* do any patterns have the tag? *)
-    Caqti_db.collect_list Db.ORM.Patterns.find [filename] >|= function
-    | Error _ -> []
-    | Ok l -> l
+  Caqti_db.find Db.ORM.Patterns.count_by_name filename >>= function
+  | Error _ -> Lwt.return 0
+  | Ok 0 -> Lwt.return 0
+  | Ok n -> Lwt.return n
 
 let insert_pattern traverse pattern tags =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
@@ -87,13 +82,12 @@ let disp db dir =
       | Error _ -> []
       | Ok tags -> tags
       ) >>= fun tags ->
-      find_filename_tags traverse (module Caqti_db) >>= fun filename_matches ->
+      count_patterns_named traverse (module Caqti_db) >>= fun filename_matches ->
       let db_info = {View.filename_matches; tags;} in
       (* show the initial view before waiting for events *)
       Notty_lwt.Term.image term @@
       View.main_view traverse db_info pattern state (Notty_lwt.Term.size term)
       >>= fun () ->
-
       let rec loop (pattern : pattern) (state : Controls.state) =
         (Lwt_stream.last_new user_input_stream) >>= fun event ->
           let size = Notty_lwt.Term.size term in
@@ -101,11 +95,16 @@ let disp db dir =
           (* base case: let's bail *)
           | `Quit, _ -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
           (* we should be able to further subselect stuff when in the preview *)
-          | `Crop, state ->
-            let subpattern = View.crop pattern state in
-            let state = {state with mode = Preview; selection = None} in
-            Notty_lwt.Term.image term (View.main_view traverse db_info subpattern state size) >>= fun () ->
-            loop subpattern state
+          | `Crop, state -> begin
+            match View.crop pattern state with
+            | None ->
+              Notty_lwt.Term.image term (View.failure size "crop failed! check for backstitch") >>= fun () ->
+              loop pattern state
+            | Some subpattern ->
+              let state = {state with mode = Preview; selection = None} in
+              Notty_lwt.Term.image term (View.main_view traverse db_info subpattern state size) >>= fun () ->
+              loop subpattern state
+          end
           (*  `n` and `p` exit preview mode and go to the next/prior item,
            *  so we match on both Browse and Preview *)
           | `Prev, state -> aux dir {traverse with n = max 0 @@ traverse.n - 1; direction = Up} state (module Caqti_db)
@@ -121,14 +120,12 @@ let disp db dir =
           | (`Insert tags, _state) -> begin
             insert_pattern traverse pattern tags (module Caqti_db) >>= function
             | Ok id ->
-              Notty_lwt.Term.image term (View.db_success size id) >>= fun () ->
-              let state = start_state in
-              loop pattern state
+              Notty_lwt.Term.image term (View.success size @@ Format.asprintf "database succeeded: %d" id) >>= fun () ->
+              aux dir traverse {start_state with view = {start_state.view with block_display = state.view.block_display}} (module Caqti_db)
             | Error e ->
-              let s = Format.asprintf "%a" Caqti_error.pp e in
-              Notty_lwt.Term.image term (View.db_failure size s) >>= fun () ->
-              let state = start_state in
-              loop pattern state
+              let s = Format.asprintf "database failure: %a" Caqti_error.pp e in
+              Notty_lwt.Term.image term (View.failure size s) >>= fun () ->
+              aux dir traverse {start_state with view = {start_state.view with block_display = state.view.block_display}} (module Caqti_db)
           end
           | (`None, state) ->
             Notty_lwt.Term.image term (View.main_view traverse db_info pattern state size) >>= fun () ->

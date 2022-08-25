@@ -9,7 +9,7 @@ type traverse = {
 }
 
 type db_info = {
-  filename_matches : (int * string * int * int) list;
+  filename_matches : int;
   tags : string list;
 }
 
@@ -28,19 +28,19 @@ let filesystem_pane {n; contents; _} (_width, _height) =
 
 let database_pane db_info (_width, _height) =
   let open Notty.Infix in
-  Notty.I.strf "%d patterns tagged w/this filename" @@ List.length db_info.filename_matches
+  Notty.I.strf "%d patterns tagged w/this filename" @@ db_info.filename_matches
   <->
   Notty.I.string Notty.A.(st bold) "all tags"
   <->
   Notty.I.vcat (List.map (Notty.I.string Notty.A.empty) db_info.tags)
 
-let db_success (width, height) id = 
+let success (width, height) s = 
     Notty.I.hsnap width @@ Notty.I.vsnap height @@
-    Notty.I.strf ~attr:Notty.A.(bg green ++ fg white ++ st bold) "database entry succeeded: %d" id
+    Notty.I.string Notty.A.(bg green ++ fg white ++ st bold) s
 
-let db_failure (width, height) s =
+let failure (width, height) s =
     Notty.I.hsnap width @@ Notty.I.vsnap height @@
-    Notty.I.strf ~attr:Notty.A.(bg red ++ fg white ++ st bold) "database entry failed: %s" s
+    Notty.I.string Notty.A.(bg red ++ fg white ++ st bold) s
 
 let symbol_map colors =
   let lookups = List.mapi (fun index thread ->
@@ -249,12 +249,12 @@ let main_view traverse db_info pattern state (width, height) =
 
 let crop source_pattern state =
   match state.Controls.selection with
-  | None -> source_pattern
+  | None -> None
   | Some s ->
     let {Controls.start_cell; end_cell} = Controls.normalize_selection s in
     let min_x, min_y = start_cell and max_x, max_y = end_cell in
     match source_pattern.backstitch_layers with
-    | _::_ -> source_pattern
+    | _::_ -> None
     | [] ->
       (* because `transform` wants a pattern, we somewhat counterintuitively
        * transform all the stitches first, then ask for the subview on
@@ -271,7 +271,7 @@ let crop source_pattern state =
       let substrate = { source_pattern.substrate with max_x = max_x - min_x;
                                                       max_y = max_y - min_y;
                       } in
-      { layers;
+      Some { layers;
         backstitch_layers = [];
         substrate;
       }

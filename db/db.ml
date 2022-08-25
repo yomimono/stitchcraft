@@ -180,6 +180,12 @@ module ORM = struct
       SELECT name, pattern FROM patterns WHERE id = ?
     |}
 
+    let count_by_name =
+      let open Caqti_request.Infix in
+      Caqti_type.string -->! Caqti_type.int @:- {|
+      SELECT count(id) FROM patterns WHERE name = ?
+      |}
+
   end
 
   module Tags = struct
