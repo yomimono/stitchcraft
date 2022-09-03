@@ -484,6 +484,9 @@ end = struct
     let (rgb, id) = add_thread rgb id "3866" "Mocha Brn Ult Vy Lt" (250, 246, 240) in
     (rgb, id)
 
+  let all =
+    StringMap.bindings id_map |> List.map snd
+
   (* the "basic" colors are those you can buy in 500g cones. *)
   let basic =
     let lookup s = StringMap.find s id_map in

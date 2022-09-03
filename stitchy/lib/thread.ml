@@ -40,6 +40,9 @@ module type S = sig
       so `Not_found` exceptions may be caused by leaving this empty.
   *)
 
+  val all : t list
+  (** all the threads for this vendor. *)
+
   (* TODO: it would very likely be a good idea to have some kind of
      of_rgb_approximate available, likewise one can imagine of_rgb ~common_only:true, etc. *)
 end
