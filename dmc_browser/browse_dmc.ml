@@ -5,9 +5,9 @@ let threads = Stitchy.DMC.Thread.all
 let plaster (w, h) t =
   let open Notty.Infix in
   let (r, g, b) = Stitchy.DMC.Thread.to_rgb t in
-  (Notty.I.string Notty.A.empty @@ Stitchy.DMC.Thread.to_string t)
-    <->
   (Notty.I.string Notty.A.empty @@ Format.asprintf "(%d, %d, %d) #%02x%02x%02x" r g b r g b)
+    <->
+  (Notty.I.string Notty.A.empty @@ Stitchy.DMC.Thread.to_string t)
   <->
   (Notty.I.tabulate w (h - 2) (fun _ _ ->
       Notty.I.char Notty.A.(bg @@ rgb_888 ~r ~g ~b) ' ' 1 1
