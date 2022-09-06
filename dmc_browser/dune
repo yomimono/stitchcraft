@@ -1,0 +1,4 @@
+(executable
+  (name browse_dmc)
+  (libraries stitchcraft.stitchy notty lwt notty.lwt)
+)
