@@ -1,5 +1,5 @@
 (executable
   (public_name stitchcraft)
   (name stitchcraft)
-  (libraries cmdliner stitchcraft.primitives stitchy)
+  (libraries cmdliner stitchcraft.assemble stitchcraft.primitives stitchy)
 )
