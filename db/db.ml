@@ -1,7 +1,7 @@
 (* Caqti types are now also allowed to be string arrays *)
 (* We include this at the top-level because it needs to be evaluated by our users *)
-type _ Caqti_type.field +=
-  | String_array : (string list) Caqti_type.field
+type _ Caqti_type.Field.t +=
+  | String_array : (string list) Caqti_type.Field.t
 
 let string_array = Caqti_type.field String_array
 
