@@ -34,7 +34,7 @@ module Generation = struct
     Cmdliner.Arg.(pair ~sep:'/' point point)
 
   let segments =
-    let doc = "list of backstitches as pairs of sources and destinations on the line grid" in
+    let doc = "list of backstitches as pairs of sources and destinations on the line grid, e.g. 0,0/1,1" in
     Cmdliner.Arg.(value & pos_all segment [] & info [] ~doc ~docv:"SEGMENTS")
 
   let thread =
@@ -67,7 +67,7 @@ module Generation = struct
 
 end
 
-let backstitch_program _ _ _ _ = () (* TODO the actual backstitch program goes here *)
+let backstitch_program = Backstitch.bs
 let empty_program width height bg gridsize =
   let pattern = Primitives.empty bg gridsize ~width ~height in
   Yojson.Safe.to_channel stdout @@ Stitchy.Types.pattern_to_yojson pattern
