@@ -106,7 +106,22 @@ let empty_cmd =
   in
   Cmdliner.Cmd.v empty_info @@ Term.(const empty_program $ width $ height $ background $ gridsize)
 
-let generators = Cmdliner.Cmd.(group (info "stitchcraft") [assemble_cmd; backstitch_cmd; empty_cmd])
+let textstitch_info = Cmdliner.Cmd.info "textstitch"
+let textstitch_cmd =
+  let open Generation in
+  let phrase = Cmdliner.Arg.(value & pos 0 string "HELLO\\nWORLD" & info [] ~docv:"PHRASE") in
+  let interline =
+    let doc = "extra space to insert between lines (in stitches)" in
+    Cmdliner.Arg.(value & opt int 0 & info ["interline"] ~doc)
+  in
+  let font_name =
+    let doc = "font to use (should match a database name)" in
+    let env = Cmdliner.Cmd.Env.info "STITCH_FONT" ~doc in
+    Cmdliner.Arg.(value & opt string "c64" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
+  in
+  Cmdliner.Cmd.v textstitch_info @@ Term.(const Textstitch.stitch $ font_name $ Db.CLI.db_t $ thread $ background $ gridsize $ phrase $ interline $ output)
+
+let generators = Cmdliner.Cmd.(group (info "stitchcraft") [assemble_cmd; backstitch_cmd; empty_cmd; textstitch_cmd])
 
 let () =
   exit @@ Cmdliner.Cmd.eval generators
