@@ -65,16 +65,7 @@ module Generation = struct
     let doc = "size of aida cloth grid" in
     Cmdliner.Arg.(value & opt (enum grid_converter) Stitchy.Types.Fourteen & info ["g"; "gridsize"] ~doc)
 
-  let width =
-    let doc = "width of the pattern, in number of (non-) cross-stitches" in
-    Cmdliner.Arg.(value & pos 0 int 1 & info [] ~doc ~docv:"WIDTH")
-
-  let height =
-    let doc = "height of the pattern, in number of (non-) cross-stitches" in
-    Cmdliner.Arg.(value & pos 1 int 1 & info [] ~doc ~docv:"HEIGHT")
-
   let exclude =
-    let open Cmdliner.Arg in
     let doc = "thread identifiers to omit from the pattern. This is useful when consuming output from a program with no support for transparency - put stitch colors you expect to be the background here." in
     Cmdliner.Arg.(value & opt_all thread_conv [] & info ["e"; "exclude"] ~doc)
 
@@ -83,7 +74,15 @@ end
 let assemble_program = Assembler.go
 let assemble_info = Cmdliner.Cmd.info "assemble"
 let assemble_cmd =
-  Cmdliner.Cmd.v assemble_info @@ Term.(const assemble_program $ input $ grid $ width $ height $ background $ exclude $ output)
+  let open Generation in
+  let width =
+    let doc = "width for the assembled pattern. If this is too small, it will be overridden with the smallest usable value." in
+    Cmdliner.Arg.(value & opt int 0 & info ["w"; "width"] ~doc)
+  and height =
+    let doc = "height for the assembled pattern. If this is too small, it will be overridden with the smallest usable value." in
+    Cmdliner.Arg.(value & opt int 0 & info ["h"; "height"] ~doc)
+  in
+  Cmdliner.Cmd.v assemble_info @@ Term.(const assemble_program $ input $ gridsize $ width $ height $ background $ exclude $ output)
 
 let backstitch_program = Backstitch.bs
 let empty_program width height bg gridsize =
@@ -98,6 +97,13 @@ let backstitch_cmd =
 let empty_info = Cmdliner.Cmd.info "empty"
 let empty_cmd =
   let open Generation in
+  let width =
+    let doc = "width of the pattern, in number of (non-) cross-stitches" in
+    Cmdliner.Arg.(value & pos 0 int 1 & info [] ~doc ~docv:"WIDTH")
+  and height =
+    let doc = "height of the pattern, in number of (non-) cross-stitches" in
+    Cmdliner.Arg.(value & pos 1 int 1 & info [] ~doc ~docv:"HEIGHT")
+  in
   Cmdliner.Cmd.v empty_info @@ Term.(const empty_program $ width $ height $ background $ gridsize)
 
 let generators = Cmdliner.Cmd.(group (info "stitchcraft") [assemble_cmd; backstitch_cmd; empty_cmd])
