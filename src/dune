@@ -1,0 +1,5 @@
+(executable
+  (public_name stitchcraft)
+  (name stitchcraft)
+  (libraries cmdliner stitchy stitchcraft.primitives)
+)
