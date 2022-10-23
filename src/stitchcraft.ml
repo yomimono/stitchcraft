@@ -151,6 +151,11 @@ let piece_cmd =
   let piece_t = Term.(const Piece.piece $ x $ y $ width $ height $ input) in
   Cmd.v info piece_t
 
+let rotate_cmd =
+  let info = Cmdliner.Cmd.info "rotate" ~doc:"rotate a pattern 90 degrees counterclockwise" in
+  let rotate_t = Term.(const Rotate.rotate $ input) in
+  Cmd.v info rotate_t
+
 let vcat_info = Cmdliner.Cmd.info "vcat"
 let vcat_cmd =
   let vcat_t = Term.(const Vcat.go $ Manipulation.files $ output) in
@@ -159,7 +164,7 @@ let vcat_cmd =
 
 let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; rect_cmd; textstitch_cmd])
 
-let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; piece_cmd; vcat_cmd])
+let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; piece_cmd; rotate_cmd; vcat_cmd])
 
 let categories = Cmdliner.Cmd.(group (info "stitchcraft") [generators; manipulators])
 

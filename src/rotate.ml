@@ -1,8 +1,3 @@
-let file =
-  (* for now, only 90 degrees counterclockwise for you *)
-  let doc = "pattern to rotate 90 degrees counterclockwise. - for stdin" in
-  Cmdliner.Arg.(value & opt string "-" & info ["i"; "input"] ~doc ~docv:"FILE")
-
 let rotate file =
   let json = function
     | s when 0 = String.compare s "-" -> begin
@@ -15,8 +10,3 @@ let rotate file =
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
     Stitchy.Operations.rotate_ccw pattern |> Stitchy.Types.pattern_to_yojson |> Yojson.Safe.to_channel stdout
-
-let info = Cmdliner.Cmd.info "rotate" ~doc:"rotate a pattern counterclockwise"
-
-let () = exit @@
-  Cmdliner.(Cmd.eval @@ Cmd.v info @@ Term.(const rotate $ file))

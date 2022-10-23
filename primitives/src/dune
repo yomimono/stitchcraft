@@ -1,4 +1,0 @@
-(executables
- (public_names rotate)
- (libraries cmdliner primitives stitchy yojson)
-)
