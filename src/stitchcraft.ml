@@ -128,7 +128,7 @@ let rect_cmd =
 let textstitch_info = Cmdliner.Cmd.info "textstitch"
 let textstitch_cmd =
   let open Generation in
-  let phrase = Cmdliner.Arg.(value & pos 0 string "HELLO\\nWORLD" & info [] ~docv:"PHRASE") in
+  let phrase = Cmdliner.Arg.(value & pos_all string ["HELLO"; "WORLD"] & info [] ~docv:"PHRASE") in
   let interline =
     let doc = "extra space to insert between lines (in stitches)" in
     Cmdliner.Arg.(value & opt int 0 & info ["interline"] ~doc)

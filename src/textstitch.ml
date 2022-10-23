@@ -1,8 +1,8 @@
 open Stitchy.Types
 open Lwt.Infix
 
-let make_pattern font db textcolor background gridsize phrase interline output =
-  let uchars = Textstitch__Assemble.uchars_of_phrase phrase in
+let make_pattern font db textcolor background gridsize phrases interline output =
+  let uchars = Textstitch__Assemble.uchars_of_phrase (String.concat "\n" phrases) in
   let uri = Db.CLI.uri_of_db db in
   Caqti_lwt.connect uri >>= function
   | Error e -> Format.eprintf "DB connection error: %a\n%!" Caqti_error.pp e;
