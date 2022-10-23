@@ -1,13 +1,3 @@
-open Cmdliner
-
-let files =
-  let doc = "Image(s) to concatenate, in order with topmost appearing first." in
-  Arg.(non_empty & pos_all file [] & info [] ~doc)
-
-let output =
-  let doc = "output file" in
-  Arg.(value & opt string "tall.json" & info ["output"; "o"] ~doc)
-
 let go files output =
   let files = try
     List.map Yojson.Safe.from_file files |> List.rev
@@ -33,10 +23,3 @@ let go files output =
     | Ok _ ->
       Format.eprintf "too many elements returned";
       exit 1
-
-let hcat_t = Term.(const go $ files $ output)
-
-let info = Cmd.info "hcat" ~doc:"horizontally concatenate patterns"
-
-let () =
-  exit @@ Cmd.eval @@ Cmd.v info hcat_t

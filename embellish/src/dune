@@ -4,32 +4,11 @@
  (libraries borders cmdliner stitchy))
 
 (executable
- (public_name hcat)
- (modules hcat)
- (libraries cmdliner stitchy))
-
-(executable
- (public_name vcat)
- (modules vcat)
- (libraries cmdliner stitchy))
-
-(executable
  (public_name repeat_corner)
  (modules repeat_corner)
  (libraries borders cmdliner stitchy))
 
 (data_only_dirs test)
-
-(rule (target fill.pattern)
-      (action
-        (progn
- (with-stdout-to dot.pattern (run rect -t 310 1 1))
- (with-stdout-to empty.pattern (run empty 1 1))
- (run vcat -o top.pattern dot.pattern empty.pattern)
- (run vcat -o bottom.pattern empty.pattern dot.pattern)
- (run hcat -o fill.pattern top.pattern bottom.pattern)
- )
-        ))
 
 (rule (alias runtest)
  (deps fill.pattern (glob_files test/*))

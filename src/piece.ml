@@ -1,23 +1,3 @@
-let file =
-  let doc = "pattern to take from. - for stdin" in
-  Cmdliner.Arg.(value & opt string "-" & info ["i"; "input"] ~doc ~docv:"FILE")
-
-let xoff =
-  let doc = "start at offset x" in
-  Cmdliner.Arg.(value & pos 0 int 0 & info [] ~doc ~docv:"X_OFFSET")
-
-let yoff =
-  let doc = "start at offset y" in
-  Cmdliner.Arg.(value & pos 1 int 0 & info [] ~doc ~docv:"Y_OFFSET")
-
-let width =
-  let doc = "width of the rectangle, in number of cross-stitches" in
-  Cmdliner.Arg.(value & pos 2 int 1 & info [] ~doc ~docv:"WIDTH")
-
-let height =
-  let doc = "height of the rectangle, in number of cross-stitches" in
-  Cmdliner.Arg.(value & pos 3 int 1 & info [] ~doc ~docv:"HEIGHT")
-
 let piece x_off y_off width height file =
   let json = function
     | s when 0 = String.compare s "-" -> begin
@@ -38,7 +18,3 @@ let piece x_off y_off width height file =
     let p = Stitchy.Types.({ substrate; layers = l; backstitch_layers = [] }) |>
       (Stitchy.Operations.transform_all_stitches ~f:displace) in
     Yojson.Safe.to_channel stdout @@ Stitchy.Types.pattern_to_yojson p
-
-let info = Cmdliner.Cmd.info "piece" ~doc:"slice a piece out of an existing pattern"
-
-let () = exit @@ Cmdliner.(Cmd.eval @@ Cmd.v info @@ Term.(const piece $ xoff $ yoff $ width $ height $ file))

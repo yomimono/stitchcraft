@@ -7,3 +7,27 @@
              stitchcraft.primitives
              stitchcraft.textstitch stitchy)
 )
+
+(rule (target fill.pattern)
+      (action
+        (progn
+ (with-stdout-to dot.pattern (run stitchcraft gen rect -t 310 1 1))
+ (with-stdout-to empty.pattern (run stitchcraft gen empty 1 1))
+ (run stitchcraft manip vcat -o top.pattern dot.pattern empty.pattern)
+ (run stitchcraft manip vcat -o bottom.pattern empty.pattern dot.pattern)
+ (run stitchcraft manip hcat -o fill.pattern top.pattern bottom.pattern)
+ )
+))
+
+(rule
+ (alias runtest)
+ (action (progn
+  (with-stdout-to backstitch.pattern (run %{exe:stitchcraft.exe} gen backstitch "0,0/1,1"))
+  (with-stdout-to interior.pattern (run %{exe:stitchcraft.exe} gen empty 61 64))
+  (with-stdout-to vertical_line.pattern (run %{exe:stitchcraft.exe} gen rect 1 66))
+  (with-stdout-to horizontal_line.pattern (run %{exe:stitchcraft.exe} gen rect 61 1))
+  (with-stdout-to smol_horizontal_line.pattern (run %{exe:stitchcraft.exe} manip piece -i horizontal_line.pattern --x 0 --y 0 5 1))
+  (run %{exe:stitchcraft.exe} manip hcat -o center.pattern backstitch.pattern horizontal_line.pattern interior.pattern horizontal_line.pattern)
+  (run %{exe:stitchcraft.exe} manip vcat -o box.pattern vertical_line.pattern center.pattern vertical_line.pattern)
+ ))
+)

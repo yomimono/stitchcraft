@@ -7,11 +7,11 @@
 (rule (alias runtest)
  (action
   (progn
-   (with-stdout-to empty.pattern (run empty 61 64))
-   (with-stdout-to vertical_line.pattern (run rect 1 66))
-   (with-stdout-to horizontal_line.pattern (run rect 61 1))
-   (run hcat -o center.pattern horizontal_line.pattern empty.pattern horizontal_line.pattern)
-   (run vcat -o box.pattern vertical_line.pattern center.pattern vertical_line.pattern)
+   (with-stdout-to empty.pattern (run stitchcraft gen empty 61 64))
+   (with-stdout-to vertical_line.pattern (run stitchcraft gen rect 1 66))
+   (with-stdout-to horizontal_line.pattern (run stitchcraft gen rect 61 1))
+   (run stitchcraft manip hcat -o center.pattern horizontal_line.pattern empty.pattern horizontal_line.pattern)
+   (run stitchcraft manip vcat -o box.pattern vertical_line.pattern center.pattern vertical_line.pattern)
    (run %{exe:stitchpattern.exe} -w "TEST IMAGE" -o box.pdf -i box.pattern)
    (run pdfinfo box.pdf)
    (run xdg-open box.pdf)

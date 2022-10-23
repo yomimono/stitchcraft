@@ -1,17 +1,3 @@
-open Cmdliner
-
-let files =
-  let doc = "Images to concatenate together, leftmost first." in
-  Arg.(non_empty & pos_all file [] & info [] ~doc)
-
-let output =
-  let doc = "output file. - for stdout, the default." in
-  Arg.(value & opt string "-" & info ["output"; "o"] ~doc)
-
-let spoo output json =
-  if 0 = String.compare output "-" then Yojson.Safe.to_channel stdout json
-  else Yojson.Safe.to_file output json
-
 let go files output =
   let files = try
     List.map Yojson.Safe.from_file files |> List.rev
@@ -35,9 +21,3 @@ let go files output =
     | Ok _ ->
       Format.eprintf "multiple patterns came back from hcat";
       exit 1
-
-let vcat_t = Term.(const go $ files $ output)
-
-let info = Cmd.info "vcat" ~doc:"vertically concatenate patterns"
-
-let () = exit @@ Cmd.eval @@ Cmd.v info vcat_t

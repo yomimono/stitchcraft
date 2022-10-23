@@ -69,6 +69,27 @@ module Generation = struct
     let doc = "thread identifiers to omit from the pattern. This is useful when consuming output from a program with no support for transparency - put stitch colors you expect to be the background here." in
     Cmdliner.Arg.(value & opt_all thread_conv [] & info ["e"; "exclude"] ~doc)
 
+  let width =
+    let doc = "width of the pattern, in number of (non-) cross-stitches" in
+    Cmdliner.Arg.(value & pos 0 int 1 & info [] ~doc ~docv:"WIDTH")
+
+  let height =
+    let doc = "height of the pattern, in number of (non-) cross-stitches" in
+    Cmdliner.Arg.(value & pos 1 int 1 & info [] ~doc ~docv:"HEIGHT")
+
+  let x =
+    let doc = "offset by x stitches from the left edge" in
+    Cmdliner.Arg.(value & opt int 0 & info ["x"; "x_offset"] ~doc ~docv:"X")
+  and y =
+    let doc = "offset by y stitches from the top edge" in
+    Cmdliner.Arg.(value & opt int 0 & info ["y"; "y_offset"] ~doc ~docv:"Y")
+end
+
+module Manipulation = struct
+  let files =
+    let doc = "Images to concatenate together, leftmost or topmost first." in
+    Arg.(non_empty & pos_all file [] & info [] ~doc)
+
 end
 
 let assemble_program = Assembler.go
@@ -97,14 +118,12 @@ let backstitch_cmd =
 let empty_info = Cmdliner.Cmd.info "empty"
 let empty_cmd =
   let open Generation in
-  let width =
-    let doc = "width of the pattern, in number of (non-) cross-stitches" in
-    Cmdliner.Arg.(value & pos 0 int 1 & info [] ~doc ~docv:"WIDTH")
-  and height =
-    let doc = "height of the pattern, in number of (non-) cross-stitches" in
-    Cmdliner.Arg.(value & pos 1 int 1 & info [] ~doc ~docv:"HEIGHT")
-  in
   Cmdliner.Cmd.v empty_info @@ Term.(const empty_program $ width $ height $ background $ gridsize)
+
+let rect_info = Cmdliner.Cmd.info "rect"
+let rect_cmd =
+  let open Generation in
+  Cmdliner.Cmd.v rect_info @@ Term.(const Rect.rect $ width $ height $ background $ thread $ gridsize $ x $ y)
 
 let textstitch_info = Cmdliner.Cmd.info "textstitch"
 let textstitch_cmd =
@@ -121,7 +140,28 @@ let textstitch_cmd =
   in
   Cmdliner.Cmd.v textstitch_info @@ Term.(const Textstitch.stitch $ font_name $ Db.CLI.db_t $ thread $ background $ gridsize $ phrase $ interline $ output)
 
-let generators = Cmdliner.Cmd.(group (info "stitchcraft") [assemble_cmd; backstitch_cmd; empty_cmd; textstitch_cmd])
+let hcat_cmd =
+  let hcat_t = Term.(const Hcat.go $ Manipulation.files $ output) in
+  let info = Cmd.info "hcat" ~doc:"concatenate patterns around a vertical axis" in
+  Cmd.v info hcat_t
+
+let piece_cmd =
+  let open Generation in
+  let info = Cmdliner.Cmd.info "piece" ~doc:"slice a piece out of an existing pattern" in
+  let piece_t = Term.(const Piece.piece $ x $ y $ width $ height $ input) in
+  Cmd.v info piece_t
+
+let vcat_info = Cmdliner.Cmd.info "vcat"
+let vcat_cmd =
+  let vcat_t = Term.(const Vcat.go $ Manipulation.files $ output) in
+  let info = Cmd.info "vcat" ~doc:"concatenate patterns around a vertical axis" in
+  Cmd.v info vcat_t
+
+let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; rect_cmd; textstitch_cmd])
+
+let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; piece_cmd; vcat_cmd])
+
+let categories = Cmdliner.Cmd.(group (info "stitchcraft") [generators; manipulators])
 
 let () =
-  exit @@ Cmdliner.Cmd.eval generators
+  exit @@ Cmdliner.Cmd.eval categories
