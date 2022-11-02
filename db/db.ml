@@ -79,7 +79,7 @@ module ORM = struct
     let query =
       let open Caqti_request.Infix in
       let open Caqti_type in
-      (tup2 string int) -->! tup4 int int int string @:-
+      (tup2 string int) -->? tup4 int int int string @:-
       {|WITH font_id AS (
     SELECT id FROM fonts WHERE name=$1
     ), glyph_id AS (
@@ -100,6 +100,14 @@ module ORM = struct
         name    text NOT NULL,
         CONSTRAINT unique_name UNIQUE(name)
         )
+      |}
+
+    let contains_glyph =
+      Caqti_type.int ->? Caqti_type.string @@ {|
+      WITH font_id AS
+      (select font FROM fonts_glyphs WHERE uchar=32)
+      SELECT name FROM fonts
+      INNER JOIN font_id on font_id.font = fonts.id
       |}
   end
 
