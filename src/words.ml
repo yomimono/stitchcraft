@@ -25,9 +25,22 @@ let find_font db phrases =
           Format.printf "char 0x%x : %d fonts\n%!" (Uchar.to_int uchar) (List.length l);
           Format.printf "%a@." Fmt.(list ~sep:sp @@ hbox @@ string) l;
           Lwt.return_unit
-        ) worst_first
+        ) worst_first >>= fun () ->
+      Lwt_list.iter_s (fun (uchar, fonts) ->
+          Lwt_list.iter_s (fun font ->
+              let uchar_int = Uchar.to_int uchar in
+              Caqti_db.find_opt Db.ORM.Glyphs.query (font, uchar_int) >>= function
+              | Error e -> Format.eprintf "query finding uchar 0x%x in font %s error: %a\n%!" uchar_int font Caqti_error.pp e; exit 1
+              | Ok None -> 
+                Format.eprintf "no glyph for uchar 0x%x in font %s\n%!" uchar_int font; exit 1
+              | Ok (Some (_, _, _, json)) ->
+                begin
+                  Format.printf "char 0x%x font %s: %s\n%!" uchar_int font json;
+                  Lwt.return_unit
+                end
+         ) fonts
+      ) worst_first
   )
-
 
 let make_pattern font db textcolor background gridsize phrases interline output =
   let uri = Db.CLI.uri_of_db db in

@@ -18,13 +18,15 @@ let cp_list = function
   | q, r when q = r -> [q]
   | a, b -> List.init (b - a) ((+) a)
 
-let associate_cps (glyph_data : (int * Stitchy.Types.glyph) list) acc map_kind cp_range glyph_id =
+let associate_cps debug (glyph_data : (int * Stitchy.Types.glyph) list) acc map_kind cp_range glyph_id =
   match map_kind with
   | `Glyph -> begin
     match List.assoc_opt glyph_id glyph_data with
     | None -> acc
     | Some data -> (* code points cp_range all map to the associated data *)
       let cps = cp_list cp_range in
+      if debug && Stitchy.Types.(CoordinateSet.cardinal data.stitches = 0) then
+        Format.eprintf "empty glyph for code points %a\n%!" Fmt.(list int) cps;
       (data, (List.map Uchar.of_int cps)) :: acc
   end
   | `Glyph_range ->
@@ -32,8 +34,15 @@ let associate_cps (glyph_data : (int * Stitchy.Types.glyph) list) acc map_kind c
     let l = List.mapi (fun n cp -> (cp, glyph_id + n)) cps in
     let local_list = List.fold_left (fun local_acc (cp, glyph_id) ->
         match List.assoc_opt glyph_id glyph_data with
-        | None -> local_acc
+        | None ->
+          if debug then Format.eprintf "code point %x had no data\n%!" cp;
+          local_acc
         | Some data ->
+          if debug && Stitchy.Types.(CoordinateSet.cardinal data.stitches = 0) then
+            Format.eprintf "empty glyph for code points %x\n%!"  cp
+          else if debug then
+            Format.eprintf "nonzero glyph for code point %x: %a\n%!"
+              cp Fmt.(list ~sep:sp @@ parens @@ (pair ~sep:comma int int)) Stitchy.Types.(CoordinateSet.elements data.stitches);
           (data, [Uchar.of_int cp]) :: local_acc
       ) [] l in
     local_list @ acc
@@ -67,7 +76,7 @@ let glyphmap_of_buffer debug buffer =
     let glyph_ids_and_data = glyph_ids_and_data debug ebdt sub_tables in
     if debug then Printf.printf "got %d glyph ids\n%!" @@ List.length glyph_ids_and_data;
     (* now we need to get the unicode code points or ranges mapped to glyph IDs *)
-    match Otfm.cmap source (associate_cps glyph_ids_and_data) [] with
+    match Otfm.cmap source (associate_cps debug glyph_ids_and_data) [] with
     | Error e -> Error (`Format e)
     | Ok (_, glyphlist) ->
       Ok (List.rev glyphlist)

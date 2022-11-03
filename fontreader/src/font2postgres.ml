@@ -15,6 +15,8 @@ let fmt =
   let doc = "type of font parser to use" in
   Cmdliner.Arg.(value & opt fontformat `Otf & info ["format"] ~doc ~docv:"FORMAT")
 
+(* TODO: use the filename (minus extension) if the user
+ * didn't give us a font name *)
 let font_name =
   let doc = "name by which to refer to this font" in
   Cmdliner.Arg.(value & opt string "c64" & info ["n"; "name"] ~doc ~docv:"FONT_NAME")
