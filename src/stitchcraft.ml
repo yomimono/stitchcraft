@@ -125,6 +125,11 @@ let rect_cmd =
   let open Generation in
   Cmdliner.Cmd.v rect_info @@ Term.(const Rect.rect $ width $ height $ background $ thread $ gridsize $ x $ y)
 
+let fontcheck_info = Cmdliner.Cmd.info "fontcheck"
+let fontcheck_cmd =
+  let phrase = Cmdliner.Arg.(value & pos_all string ["HELLO"; "WORLD"] & info [] ~docv:"PHRASE") in
+  Cmdliner.Cmd.v fontcheck_info @@ Term.(const Words.find_font $ Db.CLI.db_t $ phrase)
+
 let textstitch_info = Cmdliner.Cmd.info "textstitch"
 let textstitch_cmd =
   let open Generation in
@@ -138,7 +143,7 @@ let textstitch_cmd =
     let env = Cmdliner.Cmd.Env.info "STITCH_FONT" ~doc in
     Cmdliner.Arg.(value & opt string "c64" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
   in
-  Cmdliner.Cmd.v textstitch_info @@ Term.(const Textstitch.stitch $ font_name $ Db.CLI.db_t $ thread $ background $ gridsize $ phrase $ interline $ output)
+  Cmdliner.Cmd.v textstitch_info @@ Term.(const Words.stitch $ font_name $ Db.CLI.db_t $ thread $ background $ gridsize $ phrase $ interline $ output)
 
 let hcat_cmd =
   let hcat_t = Term.(const Hcat.go $ Manipulation.files $ output) in
@@ -162,7 +167,7 @@ let vcat_cmd =
   let info = Cmd.info "vcat" ~doc:"concatenate patterns around a vertical axis" in
   Cmd.v info vcat_t
 
-let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; rect_cmd; textstitch_cmd])
+let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; fontcheck_cmd; rect_cmd; textstitch_cmd])
 
 let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; piece_cmd; rotate_cmd; vcat_cmd])
 

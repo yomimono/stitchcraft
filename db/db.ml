@@ -103,9 +103,9 @@ module ORM = struct
       |}
 
     let contains_glyph =
-      Caqti_type.int ->? Caqti_type.string @@ {|
+      Caqti_type.int ->* Caqti_type.string @@ {|
       WITH font_id AS
-      (select font FROM fonts_glyphs WHERE uchar=32)
+      (select font FROM fonts_glyphs WHERE uchar = $1 )
       SELECT name FROM fonts
       INNER JOIN font_id on font_id.font = fonts.id
       |}

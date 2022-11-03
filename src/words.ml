@@ -1,15 +1,32 @@
 open Stitchy.Types
 open Lwt.Infix
- 
-let uchars phrases = Textstitch.uchars_of_phrase (String.concat "\n" phrases) in
+
+let uchars phrases = Textstitch.uchars_of_phrase (String.concat "\n" phrases)
 
 let find_font db phrases =
-  let uchars = uchars phrases in
-  Caqti_lwt.connect uri >>= function
-  | Error e -> Format.eprintf "DB connection error: %a\n%!" Caqti_error.pp e; exit 1
-  | Ok m ->
-    let module Caqti_db = (val m) in
-    Caqti_db.collect_list Db.ORM.Fonts.query 
+  Lwt_main.run @@ (
+    let uri = Db.CLI.uri_of_db db in
+    let uchars = uchars phrases |> List.sort_uniq Uchar.compare in
+    Caqti_lwt.connect uri >>= function
+    | Error e -> Format.eprintf "DB connection error: %a\n%!" Caqti_error.pp e; exit 1
+    | Ok m ->
+      let module Caqti_db = (val m) in
+      Lwt_list.filter_map_s (fun u ->
+          Caqti_db.collect_list Db.ORM.Fonts.contains_glyph (Uchar.to_int u) >|= function
+          | Error e -> Format.eprintf "query error: %a\n%!" Caqti_error.pp e; exit 1
+          | Ok [] -> Some (u, [])
+          | Ok l ->
+            Some (u, l)
+        ) uchars >>= fun assoc_list ->
+      let worst_first = List.sort (fun (_uchar, a) (_uchar, b) ->
+          compare (List.length a) (List.length b)
+        ) assoc_list in
+      Lwt_list.iter_s (fun (uchar, l) ->
+          Format.printf "char 0x%x : %d fonts\n%!" (Uchar.to_int uchar) (List.length l);
+          Format.printf "%a@." Fmt.(list ~sep:sp @@ hbox @@ string) l;
+          Lwt.return_unit
+        ) worst_first
+  )
 
 
 let make_pattern font db textcolor background gridsize phrases interline output =
