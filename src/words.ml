@@ -47,11 +47,14 @@ let make_pattern font db textcolor background gridsize phrases interline output 
     in
     let to_lookup = List.sort_uniq Uchar.compare (Textstitch.default_char::uchars) in
     let params = List.map (fun u -> (font, (Uchar.to_int u))) to_lookup in
-    Lwt_list.fold_left_s (fun map param ->
-        Caqti_db.find_opt Db.ORM.Glyphs.query param >>= function
+    Lwt_list.fold_left_s (fun map (font, uchar_int) ->
+        Caqti_db.find_opt Db.ORM.Glyphs.query (font, uchar_int) >>= function
         | Ok (Some v) -> Lwt.return @@ add_glyph v map
+        | Ok None when List.mem (Uchar.of_int uchar_int) uchars ->
+          Format.eprintf "Font %s is missing or has no glyph representing 0x%x\n%!" font uchar_int;
+          exit 1
         | Ok None ->
-          Format.eprintf "Font %s has no glyph representing 0x%x\n%!" (fst param) (snd param);
+          Format.eprintf "Font %s is missing basic characters or not present\n%!" font;
           exit 1
         | Error e -> Format.eprintf "DB lookup error: %a\n%!" Caqti_error.pp e;
           exit 1
