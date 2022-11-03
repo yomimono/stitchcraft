@@ -91,6 +91,16 @@ module ORM = struct
     INNER JOIN glyph_id ON glyph_id.glyph = glyphs.id
     |}
 
+    let empties =
+      let open Caqti_request.Infix in
+      let open Caqti_type in
+      (unit) -->* int @:-
+      {|WITH empties AS (SELECT id FROM glyphs
+        WHERE stitches->0 IS NULL)
+      SELECT font, uchar, glyph FROM fonts_glyphs
+      INNER JOIN empties on empties.id = fonts_glyphs.glyph
+        |}
+
   end
 
   module Fonts = struct
