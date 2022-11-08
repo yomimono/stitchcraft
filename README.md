@@ -22,7 +22,7 @@ A better user experience for such folks is coming someday.
 
 # How can I use it?
 
-Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in /tmp (location customizable with `--db`), which stores raster font information; if this file is missing, you're gonna have a bad time.  You can create entries for it with `font2sqlite`, or use the version distributed in this git repository.
+Stitchcraft bundles several executables for command-line use.  Some are subcommands under `stitchcraft`; those are separated into commands for generating patterns, and those for manipulating them.
 
 ## Pattern Generation and Manipulation
 
@@ -32,7 +32,7 @@ Stitchcraft bundles several executables for command-line use.  Many assume the p
 * listing , which makes supplementary files useful in listing cross-stitch patterns on Etsy
 * pat2stitchy , which reads some .pat files and converts them to Stitchy's format
 * font2sqlite and font2postgres, for importing bitmap fonts to the font databases textstitch uses
-* textstitch , for taking text input and making a cross-stitch pattern from it
+* textstitch , for taking text input and making a cross-stitch pattern from it. This depends on a populated font database; see `font2postgres` for help.
 
 ## Pattern Viewing
 
