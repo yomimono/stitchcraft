@@ -1,27 +1,29 @@
 (*
-### generation
+### generation (`stitchcraft gen`)
 - `textstitch` - make a pattern from a list of strings
+- `fontcheck` - does font X have the glyphs I need for these characters?
+- `primitives` - `rect`, `backstitch`, `empty` - simple figures or empty space
 - `assemble` - take a list of layers (e.g. from `ih`) and make a pattern
-- `primitives`: `rect`, `backstitch`, `empty` - simple figures or empty space
 
-### manipulation
+### manipulation (`stitchcraft manip`)
 
-- `embellish` (hcat, vcat, repeat_corner, embellish_stitch`)
+- `embellish` (hcat, vcat)
 - `piece`, `rotate`
+- `repeat_corner`, `embellish_stitch` (TODO)
 
-### output
+### export (`stitchcraft export`)
 
 - `stitch_pattern` - patterns to pdfs
 - `listing` - prepares preview images for patterns & annotates
 
-### viewers
+### viewers (`stitchcraft view`)
 
 - `notty_canvas` - view patterns in the terminal
-- `patbrowser` - browse through patterns and clip them for database
 - `estimate` - estimate materials cost
 
-### elements managers
+### elements managers (`stitchcraft browse`)
 
+- `patbrowser` - browse through patterns and clip them for database
 - `patreader` - converts .pat files to stitchy
 - `fontreader` - ingests raster fonts to the font database
 - `ingest_pattern` - ingests patterns to the pattern database
@@ -89,6 +91,10 @@ module Manipulation = struct
   let files =
     let doc = "Images to concatenate together, leftmost or topmost first." in
     Arg.(non_empty & pos_all file [] & info [] ~doc)
+
+end
+
+module Export = struct
 
 end
 
@@ -167,11 +173,22 @@ let vcat_cmd =
   let info = Cmd.info "vcat" ~doc:"concatenate patterns around a vertical axis" in
   Cmd.v info vcat_t
 
+let pdf_info = Cmdliner.Cmd.info "pdf"
+let pdf_cmd =
+  let _pdf_t = Term.(const Pdf.go) in
+  ()
+
 let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; fontcheck_cmd; rect_cmd; textstitch_cmd])
 
 let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; piece_cmd; rotate_cmd; vcat_cmd])
 
-let categories = Cmdliner.Cmd.(group (info "stitchcraft") [generators; manipulators])
+let exporters = Cmdliner.Cmd.(group @@ info "export") []
+
+let viewers = Cmdliner.Cmd.(group @@ info "view") []
+
+let browsers = Cmdliner.Cmd.(group @@ info "browse") []
+
+let categories = Cmdliner.Cmd.(group (info "stitchcraft") [generators; manipulators; exporters; viewers; browsers])
 
 let () =
   exit @@ Cmdliner.Cmd.eval categories

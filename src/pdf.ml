@@ -1,5 +1,5 @@
 open Cmdliner
-open Pattern.Output_pdf
+open Output_pdf
 
 let grid_size =
   let doc = "Size of a grid entry representing one stitch, in points. 72 points is one inch." in

@@ -1,5 +1,6 @@
 (library
- (name pattern)
+ (name pdf)
+ (public_name stitchcraft.pdf)
  (libraries camlpdf stitchy)
  (instrumentation (backend bisect_ppx))
 )

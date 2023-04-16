@@ -4,8 +4,10 @@
   (libraries cmdliner 
              stitchcraft.assemble
              stitchcraft.db
+             stitchcraft.pdf
              stitchcraft.primitives
-             stitchcraft.textstitch stitchy)
+             stitchcraft.textstitch
+             stitchy)
 )
 
 (rule (target fill.pattern)
