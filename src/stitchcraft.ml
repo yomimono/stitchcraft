@@ -13,7 +13,7 @@
 
 ### export (`stitchcraft export`)
 
-- `stitch_pattern` - patterns to pdfs
+- `pdf` - patterns to pdfs
 - `listing` - prepares preview images for patterns & annotates
 
 ### viewers (`stitchcraft view`)
@@ -175,14 +175,15 @@ let vcat_cmd =
 
 let pdf_info = Cmdliner.Cmd.info "pdf"
 let pdf_cmd =
-  let _pdf_t = Term.(const Pdf.go) in
-  ()
+  let pdf_t = Stitchpdf.embed_t in
+  let info = Cmd.info "pdf" ~doc:"generate a pattern PDF" in
+  Cmd.v info pdf_t
 
 let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; fontcheck_cmd; rect_cmd; textstitch_cmd])
 
 let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; piece_cmd; rotate_cmd; vcat_cmd])
 
-let exporters = Cmdliner.Cmd.(group @@ info "export") []
+let exporters = Cmdliner.Cmd.(group @@ info "export") [pdf_cmd]
 
 let viewers = Cmdliner.Cmd.(group @@ info "view") []
 

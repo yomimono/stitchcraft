@@ -1,5 +1,5 @@
 open Cmdliner
-open Output_pdf
+open Stitchcraft.Stitchpdf.Output_pdf
 
 let grid_size =
   let doc = "Size of a grid entry representing one stitch, in points. 72 points is one inch." in
@@ -47,7 +47,7 @@ let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
   | Ok pattern ->
     let font_size = pixel_size - 2 in
     let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.layers in
-    let cover = Pattern.Coverpage.coverpage paper_size pattern in
+    let cover = Stitchpdf.Coverpage.coverpage paper_size pattern in
     let symbols = symbolpage ~font_size:12 paper_size symbol_map in
     let pages = cover :: symbols :: (pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in
     let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in

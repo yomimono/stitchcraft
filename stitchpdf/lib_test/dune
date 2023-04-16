@@ -1,6 +1,6 @@
 (executable
   (name test)
-  (libraries camlpdf stitchcraft.pdf stitchy alcotest)
+  (libraries camlpdf stitchcraft.stitchpdf stitchy alcotest)
   )
 
 (rule

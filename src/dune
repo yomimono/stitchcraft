@@ -4,7 +4,7 @@
   (libraries cmdliner 
              stitchcraft.assemble
              stitchcraft.db
-             stitchcraft.pdf
+             stitchcraft.stitchpdf
              stitchcraft.primitives
              stitchcraft.textstitch
              stitchy)
