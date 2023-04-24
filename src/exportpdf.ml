@@ -1,5 +1,5 @@
 open Cmdliner
-open Stitchcraft.Stitchpdf.Output_pdf
+open Stitchpdf.Output_pdf
 
 let grid_size =
   let doc = "Size of a grid entry representing one stitch, in points. 72 points is one inch." in
@@ -54,7 +54,3 @@ let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
     let pdf = Pdfpage.add_root pageroot [] pdf in
     Pdfwrite.pdf_to_file pdf dst
 
-let embed_t = Term.(const write_pattern $ paper_size $ watermark $ grid_size
-                    $ fat_line_interval $ src $ dst)
-
-let () = exit @@ Cmd.eval @@ Cmd.v info embed_t

@@ -175,7 +175,11 @@ let vcat_cmd =
 
 let pdf_info = Cmdliner.Cmd.info "pdf"
 let pdf_cmd =
-  let pdf_t = Stitchpdf.embed_t in
+  let pdf_t =
+    let open Exportpdf in
+    Term.(const write_pattern $ paper_size $ watermark $ grid_size
+                   $ fat_line_interval $ src $ dst)
+  in
   let info = Cmd.info "pdf" ~doc:"generate a pattern PDF" in
   Cmd.v info pdf_t
 
@@ -183,7 +187,7 @@ let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd;
 
 let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; piece_cmd; rotate_cmd; vcat_cmd])
 
-let exporters = Cmdliner.Cmd.(group @@ info "export") [pdf_cmd]
+let exporters = Cmdliner.Cmd.(group @@ info "export") [ pdf_cmd ]
 
 let viewers = Cmdliner.Cmd.(group @@ info "view") []
 
