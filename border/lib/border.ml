@@ -1,5 +1,11 @@
 open Stitchy.Operations
 
+(* TODO: unite the executables. we can figure out which operation is appropriate based
+ * on the dimensions of the corner pattern and the presence/absence of fencepost pattern. *)
+
+(* as I kind of suspected the square_corner case is a special case of wide_corner ?  I guess I needed
+ * to formulate it in that way *)
+
 type dimensions = {
   x_off : int;
   y_off : int;
@@ -220,6 +226,7 @@ let wide_corner_embellish ~fill ~corner ~top ~center ~min_width ~min_height =
     List.fold_left (merge_patterns ~substrate) center_shifted ( center_fill :: corners @ borders)
 
 (* this is the simpler, corners-and-repeating-motif kind of repeating border *)
+(* TODO there's no reason square_corner_embellish shouldn't have a fill option *)
 let square_corner_embellish ~min_width ~rotate_corners ~center ~corner ~top ~fencepost =
   let open Stitchy.Types in
   let open Stitchy.Operations in
