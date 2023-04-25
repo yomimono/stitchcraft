@@ -88,7 +88,7 @@ let go fencepost rotate_corners corner top center min_width output =
                        pattern_of_yojson top,
                        pattern_of_yojson center) with
   | Ok fencepost, Ok corner, Ok top, Ok center ->
-    Borders.embellish ~min_width ~fencepost ~rotate_corners ~center ~corner ~top
+    Border.square_corner_embellish ~min_width ~fencepost ~rotate_corners ~center ~corner ~top
     |> Stitchy.Types.pattern_to_yojson
     |> spoo output
   | _, _, _, _ -> failwith (Printf.sprintf "failed to parse input json")

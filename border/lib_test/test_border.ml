@@ -1,5 +1,5 @@
-let br = Borders.border_repetitions
-let dim x_off y_off width height = Borders.({x_off; y_off; width; height;})
+let br = Border.border_repetitions
+let dim x_off y_off width height = Border.({x_off; y_off; width; height;})
 
 let pp_stitches fmt cs =
   let pp_list = Fmt.(list @@ pair ~sep:(Fmt.nop) int int) in
@@ -57,35 +57,35 @@ let needs_padding () =
   Alcotest.(check int) "with fencepost needs padding" 4 (br ~side ~fencepost:1 ~center)
 
 let within () =
-  Alcotest.(check bool) "0, 0 not within nonexistent w/h" false (Borders.within ~x:0 ~y:0 (dim 0 0 0 0));
-  Alcotest.(check bool) "0, 0 within extant w/h" true (Borders.within ~x:0 ~y:0 (dim 0 0 1 1));
-  Alcotest.(check bool) "1, 1 not within extant w/h" false (Borders.within ~x:1 ~y:1 (dim 0 0 1 1));
-  Alcotest.(check bool) "0, 0 not within offset w/h" false (Borders.within ~x:0 ~y:0 (dim 10 10 1 1))
+  Alcotest.(check bool) "0, 0 not within nonexistent w/h" false (Border.within ~x:0 ~y:0 (dim 0 0 0 0));
+  Alcotest.(check bool) "0, 0 within extant w/h" true (Border.within ~x:0 ~y:0 (dim 0 0 1 1));
+  Alcotest.(check bool) "1, 1 not within extant w/h" false (Border.within ~x:1 ~y:1 (dim 0 0 1 1));
+  Alcotest.(check bool) "0, 0 not within offset w/h" false (Border.within ~x:0 ~y:0 (dim 10 10 1 1))
 
 let bs_within () =
   Alcotest.(check bool) "horizontal backstitch on top is in the thing"
-    true (Borders.backstitch_in ((0, 0), (1, 0)) (dim 0 0 1 1));
+    true (Border.backstitch_in ((0, 0), (1, 0)) (dim 0 0 1 1));
   Alcotest.(check bool) "horizontal backstitch on bottom is in the thing"
-    true (Borders.backstitch_in ((0, 1), (1, 1)) (dim 0 0 1 1));
+    true (Border.backstitch_in ((0, 1), (1, 1)) (dim 0 0 1 1));
   Alcotest.(check bool) "vertical backstitch on left is in the thing"
-    true (Borders.backstitch_in ((0, 0), (0, 1)) (dim 0 0 1 1));
+    true (Border.backstitch_in ((0, 0), (0, 1)) (dim 0 0 1 1));
   Alcotest.(check bool) "vertical backstitch on right is in the thing"
-    true (Borders.backstitch_in ((1, 0), (1, 1)) (dim 0 0 1 1));
+    true (Border.backstitch_in ((1, 0), (1, 1)) (dim 0 0 1 1));
   Alcotest.(check bool) "non-border backstitches are inside"
-    true (Borders.backstitch_in ((1, 1), (2, 2)) (dim 0 0 5 5));
+    true (Border.backstitch_in ((1, 1), (2, 2)) (dim 0 0 5 5));
   Alcotest.(check bool) "backstitches partly outside are not inside"
-    false (Borders.backstitch_in ((1, 1), (2, 1)) (dim 0 0 1 1));
+    false (Border.backstitch_in ((1, 1), (2, 1)) (dim 0 0 1 1));
   Alcotest.(check bool) "backstitches entirely outside are not inside"
-    false (Borders.backstitch_in ((2, 2), (3, 3)) (dim 0 0 1 1));
+    false (Border.backstitch_in ((2, 2), (3, 3)) (dim 0 0 1 1));
   Alcotest.(check bool) "offset backstitches are still inside"
-    true (Borders.backstitch_in ((1, 1), (2, 2)) (dim 1 1 5 5));
+    true (Border.backstitch_in ((1, 1), (2, 2)) (dim 1 1 5 5));
   Alcotest.(check bool) "offset backstitches are still outside"
-    false (Borders.backstitch_in ((1, 1), (2, 2)) (dim 10 10 5 5));
+    false (Border.backstitch_in ((1, 1), (2, 2)) (dim 10 10 5 5));
   ()
 
 let tile () =
   let open Stitchy.Types in
-  let tiled : pattern = Borders.tile pattern ~dimensions:(dim 0 0 10 10) ~mask_dimensions:[] in
+  let tiled : pattern = Border.tile pattern ~dimensions:(dim 0 0 10 10) ~mask_dimensions:[] in
   Alcotest.(check int) "tiled pattern is properly width-truncated" 9 tiled.substrate.max_x;
   Alcotest.(check int) "tiled pattern is properly height-truncated" 9 tiled.substrate.max_y;
   let expected_stitches = CoordinateSet.of_list [
@@ -106,7 +106,7 @@ let tile () =
 
 let masked_tile () =
   let open Stitchy.Types in
-  let tiled = Borders.tile pattern ~dimensions:(dim 0 0 10 10) ~mask_dimensions:[(dim 2 2 5 5);
+  let tiled = Border.tile pattern ~dimensions:(dim 0 0 10 10) ~mask_dimensions:[(dim 2 2 5 5);
                                                                                  (dim 9 6 1 1);] in
   let expected_stitches = CoordinateSet.of_list [
       (0, 0); (3, 0); (6, 0); (9, 0);
@@ -128,7 +128,7 @@ let better_embellish_dimensions () =
   let corner = pixel (List.hd Stitchy.DMC.Thread.basic) in
   let center = {corner with layers = []} in
   let min_height = 1 and min_width = 1 in
-  let pattern = Borders.better_embellish ~min_height ~min_width ~fill:pattern ~corner ~top:corner ~center in
+  let pattern = Border.better_embellish ~min_height ~min_width ~fill:pattern ~corner ~top:corner ~center in
   (* since all elements have width and height 1, we expect not to need
    * any extra repetitions -- just enough to to surround the center *)
   let expected_stitches = Stitchy.Types.CoordinateSet.of_list [
@@ -158,7 +158,7 @@ let better_embellish_no_top () =
   let top = pixel (List.hd Stitchy.DMC.Thread.basic) in
   let center = {top with layers = []} in
   let pattern =
-    Borders.better_embellish ~fill:center ~corner:long_corner ~center ~top ~min_width:1 ~min_height:1
+    Border.better_embellish ~fill:center ~corner:long_corner ~center ~top ~min_width:1 ~min_height:1
   in
   let expected_stitches = Stitchy.Types.CoordinateSet.of_list [ (1, 0); (3, 1); (0, 2); (2, 3) ] in
   Alcotest.(check (testable pp_stitches Stitchy.Types.CoordinateSet.equal)) "better_embellish correctly handles tiny patterns" expected_stitches (List.hd pattern.layers).stitches;
@@ -175,7 +175,7 @@ let backstitch_fill_borders () =
     ];} in
   let top = pixel (List.hd Stitchy.DMC.Thread.basic) in
   let center = {top with layers = []} in
-  let pattern = Borders.better_embellish ~min_width:1 ~min_height:1 ~fill ~corner:top ~center ~top in
+  let pattern = Border.better_embellish ~min_width:1 ~min_height:1 ~fill ~corner:top ~center ~top in
   let backstitches = pattern.backstitch_layers in
   (* for now, allow backstitch layers with empty segment lists to fulfill this *)
   match List.length backstitches with

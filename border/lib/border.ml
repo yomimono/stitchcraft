@@ -85,9 +85,9 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
                 backstitch_layers = List.map mask_backstitch_layer shifted.backstitch_layers;
   }
 
-(* TODO: this definitely needs a better name *)
+(* TODO: this definitely needs a better name. It's been renamed a couple times but this TODO remains true *)
 (* this is the guilloche-style corner-plus repeating border *)
-let better_embellish ~fill ~corner ~top ~center ~min_width ~min_height =
+let wide_corner_embellish ~fill ~corner ~top ~center ~min_width ~min_height =
   let corner_long_side = corner.Stitchy.Types.substrate.max_x + 1 in
   let corner_short_side = corner.substrate.max_y + 1 in
   let horizontal_repetitions =
@@ -220,7 +220,7 @@ let better_embellish ~fill ~corner ~top ~center ~min_width ~min_height =
     List.fold_left (merge_patterns ~substrate) center_shifted ( center_fill :: corners @ borders)
 
 (* this is the simpler, corners-and-repeating-motif kind of repeating border *)
-let embellish ~min_width ~rotate_corners ~center ~corner ~top ~fencepost =
+let square_corner_embellish ~min_width ~rotate_corners ~center ~corner ~top ~fencepost =
   let open Stitchy.Types in
   let open Stitchy.Operations in
   let side = rotate_ccw top in

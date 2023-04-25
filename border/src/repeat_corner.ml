@@ -121,7 +121,7 @@ let go corner border center fill min_width min_height output =
     | a, b when compare a b <> 0 ->
       failwith (Printf.sprintf "Corner and border images must have the height")
     | _, _ ->
-      Borders.better_embellish ~fill ~center ~corner ~top ~min_width ~min_height
+      Border.wide_corner_embellish ~fill ~center ~corner ~top ~min_width ~min_height
       |> Stitchy.Types.pattern_to_yojson
       |> spoo output
     end

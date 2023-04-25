@@ -1,12 +1,12 @@
 (executable
  (public_name embellish_stitch)
  (modules embellish_stitch)
- (libraries borders cmdliner stitchy))
+ (libraries border cmdliner stitchy))
 
 (executable
  (public_name repeat_corner)
  (modules repeat_corner)
- (libraries borders cmdliner stitchy))
+ (libraries border cmdliner stitchy))
 
 (data_only_dirs test)
 
