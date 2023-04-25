@@ -1,5 +1,36 @@
 open Cmdliner
 
+(* the end result, in crude ASCII art, of an invocation with corner, top, fencepost
+ * with rotate_corners set.
+ *
+ * if corner is 4x4, fencepost ("fp") is 2x4, and top is 6x4:
+
++----+--+------+--+------+--+----+
+|cor-|  |      |  |      |  |cor-|
+|ner |fp| top  |fp| top  |fp|ner |
+|0 ro|  |      |  |      |  |90d |
+|tate|  |      |  |      |  | CW |
++----+--+------+--+------+--+----+
+|fp90|                      | fp |
+| CCW|                      |90CW|
++----+                      +----+
+|    |                      |    |
+| top|                      | top|
+|90d |                      |90d |
+| ccw|                      |  cw|
+|    |                      |    |
+|    |                      |    |
++----+                      +----+
+|fp90|                      | fp |
+| CCW|                      |90CW|
++----+--+------+--+------+--+----+
+|cor-|fp|      |fp|      |fp|cor-|
+|ner |2x| top  |2x| top  |2x|ner |
+|90  |90| 180  |90| 180  |90|180d|
+| CCW|cw| cw   |cw| cw   |cw| CW |
++----+--+------+--+------+--+----+
+*)
+
 let corner =
   let doc = "Corner border image (oriented to upper-left corner)." in
   Arg.(value & opt file "corner.pattern" & info ["corner"] ~docv:"CORNER" ~doc)
