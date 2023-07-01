@@ -128,7 +128,7 @@ let better_embellish_dimensions () =
   let corner = pixel (List.hd Stitchy.DMC.Thread.basic) in
   let center = {corner with layers = []} in
   let min_height = 1 and min_width = 1 in
-  let pattern = Border.better_embellish ~min_height ~min_width ~fill:pattern ~corner ~top:corner ~center in
+  let pattern = Border.wide_corner_embellish ~min_height ~min_width ~fill:pattern ~corner ~top:corner ~center in
   (* since all elements have width and height 1, we expect not to need
    * any extra repetitions -- just enough to to surround the center *)
   let expected_stitches = Stitchy.Types.CoordinateSet.of_list [
@@ -158,7 +158,7 @@ let better_embellish_no_top () =
   let top = pixel (List.hd Stitchy.DMC.Thread.basic) in
   let center = {top with layers = []} in
   let pattern =
-    Border.better_embellish ~fill:center ~corner:long_corner ~center ~top ~min_width:1 ~min_height:1
+    Border.wide_corner_embellish ~fill:center ~corner:long_corner ~center ~top ~min_width:1 ~min_height:1
   in
   let expected_stitches = Stitchy.Types.CoordinateSet.of_list [ (1, 0); (3, 1); (0, 2); (2, 3) ] in
   Alcotest.(check (testable pp_stitches Stitchy.Types.CoordinateSet.equal)) "better_embellish correctly handles tiny patterns" expected_stitches (List.hd pattern.layers).stitches;
@@ -175,7 +175,7 @@ let backstitch_fill_borders () =
     ];} in
   let top = pixel (List.hd Stitchy.DMC.Thread.basic) in
   let center = {top with layers = []} in
-  let pattern = Border.better_embellish ~min_width:1 ~min_height:1 ~fill ~corner:top ~center ~top in
+  let pattern = Border.wide_corner_embellish ~min_width:1 ~min_height:1 ~fill ~corner:top ~center ~top in
   let backstitches = pattern.backstitch_layers in
   (* for now, allow backstitch layers with empty segment lists to fulfill this *)
   match List.length backstitches with

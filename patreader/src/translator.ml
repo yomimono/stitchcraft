@@ -16,12 +16,15 @@ let add_stitches layers thread stitch_type new_stitches =
     Ok (layer :: other_layers)
 
 let match_thread palette_entry =
-  let manufacturer = palette_entry.Patreader.scheme |> String.trim in
-  if String.compare manufacturer "DMCDMC" = 0 then begin
-    match Stitchy.DMC.Thread.of_string @@ String.trim palette_entry.Patreader.color_name with
+  let open Patreader__.Palette in
+  let manufacturer = palette_entry.scheme |> String.trim in
+  if String.compare manufacturer "DMCDMC" = 0 ||
+     String.compare manufacturer "DMC" = 0
+  then begin
+    match Stitchy.DMC.Thread.of_string @@ String.trim palette_entry.color_name with
     | Some thread -> Some thread
     | None ->
-      let (r, g, b, _) = palette_entry.Patreader.color in
+      let (r, g, b, _) = palette_entry.color in
       Stitchy.DMC.Thread.of_rgb (r, g, b)
   end else
     None
@@ -44,12 +47,22 @@ let layers_of_cross_stitches threads stitches =
       (* color indices are *supposed* to be 1-indexed, but I keep running into
        * stuff that's like "hey here is color index 0", what the crap.
        * so let's also treat that as "no stitch" *)
-      | Ok acc, 255 | Ok acc, 0 -> Ok acc
+      (* for v8 it seems like "0" is valid... *)
+      | Ok acc, 255 | Ok acc, 65536 -> Ok acc
       | Ok acc, color_index ->
-        match (List.nth threads (color_index - 1)) with
-        | None -> Error (`Msg "unknown thread")
+        (*
+        Format.eprintf "looking for thread at index %d\n%!" color_index;
+           *)
+        match (List.nth threads color_index) with
         | Some thread ->
           add_stitches acc thread stitch [(x, y)]
+        | None ->
+          let default = List.hd Stitchy.DMC.Thread.basic in
+          (*
+          Format.eprintf "unknown thread at index %d, substituting %a\n%!" color_index Stitchy.DMC.Thread.pp default;
+             *)
+          add_stitches acc default stitch [(x, y)]
+
     ) (Ok []) stitches
 
 let stitchyfy backstitch =

@@ -1,5 +1,0 @@
-(executable
-  (name serve)
-  (libraries astring caqti-driver-postgresql dream hex lwt mirage-crypto stitchy yojson)
-  (preprocess (pps ppx_deriving_yojson))
-)
