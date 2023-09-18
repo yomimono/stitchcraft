@@ -110,7 +110,7 @@ let go corner border center fill min_width min_height output =
   let (corner, border, center, fill) = try
       Yojson.Safe.(from_file corner, from_file border, from_file center, from_file fill)
     with
-    | _ -> failwith "couldn't read an input file"
+    | Yojson.Json_error s -> failwith (Format.asprintf "couldn't read an input file: %s" s)
   in
   match Stitchy.Types.(pattern_of_yojson corner,
                        pattern_of_yojson border,
