@@ -9,7 +9,7 @@ let start_state =
   let open Controls in
   let view = { x_off = 0;
                y_off = 0;
-               block_display = `Symbol;
+               block_display = `Solid;
              }
   and selection = None
   in

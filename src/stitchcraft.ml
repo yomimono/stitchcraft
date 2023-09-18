@@ -8,6 +8,7 @@
 ### manipulation (`stitchcraft manip`)
 
 - `embellish` (hcat, vcat)
+- `hflip`, `vflip`
 - `piece`, `rotate`
 - `repeat_corner`, `embellish_stitch` (TODO)
 
@@ -156,6 +157,11 @@ let hcat_cmd =
   let info = Cmd.info "hcat" ~doc:"concatenate patterns around a vertical axis" in
   Cmd.v info hcat_t
 
+let hflip_cmd =
+  let info = Cmd.info "hflip" ~doc:"flip patterns around a vertical axis" in
+  let hflip_t = Term.(const Hflip.go $ input) in
+  Cmd.v info hflip_t
+
 let piece_cmd =
   let open Generation in
   let info = Cmdliner.Cmd.info "piece" ~doc:"slice a piece out of an existing pattern" in
@@ -170,8 +176,14 @@ let rotate_cmd =
 let vcat_info = Cmdliner.Cmd.info "vcat"
 let vcat_cmd =
   let vcat_t = Term.(const Vcat.go $ Manipulation.files $ output) in
-  let info = Cmd.info "vcat" ~doc:"concatenate patterns around a vertical axis" in
+  let info = Cmd.info "vcat" ~doc:"concatenate patterns around a horizontal axis" in
   Cmd.v info vcat_t
+
+let vflip_info = Cmdliner.Cmd.info "vflip"
+let vflip_cmd =
+  let info = Cmd.info "vflip" ~doc:"flip patterns around a horizontal axis" in
+  let vflip_t = Term.(const Vflip.go $ input) in
+  Cmd.v info vflip_t
 
 let pdf_info = Cmdliner.Cmd.info "pdf"
 let pdf_cmd =
@@ -185,7 +197,7 @@ let pdf_cmd =
 
 let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; fontcheck_cmd; rect_cmd; textstitch_cmd])
 
-let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; piece_cmd; rotate_cmd; vcat_cmd])
+let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; hflip_cmd; piece_cmd; rotate_cmd; vcat_cmd; vflip_cmd])
 
 let exporters = Cmdliner.Cmd.(group @@ info "export") [ pdf_cmd ]
 
