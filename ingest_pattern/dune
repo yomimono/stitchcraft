@@ -1,4 +1,0 @@
-(executable
-  (public_name ingest)
-  (libraries bos cmdliner stitchy stitchcraft.db caqti caqti-driver-postgresql caqti-lwt)
-)

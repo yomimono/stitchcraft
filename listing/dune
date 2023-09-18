@@ -1,5 +1,6 @@
-(executables
-  (public_names listing)
+(library
+  (public_name stitchcraft.listing)
+  (name listing)
   (libraries cmdliner rresult stitchy imagelib imagelib.unix)
 )
 

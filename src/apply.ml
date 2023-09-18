@@ -1,4 +1,4 @@
-let rotate file =
+let go fn (file : string) =
   let json = function
     | s when 0 = String.compare s "-" -> begin
         try Yojson.Safe.from_channel stdin with _exn -> failwith "couldn't understand input"
@@ -9,4 +9,4 @@ let rotate file =
   match Stitchy.Types.pattern_of_yojson (json file) with
   | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
   | Ok pattern ->
-    Stitchy.Operations.rotate_ccw pattern |> Stitchy.Types.pattern_to_yojson |> Yojson.Safe.to_channel stdout
+    fn pattern |> Stitchy.Types.pattern_to_yojson |> Yojson.Safe.to_channel stdout

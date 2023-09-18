@@ -16,7 +16,7 @@ let add_stitches layers thread stitch_type new_stitches =
     Ok (layer :: other_layers)
 
 let match_thread palette_entry =
-  let open Patreader__.Palette in
+  let open Palette in
   let manufacturer = palette_entry.scheme |> String.trim in
   if String.compare manufacturer "DMCDMC" = 0 ||
      String.compare manufacturer "DMC" = 0
@@ -30,13 +30,13 @@ let match_thread palette_entry =
     None
 
 let to_substrate fabric =
-  let grid = match fabric.Patreader.cloth_count_width, fabric.Patreader.cloth_count_height with
+  let grid = match fabric.Patfile.cloth_count_width, fabric.Patfile.cloth_count_height with
     | 16, _ | _, 16 -> Stitchy.Types.Sixteen
     | 18, _ | _, 18 -> Stitchy.Types.Eighteen
     | _, _ -> Stitchy.Types.Fourteen
   in
-  let (r, g, b, _) = fabric.Patreader.fabric_color in
-  let max_x, max_y = fabric.Patreader.width - 1, fabric.Patreader.height - 1 in
+  let (r, g, b, _) = fabric.Patfile.fabric_color in
+  let max_x, max_y = fabric.Patfile.width - 1, fabric.Patfile.height - 1 in
   Stitchy.Types.{ grid; background = (r, g, b); max_x; max_y }
 
 let layers_of_cross_stitches threads stitches =
@@ -66,7 +66,7 @@ let layers_of_cross_stitches threads stitches =
     ) (Ok []) stitches
 
 let stitchyfy backstitch =
-  let open Patreader in
+  let open Patfile in
   (* given a position on the pixel grid (which consists of the gaps formed by the grid)
    * and a "position" 1-9, assign a position on the backstitch grid. *)
   (* nb that "x" and "y" here are from a 1-indexed pixel grid,

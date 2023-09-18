@@ -76,38 +76,36 @@ let paint_backstitch_layer image adjustment ({stitches; thread; } : backstitch_l
   SegmentSet.iter (fun stitch -> paint_line image adjustment thread stitch) stitches
 
 let go input output is_kit =
-  let open Rresult in
-  Stitchy.Files.stdin_or_file input
-  >>= pattern_of_yojson
-  >>= fun { layers; substrate; backstitch_layers; } ->
-  (* TODO: painting the backstitches might
-   * prompt us to adjust the size of the image we produce *)
-  let adjustment = solve_for_four_to_three substrate in
-  let image = match adjustment with
-    | `Widen extra_width -> make_background ~extra_width substrate
-    | `Heighten extra_height -> make_background ~extra_height substrate
+  let aux () =
+    let open Rresult in
+    Stitchy.Files.stdin_or_file input
+    >>= pattern_of_yojson
+    >>= fun { layers; substrate; backstitch_layers; } ->
+    (* TODO: painting the backstitches might
+     * prompt us to adjust the size of the image we produce *)
+    let adjustment = solve_for_four_to_three substrate in
+    let image = match adjustment with
+      | `Widen extra_width -> make_background ~extra_width substrate
+      | `Heighten extra_height -> make_background ~extra_height substrate
+    in
+    let text_color = substrate.background in
+    let orientation = match adjustment with
+      | `Widen margin ->
+        let left_edge = margin / 2 in
+        let right_edge = left_edge + substrate.max_x + 1 in
+        `Vertical (left_edge, right_edge)
+      | `Heighten margin ->
+        let top_edge = margin / 2 in
+        let bottom_edge = top_edge + substrate.max_y + 1 in
+        `Horizontal (top_edge, bottom_edge)
+    in
+    let annotation = if is_kit then `Kit else `Pdf in
+    Annotate.add_pdf image ~annotation ~orientation ~text_color ~matting_color:(contrast text_color);
+    List.iter (paint_layer image adjustment) layers;
+    List.iter (paint_backstitch_layer image adjustment) backstitch_layers;
+    let () = ImageLib_unix.writefile output image in
+    Ok ()
   in
-  let text_color = substrate.background in
-  let orientation = match adjustment with
-    | `Widen margin ->
-      let left_edge = margin / 2 in
-      let right_edge = left_edge + substrate.max_x + 1 in
-      `Vertical (left_edge, right_edge)
-    | `Heighten margin ->
-      let top_edge = margin / 2 in
-      let bottom_edge = top_edge + substrate.max_y + 1 in
-      `Horizontal (top_edge, bottom_edge)
-  in
-  let annotation = if is_kit then `Kit else `Pdf in
-  Annotate.add_pdf image ~annotation ~orientation ~text_color ~matting_color:(contrast text_color);
-  List.iter (paint_layer image adjustment) layers;
-  List.iter (paint_backstitch_layer image adjustment) backstitch_layers;
-  let () = ImageLib_unix.writefile output image in
-  Ok ()
-
-let info = Cmdliner.Cmd.info "listing"
-
-let go_t = Cmdliner.Term.(const go $ input $ output $ annotation)
-
-let () =
-  exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info go_t
+  match aux () with
+  | Error s -> Format.eprintf "error: %s\n%!" s; exit 1
+  | Ok () -> ()

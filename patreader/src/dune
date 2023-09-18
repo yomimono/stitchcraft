@@ -1,5 +1,0 @@
-(executable
-  (public_name pat2stitchy)
-  (libraries angstrom-lwt-unix angstrom-unix cmdliner lwt lwt.unix patreader rresult stitchy)
-  )
-

@@ -1,44 +1,14 @@
-(*
-### generation (`stitchcraft gen`)
-- `textstitch` - make a pattern from a list of strings
-- `fontcheck` - does font X have the glyphs I need for these characters?
-- `primitives` - `rect`, `backstitch`, `empty` - simple figures or empty space
-- `assemble` - take a list of layers (e.g. from `ih`) and make a pattern
-
-### manipulation (`stitchcraft manip`)
-
-- `embellish` (hcat, vcat)
-- `hflip`, `vflip`
-- `piece`, `rotate`
-- `repeat_corner`, `embellish_stitch` (TODO)
-
-### export (`stitchcraft export`)
-
-- `pdf` - patterns to pdfs
-- `listing` - prepares preview images for patterns & annotates
-
-### viewers (`stitchcraft view`)
-
-- `notty_canvas` - view patterns in the terminal
-- `estimate` - estimate materials cost
-
-### elements managers (`stitchcraft browse`)
-
-- `patbrowser` - browse through patterns and clip them for database
-- `patreader` - converts .pat files to stitchy
-- `fontreader` - ingests raster fonts to the font database
-- `ingest_pattern` - ingests patterns to the pattern database
-   *)
 open Cmdliner
 
+(* common in/out stuff *)
 let input =
   Cmdliner.Arg.(value & opt string "-" & info ["i"; "input"] ~doc:"Input file. Default stdin" ~docv:"INPUT")
 
 let output =
   Cmdliner.Arg.(value & opt string "-" & info ["o"; "output"] ~doc:"Output file. Default stdout" ~docv:"OUTPUT")
 
+(* arguments used by pattern generating commands *)
 module Generation = struct
-
   let segment =
     let point = Cmdliner.Arg.(pair int int) in
     Cmdliner.Arg.(pair ~sep:'/' point point)
@@ -88,21 +58,56 @@ module Generation = struct
     Cmdliner.Arg.(value & opt int 0 & info ["y"; "y_offset"] ~doc ~docv:"Y")
 end
 
+(* some manipulating commands need a list of files, not just one *)
 module Manipulation = struct
   let files =
-    let doc = "Images to concatenate together, leftmost or topmost first." in
+    let doc = "Patterns on which to operate, leftmost or topmost first." in
     Arg.(non_empty & pos_all file [] & info [] ~doc)
 
 end
 
-module Export = struct
+let listing_cmd = 
+  let annotation =
+    let doc = "annotate with 'KIT!' instead of default 'PDF!'" in
+    Cmdliner.Arg.(value & flag & info ["k"; "kit"] ~doc)
+  in
+  let info = Cmdliner.Cmd.info "listing" in
+  Cmdliner.Cmd.v info @@ Term.(const Listing.go $ input $ output $ annotation)
 
-end
+let pdf_cmd =
+  let pdf_t =
+    let open Exportpdf in
+    Term.(const write_pattern $ paper_size $ watermark $ grid_size
+          $ fat_line_interval $ src $ dst)
+  in
+  let info = Cmd.info "pdf" ~doc:"generate a pattern PDF" in
+  Cmd.v info pdf_t
+
+let estimate_info = Cmdliner.Cmd.info "estimate"
+let estimate_cmd =
+  let margin =
+    let doc = "unstitched margin size in inches. For framing, at least 1 inch is recommended." in
+    Cmdliner.Arg.(value & opt float 1. & info ["margin";"m"] ~doc ~docv:"MARGIN")
+  in
+  Cmdliner.Cmd.v estimate_info @@ Term.(const Estimate.estimate $ input $ margin)
+
+let term_cmd =
+  let info = Cmdliner.Cmd.info "terminal" ~doc:"display or explore a cross-stitch pattern in the terminal" in
+  Cmdliner.Cmd.v info @@ Term.(const Stitchterm.disp $ input)
+
+let patbrowse_cmd =
+  let dir =
+    let doc = "directory from which to read." in
+    Cmdliner.Arg.(value & pos 0 dir "." & info [] ~doc)
+  in
+  Cmdliner.Cmd.v (Cmdliner.Cmd.info "browse") @@
+  Term.(const Browse.disp $ Db.CLI.db_t $ dir)
+
 
 let assemble_program = Assembler.go
-let assemble_info = Cmdliner.Cmd.info "assemble"
 let assemble_cmd =
   let open Generation in
+  let info = Cmdliner.Cmd.info "assemble" in
   let width =
     let doc = "width for the assembled pattern. If this is too small, it will be overridden with the smallest usable value." in
     Cmdliner.Arg.(value & opt int 0 & info ["w"; "width"] ~doc)
@@ -110,22 +115,21 @@ let assemble_cmd =
     let doc = "height for the assembled pattern. If this is too small, it will be overridden with the smallest usable value." in
     Cmdliner.Arg.(value & opt int 0 & info ["h"; "height"] ~doc)
   in
-  Cmdliner.Cmd.v assemble_info @@ Term.(const assemble_program $ input $ gridsize $ width $ height $ background $ exclude $ output)
+  Cmdliner.Cmd.v info @@ Term.(const assemble_program $ input $ gridsize $ width $ height $ background $ exclude $ output)
 
-let backstitch_program = Backstitch.bs
 let empty_program width height bg gridsize =
   let pattern = Primitives.empty bg gridsize ~width ~height in
   Yojson.Safe.to_channel stdout @@ Stitchy.Types.pattern_to_yojson pattern
 
-let backstitch_info = Cmdliner.Cmd.info "backstitch"
 let backstitch_cmd =
   let open Generation in
-  Cmdliner.Cmd.v backstitch_info @@ Term.(const backstitch_program $ background $ gridsize $ thread $ segments)
+  let info = Cmdliner.Cmd.info "backstitch" in
+  Cmdliner.Cmd.v info @@ Term.(const Backstitch.bs $ background $ gridsize $ thread $ segments)
 
-let empty_info = Cmdliner.Cmd.info "empty"
 let empty_cmd =
   let open Generation in
-  Cmdliner.Cmd.v empty_info @@ Term.(const empty_program $ width $ height $ background $ gridsize)
+  let info = Cmdliner.Cmd.info "empty" in
+  Cmdliner.Cmd.v info @@ Term.(const empty_program $ width $ height $ background $ gridsize)
 
 let rect_info = Cmdliner.Cmd.info "rect"
 let rect_cmd =
@@ -159,7 +163,7 @@ let hcat_cmd =
 
 let hflip_cmd =
   let info = Cmd.info "hflip" ~doc:"flip patterns around a vertical axis" in
-  let hflip_t = Term.(const Hflip.go $ input) in
+  let hflip_t = Term.(const (Apply.go Stitchy.Operations.hflip) $ input) in
   Cmd.v info hflip_t
 
 let piece_cmd =
@@ -170,7 +174,7 @@ let piece_cmd =
 
 let rotate_cmd =
   let info = Cmdliner.Cmd.info "rotate" ~doc:"rotate a pattern 90 degrees counterclockwise" in
-  let rotate_t = Term.(const Rotate.rotate $ input) in
+  let rotate_t = Term.(const (Apply.go Stitchy.Operations.rotate_ccw) $ input) in
   Cmd.v info rotate_t
 
 let vcat_info = Cmdliner.Cmd.info "vcat"
@@ -179,33 +183,67 @@ let vcat_cmd =
   let info = Cmd.info "vcat" ~doc:"concatenate patterns around a horizontal axis" in
   Cmd.v info vcat_t
 
-let vflip_info = Cmdliner.Cmd.info "vflip"
 let vflip_cmd =
   let info = Cmd.info "vflip" ~doc:"flip patterns around a horizontal axis" in
-  let vflip_t = Term.(const Vflip.go $ input) in
+  let vflip_t = Term.(const (Apply.go Stitchy.Operations.vflip) $ input) in
   Cmd.v info vflip_t
 
-let pdf_info = Cmdliner.Cmd.info "pdf"
-let pdf_cmd =
-  let pdf_t =
-    let open Exportpdf in
-    Term.(const write_pattern $ paper_size $ watermark $ grid_size
-                   $ fat_line_interval $ src $ dst)
+let font_cmd =
+  let fontformat = Cmdliner.Arg.enum ["otf", `Otf;
+                                      "psf", `Psf;
+                                      "yaff", `Yaff;
+                                     ]
   in
-  let info = Cmd.info "pdf" ~doc:"generate a pattern PDF" in
-  Cmd.v info pdf_t
+  let debug =
+    let doc = "print debug output on stdout" in
+    Cmdliner.Arg.(value & flag & info ["debug"; "d"] ~doc ~docv:"VERBOSE")
+  in
+  let src =
+    let doc = "source font" in
+    Cmdliner.Arg.(value & pos 0 file "fonts" & info [] ~doc ~docv:"SRC")
+  in
+  let fmt =
+    let doc = "type of font parser to use" in
+    Cmdliner.Arg.(value & opt fontformat `Otf & info ["format"] ~doc ~docv:"FORMAT")
+  in
+  (* TODO: use the filename (minus extension) if the user
+   * didn't give us a font name *)
+  let font_name =
+    let doc = "name by which to refer to this font" in
+    Cmdliner.Arg.(value & opt string "c64" & info ["n"; "name"] ~doc ~docv:"FONT_NAME")
+  in
+  let info = Cmd.info "font" in
+  Cmd.v info Term.(const Ingest.ingest $ fmt $ Db.CLI.db_t $ src $ font_name $ debug)
+
+let insert_cmd =
+  let p_name =
+    let doc = "name to associate with the pattern" in
+    Cmdliner.Arg.(value & pos 0 string "My Very Excellent Mother Just Served Us Nine Patterns!" & info [] ~doc ~docv:"NAME")
+  in
+  let tags =
+    let doc = "tags to associate with the pattern" in
+    Cmdliner.Arg.(value & opt_all string [] & info ["t"; "tag"] ~doc ~docv:"TAG")
+  in
+  let info = Cmd.info "insert" in
+  Cmd.v info Term.(const Insert.go $ Db.CLI.db_t $ input $ p_name $ tags)
+let pat_cmd =
+  let verbose = Cmdliner.Arg.(value & flag & info ["v"; "verbose"]) in
+  let info = Cmd.info "pat" in
+  Cmd.v info Term.(const Pat.main $ verbose $ input)
+
+let importers = Cmdliner.Cmd.(group @@ info "import") [ font_cmd; insert_cmd; pat_cmd ]
+
+let browsers = Cmdliner.Cmd.(group @@ info "browse") [ patbrowse_cmd; ]
+
+let exporters = Cmdliner.Cmd.(group @@ info "export") [ listing_cmd ; pdf_cmd ]
 
 let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; fontcheck_cmd; rect_cmd; textstitch_cmd])
 
-let manipulators = Cmdliner.Cmd.(group (info "manip") [hcat_cmd; hflip_cmd; piece_cmd; rotate_cmd; vcat_cmd; vflip_cmd])
+let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hflip_cmd; piece_cmd; rotate_cmd; vcat_cmd; vflip_cmd ])
 
-let exporters = Cmdliner.Cmd.(group @@ info "export") [ pdf_cmd ]
+let viewers = Cmdliner.Cmd.(group @@ info "view") [ estimate_cmd; term_cmd; ]
 
-let viewers = Cmdliner.Cmd.(group @@ info "view") []
-
-let browsers = Cmdliner.Cmd.(group @@ info "browse") []
-
-let categories = Cmdliner.Cmd.(group (info "stitchcraft") [generators; manipulators; exporters; viewers; browsers])
+let categories = Cmdliner.Cmd.(group (info "stitchcraft") [generators; manipulators; importers; exporters; viewers; browsers])
 
 let () =
   exit @@ Cmdliner.Cmd.eval categories

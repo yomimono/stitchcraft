@@ -1,17 +1,5 @@
 open Lwt.Infix
 
-let p_name =
-  let doc = "name to associate with the pattern" in
-  Cmdliner.Arg.(value & pos 0 string "My Very Excellent Mother Just Served Us Nine Patterns!" & info [] ~doc ~docv:"NAME")
-
-let input = 
-  let doc = "file to read for pattern ingestion. -, the default, is stdin" in
-  Cmdliner.Arg.(value & opt string "-" & info ["i"; "input"] ~doc ~docv:"INPUT")
-
-let tags =
-  let doc = "tags to associate with the pattern" in
-  Cmdliner.Arg.(value & opt_all string [] & info ["t"; "tag"] ~doc ~docv:"TAG")
-
 let search_patterns (module Caqti_db : Caqti_lwt.CONNECTION) (tags : string list) =
   Caqti_db.collect_list Db.ORM.Patterns.find tags >>= function
   | Ok ((id, name, _w, _h)::[]) ->
@@ -25,7 +13,7 @@ let search_patterns (module Caqti_db : Caqti_lwt.CONNECTION) (tags : string list
     Lwt.return (Ok ())
   | Error _ as e -> Lwt.return e
 
-let go db file name tags =
+let aux db file name tags =
   match Stitchy.Files.stdin_or_file file with
   | Error s -> Error s
   | Ok json ->
@@ -53,8 +41,7 @@ let go db file name tags =
       | Error (`Msg s) -> Error s
       | Error (#Caqti_error.t as e)-> Error (Format.asprintf "%a" Caqti_error.pp e)
 
-let go_t = Cmdliner.Term.(const go $ Db.CLI.db_t $ input $ p_name $ tags)
-let info = Cmdliner.Cmd.info "ingest"
-
-let () =
-  exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info go_t
+let go db file name tags =
+  aux db file name tags |> function
+  | Ok () -> ()
+  | Error s -> Format.eprintf "%s\n%!" s; exit 1

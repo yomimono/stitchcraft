@@ -1,10 +1,6 @@
 open Stitchy.Types
 open Canvas
 
-let input =
-  let doc = "file from which to read. -, the default, is stdin." in
-  Cmdliner.Arg.(value & pos 0 string "-" & info [] ~doc)
-
 let start_view = { Canvas__Controls.x_off = 0; y_off = 0; zoom = 1; block_display = `Symbol }
 let disp input =
   let open Lwt.Infix in
@@ -89,12 +85,3 @@ let disp input =
       loop pattern start_view
   in
   Lwt_main.run @@ aux ()
-
-let info =
-  let doc = "display/explore a cross-stitch pattern on the terminal" in
-  Cmdliner.Cmd.info "notty_canvas" ~doc
-
-let disp_t = Cmdliner.Term.(const disp $ input)
-
-let () =
-  exit @@ Cmdliner.Cmd.eval @@ Cmdliner.Cmd.v info disp_t

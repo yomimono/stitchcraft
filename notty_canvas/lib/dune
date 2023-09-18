@@ -1,4 +1,5 @@
 (library
- (name canvas)
- (libraries astring cmdliner notty stitchy)
+  (public_name stitchcraft.stitchterm)
+  (name canvas)
+  (libraries astring cmdliner notty stitchy)
 )

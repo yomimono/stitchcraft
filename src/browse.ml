@@ -1,12 +1,10 @@
 open Stitchy.Types
-open Patbrowser
 
-let dir =
-  let doc = "directory from which to read." in
-  Cmdliner.Arg.(value & pos 0 dir "." & info [] ~doc)
+module View = Patbrowser.View
+module Controls = Patbrowser.Controls
 
 let start_state =
-  let open Controls in
+  let open Patbrowser.Controls in
   let view = { x_off = 0;
                y_off = 0;
                block_display = `Solid;
@@ -18,8 +16,9 @@ let start_state =
     selection }
 
 let rec ingest dir traverse =
+  let open Patbrowser.View in
   let to_get =
-    if traverse.View.n < 0 && traverse.direction = Down then 0
+    if traverse.n < 0 && traverse.direction = Down then 0
     else if traverse.n >= (List.length traverse.contents) && traverse.direction = Down then (List.length traverse.contents) - 1
     else traverse.n
   in
@@ -49,7 +48,8 @@ let count_patterns_named traverse =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
   let open Lwt.Infix in
   (* what's the filename? *)
-  let filename = String.lowercase_ascii @@ Fpath.basename @@ List.nth traverse.View.contents traverse.n in
+  let filename = String.lowercase_ascii @@ Fpath.basename @@
+    List.nth traverse.Patbrowser.View.contents traverse.n in
   Caqti_db.find Db.ORM.Patterns.count_by_name filename >>= function
   | Error _ -> Lwt.return 0
   | Ok 0 -> Lwt.return 0
@@ -58,6 +58,7 @@ let count_patterns_named traverse =
 let insert_pattern traverse pattern tags =
   fun (module Caqti_db : Caqti_lwt.CONNECTION) ->
   let open Lwt.Infix in
+  let open Patbrowser in
   (* what's the filename? *)
   let filename = String.lowercase_ascii @@ Fpath.basename @@ List.nth traverse.View.contents traverse.n in
   let s = Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string in
@@ -155,14 +156,5 @@ let disp db dir =
           aux dir traverse start_state m
       )
   ) |> function
-  | Ok () -> Ok ()
-  | Error (`Msg s) -> Format.eprintf "%s\n%!" s; Error s
-
-let info =
-  let doc = "slice, dice, and tag patterns" in
-  Cmdliner.Cmd.info "patbrowser" ~doc
-
-let disp_t = Cmdliner.Term.(const disp $ Db.CLI.db_t $ dir)
-
-let () =
-  exit @@ Cmdliner.Cmd.eval_result @@ Cmdliner.Cmd.v info disp_t
+  | Ok () -> ()
+  | Error (`Msg s) -> Format.eprintf "error: %s\n%!" s; exit 1

@@ -1,11 +1,21 @@
 (executable
   (public_name stitchcraft)
   (name stitchcraft)
-  (libraries cmdliner 
+  (libraries angstrom-lwt-unix
+             bos
+             cmdliner
+             inotify.lwt
+             notty.lwt
              stitchcraft.assemble
              stitchcraft.db
-             stitchcraft.stitchpdf
+             stitchcraft.estimator
+             stitchcraft.fontreader
+             stitchcraft.listing
+             stitchcraft.patbrowser
+             stitchcraft.patreader
              stitchcraft.primitives
+             stitchcraft.stitchpdf
+             stitchcraft.stitchterm
              stitchcraft.textstitch
              stitchy)
 )

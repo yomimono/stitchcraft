@@ -3,20 +3,15 @@ open Types
 let thick_line_thickness = 1.
 let thin_line_thickness = 0.5
 
-let dpi = 72. (* TODO: not sure we can always count on this :/ *)
-
-let pointify paper measurement =
-  Pdfunits.convert dpi (Pdfpaper.unit paper) Pdfunits.PdfPoint measurement
-
 (* on each side *)
-let margin_size = pointify Pdfpaper.usletter 0.5
+let margin_size = Pdfunits.(points 0.5 Inch)
 
 (* this is the width of the left-side allowance
  * for grid labels,
  * and the height of the top-side allowance for the same.
  * Accordingly it's quite large, because it's accommodating
  * both dimensions. *)
-let grid_label_size = pointify Pdfpaper.usletter 0.5
+let grid_label_size = Pdfunits.(points 0.5 Inch)
 
 let t1_font name =
   Pdf.(Dictionary
@@ -34,15 +29,15 @@ and helvetica_key = "/F2"
 
 let x_per_page ~paper ~pixel_size =
   let pixel_size = float_of_int pixel_size in
-  let width = Pdfpaper.width paper in
+  let width = Pdfunits.points (Pdfpaper.width paper) (Pdfpaper.unit paper) in
   (* we need to also leave a gutter for the unit labels *)
-  let width_in_points = (pointify paper width) -. (2. *. margin_size) -. grid_label_size in
+  let width_in_points = width -. (2. *. margin_size) -. grid_label_size in
   int_of_float @@ width_in_points /. pixel_size
 
 let y_per_page ~paper ~pixel_size =
   let pixel_size = float_of_int pixel_size in
-  let height = Pdfpaper.height paper in
-  let height_in_points = (pointify paper height) -. (2. *. margin_size) -. grid_label_size in
+  let height = Pdfunits.points (Pdfpaper.height paper) (Pdfpaper.unit paper) in
+  let height_in_points = height -. (2. *. margin_size) -. grid_label_size in
   int_of_float @@ height_in_points /. pixel_size
 
 let symbol_of_color symbols thread =

@@ -75,4 +75,4 @@ The fonts included with this software were originally packaged by VileR and are 
 
 This software depends heavily on [notty](https://github.com/pqwy/notty), [camlpdf](https://github.com/johnwhitington/camlpdf), and various small and useful libraries from [erratique.ch](https://erratique.ch/software).
 
-Lastly, the authors and maintainers of the OCaml langauge and its tooling have made an environment that I find joyful to work in. Thank you for helping me make things!
+Lastly, the authors and maintainers of the OCaml language and its tooling have made an environment that I find joyful to work in. Thank you for helping me make things!

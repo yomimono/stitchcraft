@@ -72,7 +72,6 @@ let pp_backstitch fmt backstitch =
 let magic = string "PCStitch "
 let version = any_char
 let more_magic = string " Pattern File"
-(* luckily, the versions are in hexadecimal, so we're safe until pcstitch 16 *)
 let skip_spaces = advance (0x100 - String.length("PCStitch 7 Pattern File"))
 
 let header =
@@ -260,14 +259,12 @@ module V8 = struct
 
   let postheader =
     LE.any_int32 >>= fun _crc ->
-    (* TODO: this may be a meaningful field for us --
-     * 1 and 2 have a certain behavior, anything else another *)
     len_and_str_32 >>= fun _owner ->
-    LE.any_int32 >>= fun _first_num -> (* 'num' *)
+    LE.any_int32 >>= fun _ ->
     LE.any_uint16 >>= fun _read_only ->
-    LE.any_uint16 >>= fun _flag -> (* 'flag' *)
+    LE.any_uint16 >>= fun _flag ->
     LE.any_uint16 >>= fun _allow_mapping ->
-    LE.any_int32 >>= fun number_of_ids -> (* this value, minus 1, is the upper bound on a loop that reads 3 numbers and does some stuff *)
+    LE.any_int32 >>= fun number_of_ids ->
     count (Int32.to_int number_of_ids) id >>= fun _ids ->
     LE.any_int32 >>= fun save_version ->
     (* for save versions >= 80200, we need to read another number, which we never use *)
@@ -288,33 +285,25 @@ module V8 = struct
     return (cloth_count_x, cloth_count_y, fabric)
 
   let postmetadata =
-    len_and_str_32 >>= fun default_note_font ->
-    Format.eprintf "default note font: %S\n%!" default_note_font;
+    len_and_str_32 >>= fun _default_note_font ->
     argb >>= fun _note_color ->
     unit_of_measure >>= fun _units ->
     len_and_str_32 >>= fun _icon ->
-    Format.eprintf "icon read\n%!";
-    (* this looks like it should be a char *)
     LE.any_uint16 >>= fun _display_rulers ->
     len_and_str_32 >>= fun _background_bitmap ->
-    Format.eprintf "background bitmap read\n%!";
     argb >>= fun background_color -> (* hey, we actually care about this! *)
-    (* tons of display logic stuff *)
-    LE.any_int32 >>= fun _zoom_level ->
-    LE.any_int32 >>= fun _stitch_display_enum ->
-    LE.any_uint16 >>= fun _display_grid_lines ->
-    LE.any_int32 >>= fun _normal_gridline_width ->
-    argb >>= fun _normal_gridline_color ->
-    LE.any_int32 >>= fun _bold_gridline_width ->
-    argb >>= fun _bold_gridline_color ->
-    LE.any_int32 >>= fun _x_bold_lines_at ->
-    LE.any_int32 >>= fun _y_bold_lines_at ->
-    len_and_str_32 >>= fun _thumbnail ->
-    Format.eprintf "thumbnail read\n%!";
-    len_and_str_32 >>= fun _logo ->
-    Format.eprintf "logo read\n%!";
-    underlay >>= fun _underlay ->
-    Format.eprintf "underlay read\n%!";
+    LE.any_int32 >>= fun _ ->
+    LE.any_int32 >>= fun _ ->
+    LE.any_uint16 >>= fun _ ->
+    LE.any_int32 >>= fun _ ->
+    argb >>= fun _ ->
+    LE.any_int32 >>= fun _ ->
+    argb >>= fun _ ->
+    LE.any_int32 >>= fun _ ->
+    LE.any_int32 >>= fun _ ->
+    len_and_str_32 >>= fun _ ->
+    len_and_str_32 >>= fun _ ->
+    underlay >>= fun _ ->
     return background_color
 
   let palette =
@@ -325,22 +314,21 @@ module V8 = struct
     (* there are unfortunately a few options for the palette format, and they appear
      * to be decoupled from the overall file format (!!).
      * *)
-    (* and doubly unfortunately, PCStitch has two options: PCStitch 8 and PCStitch 8a. *)
     match version with
     | "8a" -> Palette.v8a
     | _ -> fail "unknown palette version"
 
   let postpalette =
     let note =
-      len_and_str_32 >>= fun _text ->
-      len_and_str_32 >>= fun _rtftext ->
-      len_and_str_32 >>= fun _title ->
-      LE.any_uint16 >>= fun _x ->
-      LE.any_uint16 >>= fun _y ->
-      LE.any_uint16 >>= fun _grid_point ->
-      LE.any_int32 >>= fun _index ->
-      len_and_str_32 >>= fun _icon ->
-      len_and_str_32 >>= fun _bitmap ->
+      len_and_str_32 >>= fun _ ->
+      len_and_str_32 >>= fun _ ->
+      len_and_str_32 >>= fun _ ->
+      LE.any_uint16 >>= fun _ ->
+      LE.any_uint16 >>= fun _ ->
+      LE.any_uint16 >>= fun _ ->
+      LE.any_int32 >>= fun _ ->
+      len_and_str_32 >>= fun _ ->
+      len_and_str_32 >>= fun _ ->
       return ()
     in
     let instruction_note =
@@ -348,10 +336,8 @@ module V8 = struct
       return ()
     in
     LE.any_int32 >>= fun num_notes ->
-    Format.eprintf "%ld notes\n%!" num_notes;
     count (Int32.to_int num_notes) note >>= fun _ ->
     LE.any_int32 >>= fun num_instruction_notes ->
-    Format.eprintf "%ld instruction notes\n%!" num_instruction_notes;
     count (Int32.to_int num_instruction_notes) instruction_note >>= fun _ ->
     return ()
 
@@ -362,7 +348,6 @@ module V8 = struct
       LE.any_uint16 >>= fun _grid_point ->
       LE.any_int32 >>= fun palette_index ->
       LE.any_int32 >>= fun stitch_type ->
-      if stitch_type < 0l || stitch_type > 1l then Format.eprintf "unusual stitch type: %ld\n%!" stitch_type;
       return ((x, y),
               (Int32.to_int palette_index),
               (Int32.to_int stitch_type))
@@ -370,36 +355,25 @@ module V8 = struct
     let n_below ((x, y), palette_index, stitch_type) n =
       ((x, y+n), palette_index, stitch_type)
     in
-    LE.any_int32 >>= fun _num ->
-    LE.any_int32 >>= fun _num2 ->
+    LE.any_int32 >>= fun _ ->
+    LE.any_int32 >>= fun _ ->
     LE.any_int32 >>= fun width ->
     LE.any_int32 >>= fun height ->
-    Format.eprintf "stitch matrix is %ld by %ld\n%!" width height;
     (* TODO: there might be "extras" implied by the number of
      * stitches we see vs the width and height here *)
-    LE.any_int32 >>= fun _ccx ->
-    LE.any_int32 >>= fun _ccy ->
-    LE.any_int32 >>= fun _zorder ->
-    (* the structure here seems to be a do/while loop *)
-    (* it seems like we have the format: n blanks, start reading stitches;
-     * n stitches, stop reading stitches
-     * where num_3 is both blanks and stitches?
-     * christ *)
-    (* hilariously the order is column-major? since we get the x and y coordinates
-     * in the points it shouldn't really matter, but lol *)
+    LE.any_int32 >>= fun _ ->
+    LE.any_int32 >>= fun _ ->
+    LE.any_int32 >>= fun _ ->
     let total_to_read = Int32.mul width height in
     let rec keep_reading_stitches read_so_far acc =
       if read_so_far >= total_to_read then return acc else begin
         LE.any_int32 >>= fun num_thing ->
         LE.any_int32 >>= fun stitch_or_blank -> (* 1 for stitch, -1 for blank *)
-        let x = Int32.rem read_so_far height
-        and y = Int32.div read_so_far width
+        let _x = Int32.rem read_so_far height
+        and _y = Int32.div read_so_far width
         in
-        Format.eprintf "%ld somethings, type %ld, starting at %ld (%ld, %ld)\n%!" num_thing stitch_or_blank read_so_far x y;
         if stitch_or_blank >= 0l then begin
           stitch >>= fun stitch ->
-          (* starting at `to_go`, and increasing `y` until `num_blank` is exhausted (or the end
-           * of a column, whichever comes first), we have such a stitch *)
           let new_stitches = List.init (Int32.to_int num_thing) (n_below stitch) in
           keep_reading_stitches (Int32.add read_so_far num_thing) (acc @ new_stitches)
         end else
@@ -407,7 +381,7 @@ module V8 = struct
       end
     in
     keep_reading_stitches 0l []
-    (* after this, there are also lines, french knots, beads. I don't care about those right now *)
+    (* after this, there are also backstitch sections, french knots, beads. I don't care about those right now *)
 end
 
 let file =
@@ -423,19 +397,13 @@ let file =
     return (fabric, metadata, palette, stitches, extras, knots, backstitches)
   | '8' ->
     V8.postheader >>= fun (width, height) ->
-    Format.eprintf "width %d, height %d\n%!" width height;
     V8.substrate >>= fun (cloth_count_width, cloth_count_height, fabric) ->
     let cloth_count_width = Int32.to_int cloth_count_width
     and cloth_count_height = Int32.to_int cloth_count_height
     in
-    Format.eprintf "ccw %d, cch %d\n%!"
-      cloth_count_width cloth_count_height;
     V8.metadata fabric >>= fun metadata ->
-    Format.eprintf "metadata: %a\n%!" pp_metadata metadata;
     V8.postmetadata >>= fun bgcolor ->
-    Format.eprintf "background color: %a\n%!" pp_rgba bgcolor;
     V8.palette >>= fun palette ->
-    Format.eprintf "palette: %a\n%!" (Fmt.list Palette.pp) palette;
     V8.postpalette >>= fun _ ->
     let fabric : fabric = {
       version = 8;
