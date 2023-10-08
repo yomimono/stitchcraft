@@ -3,6 +3,32 @@
 
 module UcharMap : Map.S with type key = Uchar.t
 
+(* there are two grids of concern:
+ * the grid formed by the intersecting warp and weft of the fabric,
+ * which is covered by a cross-stitch,
+ * and the grid formed by the holes where the warp and weft don't overlap,
+ * which is usually of interest for backstitches.
+ *)
+
+(* for the "cross-stitch grid", we use integer coordinates
+ * starting at (0, 0) on the upper-left corner,
+ * increasing toward the lower-right corner.
+ *)
+
+(* for the "backstitch grid", we similarly define integer
+ * coordinates starting at (0, 0) on the upper-left corner and
+ * increasing toward the right and downward.
+ * The "backstitch grid" is necessarily 1 larger than the
+ * "cross-stitch grid", since it defines the edges of each
+ * cross-stitch cell.
+ *)
+
+(* Cross-, half-, and quarter-stitches are defined by their location
+ * on the cross-stitch grid and their stitch type;
+ * backstitches are defined by a start point and an end point
+ * on the backstitch grid.
+ *)
+
 type coordinates = int * int [@@deriving yojson]
 type segment = coordinates * coordinates [@@deriving yojson]
 module Coordinates : Map.OrderedType with type t = coordinates
