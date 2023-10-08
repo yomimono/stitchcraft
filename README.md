@@ -22,22 +22,7 @@ A better user experience for such folks is coming someday.
 
 # How can I use it?
 
-Stitchcraft bundles several executables for command-line use.  Some are subcommands under `stitchcraft`; those are separated into commands for generating patterns, and those for manipulating them.
-
-## Pattern Generation and Manipulation
-
-* assemble , for assembling color- and placement-free components into a full cross-stitch pattern
-* embellish , for composing cross-stitch patterns in various ways
-* estimator , which gives very loose time and materials estimates for cross-stitch patterns
-* listing , which makes supplementary files useful in listing cross-stitch patterns on Etsy
-* pat2stitchy , which reads some .pat files and converts them to Stitchy's format
-* font2sqlite and font2postgres, for importing bitmap fonts to the font databases textstitch uses
-* textstitch , for taking text input and making a cross-stitch pattern from it. This depends on a populated font database; see `font2postgres` for help.
-
-## Pattern Viewing
-
-* notty_canvas , for displaying patterns in the terminal
-* stitchpattern , for converting patterns to PDFs
+Stitchcraft bundles several executables for command-line use.  Most are subcommands under `stitchcraft`, further subdivided into several categories. `stitchcraft --help` should help you find what you're looking for.
 
 ## Importing Graphics
 
@@ -55,11 +40,11 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 
 # Future Features
 
+* defined types and files for `border`s and `glyphset`s
+* a few included `glyphset`s for getting started
 * nicer `listing` preview graphics
 * Etsy API integration (blocked on a bug either in Etsy's OpenAPI 3.0 or our implementation )
 * Zoom in `notty_canvas`
-* sensible names or possibly subcommands
-* more full-featured composition binaries
 
 # Anti-features / out-of-scope stuff
 
