@@ -43,3 +43,12 @@
   (run %{exe:stitchcraft.exe} manip vcat -o box.pattern vertical_line.pattern center.pattern vertical_line.pattern)
  ))
 )
+
+(rule
+  (alias backstitch)
+  (action (progn
+            (with-stdout-to pageboundary.pattern (run %{exe:stitchcraft.exe} gen backstitch 0,0/1,0 0,1/0,2 50,0/50,1 2,68/3,68 49,67/50,68 1,1/2,2))
+            (run %{exe:stitchcraft.exe} export pdf -i pageboundary.pattern -o pageboundary.pdf)
+            (with-stdout-to crosspage.pattern (run %{exe:stitchcraft.exe} gen backstitch 50,0/51,0 100,0/100,1 49,67/51,69 49,3/51,3 0,0/51,2 0,49/0,51 5,68/6,68 10,136/11,136 11,136/12,136 11,135/12,136 12,136/11,137 100,150/99,151 50,30/50,32 50,67/50,69 49,20/51,21 49,68/51,68 30,67/29,69 15,67/16,69 49,135/53,137 49,40/51,42 51,132/48,140))
+            (run %{exe:stitchcraft.exe} export pdf -i crosspage.pattern -o crosspage.pdf)
+            )))

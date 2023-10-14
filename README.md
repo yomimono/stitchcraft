@@ -43,7 +43,6 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 * defined types and files for `border`s and `glyphset`s
 * a few included `glyphset`s for getting started
 * nicer `listing` preview graphics
-* Etsy API integration (blocked on a bug either in Etsy's OpenAPI 3.0 or our implementation )
 * Zoom in `notty_canvas`
 
 # Anti-features / out-of-scope stuff

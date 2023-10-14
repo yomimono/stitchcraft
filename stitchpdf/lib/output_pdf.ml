@@ -3,6 +3,8 @@ open Types
 let thick_line_thickness = 1.
 let thin_line_thickness = 0.5
 
+let backstitch_width = 3.
+
 (* on each side *)
 let margin_size = Pdfunits.(points 0.5 Inch)
 
@@ -26,19 +28,6 @@ and helvetica_font = t1_font "/Helvetica"
 let symbol_key = "/F0"
 and zapf_key = "/F1"
 and helvetica_key = "/F2"
-
-let x_per_page ~paper ~pixel_size =
-  let pixel_size = float_of_int pixel_size in
-  let width = Pdfunits.points (Pdfpaper.width paper) (Pdfpaper.unit paper) in
-  (* we need to also leave a gutter for the unit labels *)
-  let width_in_points = width -. (2. *. margin_size) -. grid_label_size in
-  int_of_float @@ width_in_points /. pixel_size
-
-let y_per_page ~paper ~pixel_size =
-  let pixel_size = float_of_int pixel_size in
-  let height = Pdfunits.points (Pdfpaper.height paper) (Pdfpaper.unit paper) in
-  let height_in_points = height -. (2. *. margin_size) -. grid_label_size in
-  int_of_float @@ height_in_points /. pixel_size
 
 let symbol_of_color symbols thread =
   match Stitchy.Types.SymbolMap.find_opt thread symbols with
@@ -238,8 +227,8 @@ let symbolpage ~font_size paper symbols =
   {(Pdfpage.blankpage paper) with content; resources = font_resources;}
  
 let page_of_stitch ~pixel_size ~paper (x, y) =
-  let xpp = x_per_page ~paper ~pixel_size
-  and ypp = y_per_page ~paper ~pixel_size
+  let xpp = Positioning.x_per_page ~grid_label_size ~margin_size ~paper ~pixel_size
+  and ypp = Positioning.y_per_page ~grid_label_size ~margin_size ~paper ~pixel_size
   in
   let page_grid_x = x / xpp
   and page_grid_y = y / ypp
@@ -247,74 +236,6 @@ let page_of_stitch ~pixel_size ~paper (x, y) =
   and pagewise_y = y mod ypp
   in
   (page_grid_x, page_grid_y, pagewise_x, pagewise_y)
-
-(* TODO: this needs to know max_x and max_y from the substrate,
- * in order to not accidentally make extra pages when there are
- * backstitches on the last possible point and it coincides with the
- * maximum x/y on a page *)
-let pagination ~xpp ~ypp ((src_x, src_y), (dst_x, dst_y)) =
-  let on_same_page =
-    src_x / xpp = dst_x / xpp && src_y / ypp = dst_y / ypp
-  and on_horizontal_pagebreak =
-    (src_y mod ypp = 0 && src_y <> 0) &&
-    (dst_y mod ypp = 0 && dst_y <> 0)
-  and on_vertical_pagebreak =
-    (src_x mod xpp = 0 && src_x <> 0) &&
-    (dst_x mod xpp = 0 && dst_x <> 0)
-  in
-  match on_same_page, on_horizontal_pagebreak, on_vertical_pagebreak with
-  | true, false, false -> `One_page (src_x / xpp, src_y / ypp)
-  | true, false, true -> `Straddles_vertical_pagebreak
-  | true, true, false -> `Straddles_horizontal_pagebreak
-  | false, false, false -> `Page_break
-  | _, _, _ -> `None
-
-(* a backstitch can cross multiple pages, even if it's only got a one gridpoint difference
- * (e.g. ((50, 1), (51, 1)) when there's a page break at x=50).
- * Even a reasonable backstitch might cross two if it's in a corner. *)
-let pages_of_backstitch ~pixel_size ~paper ((src_x, src_y), (dst_x, dst_y)) =
-  let xpp = x_per_page ~paper ~pixel_size
-  and ypp = y_per_page ~paper ~pixel_size
-  in
-  match pagination ~xpp ~ypp ((src_x, src_y), (dst_x, dst_y)) with
-  | `One_page (page_grid_x, page_grid_y) ->
-    let pagewise_src_x = src_x mod xpp and pagewise_src_y = src_y mod ypp
-    and pagewise_dst_x = dst_x mod xpp and pagewise_dst_y = dst_y mod ypp
-    in
-    (page_grid_x, page_grid_y, ((pagewise_src_x, pagewise_src_y), (pagewise_dst_x, pagewise_dst_y)))::[]
-  | `Straddles_vertical_pagebreak ->
-    let right_page = src_x / xpp , src_y / ypp,
-                     ((src_x mod xpp, src_y mod ypp), (dst_x mod xpp, dst_y mod ypp))
-    and left_page = (src_x / xpp) - 1, src_y / ypp,
-                    ((xpp, src_y mod ypp), (xpp, dst_y mod ypp))
-    in [left_page; right_page]
-  | `Straddles_horizontal_pagebreak ->
-    let bottom_page = src_x / xpp , src_y / ypp,
-                     ((src_x mod xpp, src_y mod ypp), (dst_x mod xpp, dst_y mod ypp))
-    and top_page = src_x / xpp, (src_y / ypp) - 1, 
-                   ((src_x mod xpp, ypp), (dst_x mod xpp, ypp))
-    in [top_page; bottom_page]
-  | _ -> [] 
-
-let pdfops_of_backstitch ~doc layer segment =
-  let pagewise_backstitches = pages_of_backstitch ~pixel_size:doc.pixel_size
-      ~paper:doc.paper_size segment
-  in
-  let r, g, b = Stitchy.DMC.Thread.to_rgb layer.Stitchy.Types.thread
-                |> Colors.ensure_contrast_on_white in
-  List.map (fun (page_grid_x, page_grid_y, ((src_x, src_y), (dst_x, dst_y))) ->
-      let pdf_src_x, pdf_src_y = Positioning.find_upper_left doc src_x src_y
-      and pdf_dst_x, pdf_dst_y = Positioning.find_upper_left doc dst_x dst_y
-      in
-      (page_grid_x, page_grid_y, Pdfops.([
-           Op_q;
-           Op_w 3.; (* TODO a pretty magic number here *)
-           Op_RG (r, g, b);
-           Op_m (pdf_src_x, pdf_src_y);
-           Op_l (pdf_dst_x, pdf_dst_y);
-           Op_s;
-           Op_Q;
-         ]))) pagewise_backstitches
 
 let pdfops_of_stitch ~font_size ~doc ~(layer : Stitchy.Types.layer) (x, y) =
   let open Stitchy.Types in
@@ -356,10 +277,11 @@ let add_layer_to_pagemap map ~max_x ~max_y ~doc ~font_size (layer : Stitchy.Type
       end else acc
     ) layer.stitches map
 
-let add_backstitch_layer_to_pagemap map ~doc (backstitch_layer : Stitchy.Types.backstitch_layer) =
+let add_backstitch_layer_to_pagemap map ~doc ~max_x ~max_y (backstitch_layer : Stitchy.Types.backstitch_layer) =
   let open Stitchy.Types in
   SegmentSet.fold (fun segment acc ->
-      let l = pdfops_of_backstitch ~doc backstitch_layer segment in
+      let l = Pagination.pdfops_of_backstitch ~backstitch_width ~grid_label_size ~margin_size
+          ~doc ~max_x ~max_y backstitch_layer segment in
       List.fold_left add_pdfops_to_pagemap acc l
     ) backstitch_layer.stitches map
 
@@ -369,15 +291,17 @@ let populate_pagemap ~doc ~font_size pattern =
   in
   let map = List.fold_left (fun map layer -> add_layer_to_pagemap map ~max_x ~max_y ~doc ~font_size layer)
     PageMap.empty pattern.Stitchy.Types.layers in
-  List.fold_left (fun map backstitch_layer -> add_backstitch_layer_to_pagemap map ~doc backstitch_layer)
+  List.fold_left (fun map backstitch_layer -> add_backstitch_layer_to_pagemap map ~doc ~max_x ~max_y backstitch_layer)
     map pattern.Stitchy.Types.backstitch_layers
 
 (* page_x and page_y are the pages' position in a supergrid.
  * i.e. if you were to lay out all the pages of the chart, page (0, 0) should go
  * at the upper left, (0, 1) immediately to its right, (1, 0) immediately below it. *)
 let pdfpage_of_page ~substrate ~page_number ~doc ~watermark (page_x, page_y) pdfops =
-  let xpp = x_per_page ~paper:doc.paper_size ~pixel_size:doc.pixel_size
-  and ypp = y_per_page ~paper:doc.paper_size ~pixel_size:doc.pixel_size
+  let xpp = Positioning.x_per_page ~grid_label_size ~margin_size
+      ~paper:doc.paper_size ~pixel_size:doc.pixel_size
+  and ypp = Positioning.y_per_page ~grid_label_size ~margin_size
+      ~paper:doc.paper_size ~pixel_size:doc.pixel_size
   in
   let first_x page_x = page_x * xpp
   and first_y page_y = page_y * ypp
@@ -407,12 +331,14 @@ let pdfpage_of_page ~substrate ~page_number ~doc ~watermark (page_x, page_y) pdf
 
 let pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
   let open Stitchy.Types in
-  let xpp = x_per_page ~paper:paper_size ~pixel_size
-  and ypp = y_per_page ~paper:paper_size ~pixel_size
+  let doc = { Types.paper_size; pixel_size; fat_line_interval; symbols; } in
+  let xpp = Positioning.x_per_page ~grid_label_size ~margin_size
+      ~paper:doc.paper_size ~pixel_size:doc.pixel_size
+  and ypp = Positioning.y_per_page ~grid_label_size ~margin_size
+      ~paper:doc.paper_size ~pixel_size:doc.pixel_size
   in
   let max_page_x = pattern.substrate.max_x / xpp in
   let max_page_y = pattern.substrate.max_y / ypp in
-  let doc = { Types.paper_size; pixel_size; fat_line_interval; symbols; } in
   let pagemap = populate_pagemap ~doc ~font_size pattern in
   (* if there are any pages that didn't have any stitches on them, they won't be represented in the page map.
    * but we want to make an empty grid for those, even though it doesn't convey

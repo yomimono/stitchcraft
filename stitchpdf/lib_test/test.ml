@@ -27,6 +27,9 @@ let second_page () =
   check_coords "end of second page" (1, 0, 49, 0) (get_coords (99, 0));
   check_coords "end of second page" (1, 0, 49, 63) (get_coords (99, 63))
 
+let vt_second_page () =
+  check_coords "second page vertically" (0, 1, 0, 0) (get_coords (0, 68))
+
 let second_row () = check_coords "second page" (0, 1, 0, 6) (get_coords (0, 74))
 
 let () = Alcotest.run "pattern lib functions" [
@@ -34,6 +37,7 @@ let () = Alcotest.run "pattern lib functions" [
         Alcotest.test_case "origin" `Quick origin;
         Alcotest.test_case "first_page" `Quick first_page;
         Alcotest.test_case "second_page" `Quick second_page;
+        Alcotest.test_case "vt_second_page" `Quick vt_second_page;
         Alcotest.test_case "second_row" `Quick second_row;
       ]
     );
