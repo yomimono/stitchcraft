@@ -154,7 +154,35 @@ type glyph = {
 } [@@deriving yojson {strict=false}]
 
 
-module UcharMap = Map.Make(Uchar)
+module UcharMap = struct
+  include Map.Make(Uchar)
+
+  type uchar = Uchar.t
+  let uchar_to_yojson u = Uchar.to_int u |> fun i -> `Int i
+  let uchar_of_yojson = function
+    | `Int i -> Ok (Uchar.of_int i)
+    | _ -> Error "uchar must be presented as an int"
+
+  let to_yojson m = bindings m |> [%to_yojson: (uchar * glyph) list]
+
+  type entry = (uchar * glyph) [@@deriving yojson]
+
+  let of_yojson = function
+    | `List l ->
+      let add_or_error acc j =
+        match acc with | Error e -> Error e | Ok m ->
+          match entry_of_yojson j with
+          | Ok (k, v) -> Ok (add k v m)
+          | Error e -> Error e
+      in
+      List.fold_left add_or_error (Ok empty) l
+    | _ -> Error "font entries must be in a list"
+end
 
 type font = glyph UcharMap.t
+let font_to_yojson f =
+  UcharMap.to_yojson f
+
+let font_of_yojson f =
+  UcharMap.of_yojson f
 

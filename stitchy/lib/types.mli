@@ -1,8 +1,6 @@
 (* some PPX-generated code results in warning 39; turn that off *)
 [@@@ocaml.warning "-39"]
 
-module UcharMap : Map.S with type key = Uchar.t
-
 (* there are two grids of concern:
  * the grid formed by the intersecting warp and weft of the fabric,
  * which is covered by a cross-stitch,
@@ -108,4 +106,9 @@ type glyph = {
   width : int;
 } [@@deriving yojson]
 
-type font = glyph UcharMap.t
+module UcharMap : sig
+  include Map.S with type key = Uchar.t
+end
+
+type font = glyph UcharMap.t [@@deriving yojson]
+
