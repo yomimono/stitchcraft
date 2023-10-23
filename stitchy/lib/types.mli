@@ -112,3 +112,26 @@ end
 
 type font = glyph UcharMap.t [@@deriving yojson]
 
+type transformation = | Turn | Flip | None [@@deriving yojson]
+type transformable_pattern = {
+  transformation : transformation; [@default None]
+  pattern : pattern;
+} [@@deriving yojson]
+
+(* rectangles repeat around the border *)
+type repeat_corner = {
+  corner : transformable_pattern;
+  fencepost : transformable_pattern;
+} [@@deriving yojson]
+
+(* the corner is square, and a separate element repeats to build each side *)
+type repeat_side = {
+  corner : transformable_pattern;
+  side : transformable_pattern;
+  fencepost : transformable_pattern;
+} [@@deriving yojson]
+
+type border =
+  | Repeat_corner of repeat_corner
+  | Repeat_side of repeat_side
+[@@deriving yojson]
