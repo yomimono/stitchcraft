@@ -188,6 +188,22 @@ let vflip_cmd =
   let vflip_t = Term.(const (Apply.go Stitchy.Operations.vflip) $ input) in
   Cmd.v info vflip_t
 
+let emborder_cmd =
+  let transformation = Cmdliner.Arg.enum ["Nothing", Stitchy.Types.Nothing;
+                                          "Flip", Stitchy.Types.Flip;
+                                          "Turn", Stitchy.Types.Turn;
+                                         ]
+  in
+  let doc = "corner pattern" in
+  let corner = Cmdliner.Arg.(value & pos 0 string "-" & info [] ~doc ~docv:"CORNER") in
+  let side = Cmdliner.Arg.(value & opt (some file) None & info [] ~docv:"SIDE") in
+  let fencepost = Cmdliner.Arg.(value & opt (some file) None & info [] ~docv:"SIDE") in
+  let corner_xform = Cmdliner.Arg.(value & opt transformation Stitchy.Types.Nothing & info ["corner_transformation"; "ct"]) in
+  let side_xform = Cmdliner.Arg.(value & opt transformation Stitchy.Types.Nothing & info ["side_transformation"; "st"]) in
+  let fencepost_xform = Cmdliner.Arg.(value & opt transformation Stitchy.Types.Nothing & info ["fencepost_transformation"; "fpt"]) in
+  let info = Cmd.info "emborder" in
+  Cmd.v info Term.(const Emborder.go $ corner $ side $ fencepost $ corner_xform $ side_xform $ fencepost_xform $ output )
+
 let font_cmd =
   let fontformat = Cmdliner.Arg.enum ["otf", `Otf;
                                       "psf", `Psf;
@@ -231,7 +247,7 @@ let pat_cmd =
   let info = Cmd.info "pat" in
   Cmd.v info Term.(const Pat.main $ verbose $ input)
 
-let importers = Cmdliner.Cmd.(group @@ info "import") [ font_cmd; insert_cmd; pat_cmd ]
+let importers = Cmdliner.Cmd.(group @@ info "import") [ emborder_cmd; font_cmd; insert_cmd; pat_cmd ]
 
 let browsers = Cmdliner.Cmd.(group @@ info "browse") [ patbrowse_cmd; ]
 

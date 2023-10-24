@@ -1,11 +1,5 @@
 open Stitchy.Operations
 
-(* TODO: unite the executables. we can figure out which operation is appropriate based
- * on the dimensions of the corner pattern and the presence/absence of fencepost pattern. *)
-
-(* as I kind of suspected the square_corner case is a special case of wide_corner ?  I guess I needed
- * to formulate it in that way *)
-
 type dimensions = {
   x_off : int;
   y_off : int;
