@@ -280,6 +280,48 @@ let square_corner_embellish ~min_width ~rotate_corners ~center ~corner ~top ~fen
   <->
   (ll <|> rotate_ccw @@ rotate_ccw top_border <|> lr)
 
+let width p = p.Stitchy.Types.substrate.max_x + 1
+let height p = p.Stitchy.Types.substrate.max_y + 1
+
+let halfway_with_left_bias ~whole ~part =
+  let gap = whole - part in
+  (* for a gap of uneven size, make the first element larger *)
+  let left_part = ((gap / 2) + (gap mod 2)) in
+  left_part, (gap / 2)
+
+let expand_center ~desired_width ~desired_height ~pattern ~fill =
+  match fill with
+  | Some fill ->
+    (* tile-fill the center including the padding, masking off the original center dimensions. *)
+    let dimensions : dimensions = { x_off = 0; y_off = 0;
+                                    width = desired_width;
+                                    height = desired_height; } in
+    let x_off, y_off = 
+        halfway_with_left_bias ~whole:desired_width ~part:(width pattern)
+    in
+    let mask_dimensions = [{
+        width = (width pattern);
+        height = (height pattern);
+        x_off;
+        y_off;
+      }] in
+    tile fill ~dimensions ~mask_dimensions
+  | _ -> (* no fill, so we can pad with empty space *)
+    (* the <|> and <-> operators automatically center the smaller image,
+     * so we only need to explicitly pad on one axis;
+     * it's a little easier to do with left and right
+     * since the corners are included with the top and bottom borders,
+     * so choose that one *)
+    let left_padding, right_padding = halfway_with_left_bias ~whole:desired_width ~part:(width pattern) in
+    let padded_center =
+      (empty pattern.substrate (left_padding - 1) (height pattern))
+      <|>
+      pattern
+      <|>
+      (empty pattern.substrate (right_padding - 1) (height pattern))
+    in
+    padded_center
+
 let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
   let open Stitchy.Types in
   let width p = p.substrate.max_x + 1 in
@@ -294,47 +336,12 @@ let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
     (* top and bottom are the same, as are left and right, so just use top/left for both *)
     let top = vrepeat corner.pattern (width_needed + 2) in
     let left = hrepeat corner.pattern height_needed in
-    match fill with
-    | Some fill ->
-      (* tile-fill the center including the padding, masking off the original center dimensions. *)
-      let dimensions : dimensions = { x_off = 0; y_off = 0; width = fill_width; height = fill_height; } in
-      let mask_dimensions = [{
-        width = center.substrate.max_x + 1;
-        height = center.substrate.max_y + 1;
-        x_off = (fill_width - (width center)) / 2;
-        y_off = (fill_height - (height center)) / 2;
-      }] in
-      let tiled_center = tile fill ~dimensions ~mask_dimensions in
+    let tiled_center = expand_center ~desired_width:fill_width ~desired_height:fill_height ~pattern:center ~fill in
       top
         <->
-      left <|> tiled_center <|> left
+      (left <|> tiled_center <|> left)
         <->
         top
-    | _ -> (* no fill, so we can pad with empty space *)
-      (* the <|> and <-> operators automatically center the smaller image,
-       * so we only need to explicitly pad on one axis;
-       * it's a little easier to do with left and right
-       * since the corners are included with the top and bottom borders,
-       * so choose that one *)
-      let left_padding =
-        if (fill_width - (width center)) mod 2 = 1 then
-          ((fill_width - (width center)) / 2) + 1
-        else (fill_width - (width center)) / 2
-      in
-      let right_padding = (fill_width - (width center)) / 2 in
-      let padded_center =
-        (empty center.substrate (left_padding - 1) center.substrate.max_y)
-        <|>
-        center
-        <|>
-        (empty center.substrate (right_padding - 1) center.substrate.max_y)
-      in
-      (* top and bottom are the same, as are left and right *)
-      top
-      <->
-      (left <|> padded_center <|> left)
-      <->
-      top
   end
   | _ -> assert false
 
