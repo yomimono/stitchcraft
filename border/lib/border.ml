@@ -291,6 +291,7 @@ let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
     let height_needed = border_repetitions ~fencepost:0 ~side:(height corner.pattern) ~center:(height center) in
     let fill_width = (width_needed * (width corner.pattern)) in
     let fill_height = (height_needed * (height corner.pattern)) in
+    (* top and bottom are the same, as are left and right, so just use top/left for both *)
     let top = vrepeat corner.pattern (width_needed + 2) in
     let left = hrepeat corner.pattern height_needed in
     match fill with
@@ -310,12 +311,11 @@ let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
         <->
         top
     | _ -> (* no fill, so we can pad with empty space *)
-      let top_padding =
-        if (fill_height - (height center)) mod 2 = 1 then
-          ((fill_height - (height center)) / 2) + 1
-        else (fill_height - (height center)) / 2
-      in
-      let bottom_padding = (fill_height - (height center)) / 2 in
+      (* the <|> and <-> operators automatically center the smaller image,
+       * so we only need to explicitly pad on one axis;
+       * it's a little easier to do with left and right
+       * since the corners are included with the top and bottom borders,
+       * so choose that one *)
       let left_padding =
         if (fill_width - (width center)) mod 2 = 1 then
           ((fill_width - (width center)) / 2) + 1
@@ -329,14 +329,10 @@ let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
         <|>
         (empty center.substrate (right_padding - 1) center.substrate.max_y)
       in
+      (* top and bottom are the same, as are left and right *)
       top
       <->
-      (* why 2? don't know. I thought it should be 1, but experimentally, 2's correct. *)
-      (empty center.substrate center.substrate.max_x (top_padding - 2))
-      <->
       (left <|> padded_center <|> left)
-      <->
-      (empty center.substrate center.substrate.max_x (bottom_padding - 2))
       <->
       top
   end
