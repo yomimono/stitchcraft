@@ -325,7 +325,8 @@ let expand_center ~desired_width ~desired_height ~pattern ~fill =
                                   width = desired_width;
                                   height = desired_height; } in
   let x_off, y_off =
-    halfway_with_left_bias ~whole:desired_width ~part:(width pattern)
+    fst @@ halfway_with_left_bias ~whole:desired_width ~part:(width pattern),
+    fst @@ halfway_with_left_bias ~whole:desired_height ~part:(height pattern)
   in
   let mask_dimensions = [{
       width = (width pattern);
