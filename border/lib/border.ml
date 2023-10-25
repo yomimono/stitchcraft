@@ -289,6 +289,29 @@ let halfway_with_left_bias ~whole ~part =
   let left_part = ((gap / 2) + (gap mod 2)) in
   left_part, (gap / 2)
 
+let assemble_rotated_borders ~left ~right ~top ~bottom ~center =
+  let open Stitchy.Types in
+  let final_width = (width top) + (width right) in
+  let final_height = (height left) + (height top) in
+  let full_substrate = { center.substrate with max_x = final_width - 1;
+                                               max_y = final_height - 1;
+                       } in
+  let background = { substrate = full_substrate;
+                     layers = [];
+                     backstitch_layers = []
+                   } in
+  let place = merge_patterns ~substrate:full_substrate in
+  let right_displacement = Right (width top) in
+  let left_displacement = Down (height top) in
+  let bottom_displacement = RightAndDown (width left, height right) in
+  let center_displacement = RightAndDown (width left, height top) in
+  let with_top = place background top in
+  let with_left = place with_top (displace_pattern left_displacement left) in
+  let with_right = place with_left (displace_pattern right_displacement right) in
+  let with_bottom = place with_right (displace_pattern bottom_displacement bottom) in
+  let with_center = place with_bottom (displace_pattern center_displacement center) in
+  with_center
+
 let expand_center ~desired_width ~desired_height ~pattern ~fill =
   let fill = match fill with
     | Some fill -> fill
@@ -337,7 +360,28 @@ let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
         <->
         top
   end
-  | _ -> assert false
+  | Turn ->
+    (* since the corner image will be rotated, we have to consider its different
+     * dimensions in our calculations. The additional space on the x-axis isn't
+     * just the corner's x-axis times 2, but rather the corner's x-axis plus
+     * the corner's y-axis, since the corner pattern will appear along each side
+     * at least once in the original orientation and at least once rotated 90
+     * degrees from that. *)
+    (* the number of top repetitions is at least the number required to clear
+     * the size of the long side (for the corner case, no pun intended,
+     * where the corner case is taller than it is wide),
+     * plus the width of the center image. *)
+    let width_needed = border_repetitions ~fencepost:0 ~center:((height corner.pattern) + (width center)) ~side:(width corner.pattern) in
+    let height_needed = border_repetitions ~fencepost:0 ~center:((height corner.pattern) + (height center)) ~side:(width corner.pattern) in
+    let fill_width = (width_needed * (width corner.pattern) - (height corner.pattern)) in
+    let fill_height = (height_needed * (width corner.pattern) - (height corner.pattern)) in
+    let top = vrepeat corner.pattern width_needed in
+    let bottom = rotate_ccw @@ rotate_ccw top in
+    let left = hrepeat (rotate_ccw corner.pattern) height_needed in
+    let right = rotate_ccw @@ rotate_ccw left in
+    let tiled_center = expand_center ~desired_width:fill_width ~desired_height:fill_height ~pattern:center ~fill in
+    assemble_rotated_borders ~left ~right ~top ~bottom ~center:tiled_center
+  | Flip -> assert false
 
 let fencepost_and_corner ~center:_ ~corner:_ ~fencepost:_ ~fill:_ = assert false
 
