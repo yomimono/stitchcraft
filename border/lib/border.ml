@@ -15,6 +15,7 @@ let within ~x ~y {x_off; y_off; w; h} =
   y_off <= y && y < (y_off + h)
 
 let max3 a b c : int = max (max a b) (max b c)
+let make_odd n = if n mod 2 = 0 then n + 1 else n
 
 let border_repetitions ~fencepost ~center ~side =
   match center mod (side + fencepost) with
@@ -223,10 +224,61 @@ let fencepost_and_corner ~center ~corner ~fencepost ~fill =
   (* since we allow separate fencepost transformations, this isn't as easy as it might seem...
    * *)
   match corner.transformation, fencepost.transformation with
-  | Nothing, Nothing | Turn, Turn | Flip, Flip ->
+  | Turn, Turn ->
     (* in this case we can just weld the fencepost onto the end of the corner *)
     let corner = {corner with pattern = corner.pattern <|> fencepost.pattern } in
     just_corner ~center ~corner ~fill
+  | Nothing, Nothing ->
+    let width_needed = border_repetitions ~fencepost:(width fencepost.pattern)
+        ~side:(width corner.pattern) ~center:(width center) in
+    let height_needed = border_repetitions ~fencepost:(height fencepost.pattern)
+        ~side:(height corner.pattern) ~center:(height center) in
+    let top =
+      let c_and_fp = corner.pattern <|> fencepost.pattern in
+      (vrepeat c_and_fp (width_needed + 1)) <|> corner.pattern
+    in
+    let left =
+      let c_and_fp = corner.pattern <-> fencepost.pattern in
+      (hrepeat c_and_fp height_needed) <-> fencepost.pattern
+    in
+    let desired_width = (width top) - (2 * (width corner.pattern)) in
+    let desired_height = (height left) in
+    let tiled_center  = expand_center ~desired_width ~desired_height ~pattern:center ~fill in
+    assemble_simple_borders ~left ~top ~right:left ~bottom:top ~center:tiled_center
+  | Flip, Flip ->
+    (* don't try to make anything in particular centered, since it's gonna
+     * look weird either way *)
+    (* TODO I think it's more likely that we'll want the fencepost centered,
+     * since they tend to be smaller & might have different symmetry *)
+    let width_needed =
+      border_repetitions ~fencepost:(width fencepost.pattern)
+        ~side:(width corner.pattern) ~center:(width center) in
+    let height_needed =
+      border_repetitions ~fencepost:(height fencepost.pattern)
+        ~side:(height corner.pattern) ~center:(height center) in
+    let top =
+      let left = (fencepost.pattern <|> corner.pattern) in
+      let right = (hflip fencepost.pattern) <|> (hflip corner.pattern) in
+      corner.pattern <|> 
+      (vrepeat left @@ width_needed / 2 + (width_needed mod 2))
+      <|>
+      (vrepeat right @@ (width_needed / 2) + 1)
+    in
+    let bottom = vflip top in
+    let left =
+      let top = (fencepost.pattern <-> corner.pattern) in
+      let bottom = (vflip fencepost.pattern) <-> (vflip corner.pattern) in
+      (hrepeat top @@ (height_needed / 2) + (height_needed mod 2))
+      <->
+      (hrepeat bottom @@ height_needed / 2)
+      <->
+      (vflip fencepost.pattern)
+    in
+    let right = hflip left in
+    let desired_width = (width top) - ((width corner.pattern) - 2) in
+    let desired_height = (height left) in
+    let tiled_center = expand_center ~desired_width ~desired_height ~fill ~pattern:center in
+    assemble_simple_borders ~left ~right ~top ~bottom ~center:tiled_center
   | Nothing, Turn ->
     (* on the top and bottom, we'll be using fencepost's width;
      * on the left and right, we'll rotate it, so it's its height that matters *)
@@ -252,11 +304,121 @@ let fencepost_and_corner ~center ~corner ~fencepost ~fill =
     let desired_height = (height left) in
     let tiled_center  = expand_center ~desired_width ~desired_height ~pattern:center ~fill in
     assemble_simple_borders ~left ~right ~top ~bottom ~center:tiled_center
-  | _, _ -> assert false
+  | Nothing, Flip ->
+    (* this is also a pretty weird thing to do, but OK *)
+    let width_needed = border_repetitions ~fencepost:(width fencepost.pattern) ~side:(width corner.pattern) ~center:(width center) in
+    let height_needed = border_repetitions ~fencepost:(height fencepost.pattern) ~side:(height corner.pattern) ~center:(height center) in
+    (* we need to make sure a fencepost isn't smack in the middle, so we need to make sure
+     * there are an odd number of repetitions of the corner element on each side *)
+    let width_needed = make_odd width_needed
+    and height_needed = make_odd height_needed
+    in
+    let top =
+      let c_and_plain = corner.pattern <|> fencepost.pattern in
+      let hflipped_and_c = (hflip fencepost.pattern) <|> corner.pattern in
+      c_and_plain <|> (vrepeat c_and_plain (width_needed / 2))
+      <|> corner.pattern
+      <|> (vrepeat hflipped_and_c ((width_needed / 2) + 1)) <|> corner.pattern
+    in
+    (* can't just vflip top for the bottom, since the corner elements shouldn't change *)
+    let bottom =
+      let left_side_component = corner.pattern <|> (vflip fencepost.pattern) in
+      let right_side_component = (vflip @@ hflip fencepost.pattern) <|> corner.pattern in
+      vrepeat left_side_component ((width_needed / 2) + 1)
+       <|> corner.pattern
+       <|> (vrepeat right_side_component ((width_needed / 2) + 1))
+    in
+    let make_side ~top_component ~bottom_component =
+      (hrepeat top_component (height_needed / 2)) <->
+      corner.pattern <->
+      (hrepeat bottom_component (height_needed / 2))
+    in
+    let left =
+      let top_component = corner.pattern <-> fencepost.pattern in
+      let bottom_component = (vflip fencepost.pattern) <-> corner.pattern in
+      make_side ~top_component ~bottom_component
+    in
+    let right =
+      let top_component = corner.pattern <-> (hflip fencepost.pattern) in
+      let bottom_component = (vflip @@ hflip fencepost.pattern) <-> corner.pattern
+      in
+      make_side ~top_component ~bottom_component
+    in
+    let desired_width = (width top) - (2 * (width corner.pattern)) in
+    let desired_height = (height right) in
+    let tiled_center = expand_center ~desired_width ~desired_height ~pattern:center ~fill in
+    assemble_simple_borders ~left ~right ~top ~bottom ~center:tiled_center
+  | Turn, Flip -> assert false
+  | Turn, Nothing -> assert false
+  | Flip, Nothing -> assert false
+  | Flip, Turn -> assert false
 
-let side_no_fencepost ~center:_ ~corner:_ ~side:_ ~fill:_ = assert false
+let side_no_fencepost ~center ~corner ~side ~fill =
+  let open Stitchy.Types in
+  match corner.transformation, side.transformation with
+  | Nothing, Nothing ->
+    let treps = border_repetitions ~fencepost:0 ~side:(width side.pattern) ~center:(width center) in
+    let lreps = border_repetitions ~fencepost:0 ~side:(height side.pattern) ~center:(height center) in
+    let top = corner.pattern <|> vrepeat side.pattern treps <|> corner.pattern in
+    let left = hrepeat side.pattern lreps in
+    let center = expand_center ~desired_width:(width @@ vrepeat side.pattern treps)
+        ~desired_height:(height left) ~pattern:center ~fill in
+    assemble_simple_borders ~top ~left ~center ~right:left ~bottom:top
+  | Turn, Turn ->
+    let corner_w = (width corner.pattern) in
+    let corner_h = (height corner.pattern) in
+    let side_w = (width side.pattern) in
+    (* "border repetitions" gets a little tricky here. *)
+    (* we always have at least one corner iteration. This might be wide enough
+     * to cover some of the width we need to make;
+     * the amount of 'overhang' is the corner's width minus its length. *)
+    let overhang = corner_w - corner_h in
+    let width_needed =
+      (* It's correct that this can be negative. If the corner is taller than it is wide,
+       * the side pattern will have to cover extra area. *)
+      border_repetitions ~fencepost:0 ~side:(side_w) ~center:((width center) - overhang)
+    in
+    let height_needed =
+      border_repetitions ~fencepost:0 ~side:(side_w) ~center:((height center) - overhang)
+    in
+    (* width_needed and height_needed have removed the "overhang" of a corner,
+     * so their numbers reflect sides. *)
+    (* unfortunately we need some more arithmetic to reconstruct the width of the center
+     * thing. *)
+    let fill_width = width_needed * (width side.pattern) - overhang in
+    let fill_height = height_needed * (width side.pattern) - overhang in
+    let center = expand_center ~desired_width:fill_width ~desired_height:fill_height
+        ~pattern:center ~fill in
+    let top = corner.pattern <|> (vrepeat side.pattern width_needed) in
+    let bottom = rotate_ccw @@ rotate_ccw top in
+    let left = (hrepeat (rotate_ccw side.pattern) height_needed) <-> (rotate_ccw corner.pattern) in
+    let right = rotate_ccw @@ rotate_ccw left in
+    assemble_rotated_borders ~left ~right ~top ~bottom ~center
+      
+  | _, _ ->
+    assert false
 
-let side_and_fencepost ~center:_ ~corner:_ ~side:_ ~fencepost:_ ~fill:_ = assert false
+let side_and_fencepost ~center ~corner ~side ~fencepost ~fill =
+  let open Stitchy.Types in
+  match corner.transformation, side.transformation, fencepost.transformation with
+  | Nothing, Nothing, Nothing ->
+    let fp_w, fp_h = (width fencepost.pattern), (height fencepost.pattern) in
+    let treps = border_repetitions ~fencepost:fp_w ~side:(width side.pattern) ~center:(width center) in
+    let lreps = border_repetitions ~fencepost:fp_h ~side:(height side.pattern) ~center:(height center) in
+    let top =
+      let top_component = side.pattern <|> fencepost.pattern in
+      corner.pattern <|>
+      fencepost.pattern <|>
+      (vrepeat top_component treps) <|>
+      corner.pattern
+    in
+    let left =
+      let left_component = fencepost.pattern <-> side.pattern in
+      (hrepeat left_component lreps) <-> fencepost.pattern
+    in
+    let center = expand_center ~desired_width:((width top) - ((width corner.pattern) * 2)) ~desired_height:(height left) ~pattern:center ~fill in
+    assemble_simple_borders ~top ~left ~center ~right:left ~bottom:top
+  | _, _, _ -> assert false
 
 let emborder ~border ~(center : Stitchy.Types.pattern) ~fill =
   let open Stitchy.Types in
