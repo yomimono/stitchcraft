@@ -130,8 +130,8 @@ let with_fencepost = {|
   will be inserted between the corners (and sides, if supplied).
   It's useful for repeating elements which use a short "joining" segment.
 
-  For example, here's a 4x4 corner-only pattern with a 1x4 fencepost,
-  with both patterns using the rotation transform.
+  For example, here's a border with a 4x4 corner and a 4x4 side,
+  with a 1x4 fencepost, with all patterns using the rotation transform.
 
   +----+-+----+-+----+-+----+
   |    |x|    |x|    |x|    |

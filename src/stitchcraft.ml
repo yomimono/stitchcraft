@@ -196,8 +196,8 @@ let emborder_cmd =
   in
   let doc = "corner pattern" in
   let corner = Cmdliner.Arg.(value & pos 0 string "-" & info [] ~doc ~docv:"CORNER") in
-  let side = Cmdliner.Arg.(value & opt (some file) None & info [] ~docv:"SIDE") in
-  let fencepost = Cmdliner.Arg.(value & opt (some file) None & info [] ~docv:"SIDE") in
+  let side = Cmdliner.Arg.(value & opt (some file) None & info ["side"; "s"] ~docv:"SIDE") in
+  let fencepost = Cmdliner.Arg.(value & opt (some file) None & info ["fencepost"; "fp"] ~docv:"SIDE") in
   let corner_xform = Cmdliner.Arg.(value & opt transformation Stitchy.Types.Nothing & info ["corner_transformation"; "ct"]) in
   let side_xform = Cmdliner.Arg.(value & opt transformation Stitchy.Types.Nothing & info ["side_transformation"; "st"]) in
   let fencepost_xform = Cmdliner.Arg.(value & opt transformation Stitchy.Types.Nothing & info ["fencepost_transformation"; "fpt"]) in
