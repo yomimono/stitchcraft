@@ -66,6 +66,19 @@ module Manipulation = struct
 
 end
 
+let surround_cmd =
+  let border =
+    let doc = "border file to surround the center with" in
+    Cmdliner.Arg.(value & opt file "border.pattern" & info ["border"; "b"] ~doc ~docv:"BORDER")
+  in
+  let center =
+    let doc = "center pattern to surround with a border" in
+    Cmdliner.Arg.(value & opt file "center.pattern" & info ["center"; "c"] ~doc ~docv:"CENTER")
+  in
+  let info = Cmd.info "surround" in
+  Cmd.v info Term.(const Surround.go $ border $ center $ output)
+
+
 let listing_cmd = 
   let annotation =
     let doc = "annotate with 'KIT!' instead of default 'PDF!'" in
@@ -255,7 +268,7 @@ let exporters = Cmdliner.Cmd.(group @@ info "export") [ listing_cmd ; pdf_cmd ]
 
 let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; fontcheck_cmd; rect_cmd; textstitch_cmd])
 
-let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hflip_cmd; piece_cmd; rotate_cmd; vcat_cmd; vflip_cmd ])
+let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hflip_cmd; piece_cmd; rotate_cmd; surround_cmd; vcat_cmd; vflip_cmd ])
 
 let viewers = Cmdliner.Cmd.(group @@ info "view") [ estimate_cmd; term_cmd; ]
 

@@ -7,6 +7,7 @@
              inotify.lwt
              notty.lwt
              stitchcraft.assemble
+             stitchcraft.border
              stitchcraft.db
              stitchcraft.estimator
              stitchcraft.fontreader

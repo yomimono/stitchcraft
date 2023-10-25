@@ -280,17 +280,17 @@ let square_corner_embellish ~min_width ~rotate_corners ~center ~corner ~top ~fen
   <->
   (ll <|> rotate_ccw @@ rotate_ccw top_border <|> lr)
 
-let just_corner ~center ~corner ~fill =
+let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
   let open Stitchy.Types in
-  let width p = p.pattern.substrate.max_x + 1 in
-  let height p = p.pattern.substrate.max_y + 1 in
+  let width p = p.substrate.max_x + 1 in
+  let height p = p.substrate.max_y + 1 in
   match corner.transformation with
   | Nothing -> begin
       (* easiest case I guess? *)
-    let width_needed = border_repetitions ~fencepost:0 ~side:(width corner) ~center:(width center) in
-    let height_needed = border_repetitions ~fencepost:0 ~side:(height corner) ~center:(height center) in
-    let fill_width = (width_needed * (width corner)) in
-    let fill_height = (height_needed * (height corner)) in
+    let width_needed = border_repetitions ~fencepost:0 ~side:(width corner.pattern) ~center:(width center) in
+    let height_needed = border_repetitions ~fencepost:0 ~side:(height corner.pattern) ~center:(height center) in
+    let fill_width = (width_needed * (width corner.pattern)) in
+    let fill_height = (height_needed * (height corner.pattern)) in
     let top = vrepeat corner.pattern (width_needed + 2) in
     let left = hrepeat corner.pattern height_needed in
     match fill with
@@ -298,8 +298,8 @@ let just_corner ~center ~corner ~fill =
       (* tile-fill the center including the padding, masking off the original center dimensions. *)
       let dimensions : dimensions = { x_off = 0; y_off = 0; width = fill_width; height = fill_height; } in
       let mask_dimensions = [{
-        width = center.pattern.substrate.max_x + 1;
-        height = center.pattern.substrate.max_y + 1;
+        width = center.substrate.max_x + 1;
+        height = center.substrate.max_y + 1;
         x_off = (fill_width - (width center)) / 2;
         y_off = (fill_height - (height center)) / 2;
       }] in
@@ -310,15 +310,33 @@ let just_corner ~center ~corner ~fill =
         <->
         top
     | _ -> (* no fill, so we can pad with empty space *)
-      let height_pad = empty center.pattern.substrate fill_width ((fill_height - (height center)) / 2) in
-      let width_pad = empty center.pattern.substrate ((fill_width - (width center)) / 2) (height center) in
+      let top_padding =
+        if (fill_height - (height center)) mod 2 = 1 then
+          ((fill_height - (height center)) / 2) + 1
+        else (fill_height - (height center)) / 2
+      in
+      let bottom_padding = (fill_height - (height center)) / 2 in
+      let left_padding =
+        if (fill_width - (width center)) mod 2 = 1 then
+          ((fill_width - (width center)) / 2) + 1
+        else (fill_width - (width center)) / 2
+      in
+      let right_padding = (fill_width - (width center)) / 2 in
+      let padded_center =
+        (empty center.substrate (left_padding - 1) center.substrate.max_y)
+        <|>
+        center
+        <|>
+        (empty center.substrate (right_padding - 1) center.substrate.max_y)
+      in
       top
       <->
-      height_pad
+      (* why 2? don't know. I thought it should be 1, but experimentally, 2's correct. *)
+      (empty center.substrate center.substrate.max_x (top_padding - 2))
       <->
-      left <|> width_pad <|> center.pattern <|> width_pad <|> left
+      (left <|> padded_center <|> left)
       <->
-      height_pad
+      (empty center.substrate center.substrate.max_x (bottom_padding - 2))
       <->
       top
   end
@@ -330,7 +348,7 @@ let side_no_fencepost ~center:_ ~corner:_ ~side:_ ~fill:_ = assert false
 
 let side_and_fencepost ~center:_ ~corner:_ ~side:_ ~fencepost:_ ~fill:_ = assert false
 
-let emborder ~border ~center ~fill =
+let emborder ~border ~(center : Stitchy.Types.pattern) ~fill =
   let open Stitchy.Types in
   match border.side, border.fencepost with
   | None, None ->
