@@ -3,16 +3,16 @@ open Stitchy.Operations
 type dimensions = {
   x_off : int;
   y_off : int;
-  width : int;
-  height : int;
+  w: int;
+  h: int;
 }
 
-let pp fmt {x_off; y_off; width; height} =
-  Format.fprintf fmt "%d x %d starting at %d , %d" width height x_off y_off
+let pp fmt {x_off; y_off; w; h} =
+  Format.fprintf fmt "%d x %d starting at %d , %d" w h x_off y_off
 
-let within ~x ~y {x_off; y_off; width; height} =
-  x_off <= x && x < (x_off + width) &&
-  y_off <= y && y < (y_off + height)
+let within ~x ~y {x_off; y_off; w; h} =
+  x_off <= x && x < (x_off + w) &&
+  y_off <= y && y < (y_off + h)
 
 let max3 a b c : int = max (max a b) (max b c)
 
@@ -24,10 +24,10 @@ let border_repetitions ~fencepost ~center ~side =
     center / (side + fencepost) + 1
 
 let backstitch_in (src, dst) dim =
-  (dim.x_off <= (fst src) && (fst src) <= dim.x_off + dim.width &&
-   dim.y_off <= (snd src) && (snd src) <= dim.y_off + dim.height) &&
-  (dim.x_off <= (fst dst) && (fst dst) <= dim.x_off + dim.width &&
-   dim.y_off <= (snd dst) && (snd dst) <= dim.y_off + dim.height)
+  (dim.x_off <= (fst src) && (fst src) <= dim.x_off + dim.w &&
+   dim.y_off <= (snd src) && (snd src) <= dim.y_off + dim.h) &&
+  (dim.x_off <= (fst dst) && (fst dst) <= dim.x_off + dim.w &&
+   dim.y_off <= (snd dst) && (snd dst) <= dim.y_off + dim.h)
 
 (** [tile pattern ~dimensions ~mask_dimensions] fills an area of `dimensions` size with
  * tiling repetitions of `pattern`, except for any dimensions in `mask_dimensions`,
@@ -36,34 +36,34 @@ let tile pattern ~(dimensions : dimensions) ~mask_dimensions =
   let open Stitchy.Types in
   let row pattern ~(dimensions : dimensions) =
     let vrepetitions =
-      if dimensions.width mod (pattern.substrate.max_x + 1) = 0 then
-        dimensions.width / (pattern.substrate.max_x + 1)
-      else dimensions.width / (pattern.substrate.max_x + 1) + 1
+      if dimensions.w mod (pattern.substrate.max_x + 1) = 0 then
+        dimensions.w / (pattern.substrate.max_x + 1)
+      else dimensions.w / (pattern.substrate.max_x + 1) + 1
     in
     let r = Stitchy.Operations.vrepeat pattern vrepetitions in
-    {r with substrate = {r.substrate with max_x = (dimensions.width - 1)}}
+    {r with substrate = {r.substrate with max_x = (dimensions.w - 1)}}
   in
   let hrepetitions =
-    if dimensions.height mod (pattern.substrate.max_y + 1) = 0 then
-      dimensions.height / (pattern.substrate.max_y + 1)
-    else dimensions.height / (pattern.substrate.max_y + 1) + 1
+    if dimensions.h mod (pattern.substrate.max_y + 1) = 0 then
+      dimensions.h / (pattern.substrate.max_y + 1)
+    else dimensions.h / (pattern.substrate.max_y + 1) + 1
   in
   let r = Stitchy.Operations.hrepeat (row pattern ~dimensions) hrepetitions in
-  let unmasked = {r with substrate = {r.substrate with max_y = dimensions.height - 1}} in
+  let unmasked = {r with substrate = {r.substrate with max_y = dimensions.h - 1}} in
   let shifted = displace_pattern (RightAndDown (dimensions.x_off, dimensions.y_off)) unmasked in
   let stitch_masks : CoordinateSet.t =
     List.fold_left
       (fun so_far (mask : dimensions) ->
-         let xs = List.init mask.width (fun n -> n + mask.x_off) in
-         let ys = List.init mask.height (fun n -> n + mask.y_off) in
+         let xs = List.init mask.w (fun n -> n + mask.x_off) in
+         let ys = List.init mask.h (fun n -> n + mask.y_off) in
          List.fold_left (fun cs x ->
              List.fold_left (fun cs y ->
                  CoordinateSet.add (x, y) cs
                ) cs ys)
            so_far xs) CoordinateSet.empty mask_dimensions
   in
-  let max_x = dimensions.width + dimensions.x_off - 1
-  and max_y = dimensions.height + dimensions.y_off - 1
+  let max_x = dimensions.w + dimensions.x_off - 1
+  and max_y = dimensions.h + dimensions.y_off - 1
   in
   let mask_layer (layer : layer) =
     let stitches = CoordinateSet.(diff layer.stitches stitch_masks |>
@@ -93,6 +93,13 @@ let halfway_with_left_bias ~whole ~part =
   (* for a gap of uneven size, make the first element larger *)
   let left_part = ((gap / 2) + (gap mod 2)) in
   left_part, (gap / 2)
+
+let assemble_simple_borders ~left ~right ~top ~bottom ~center =
+  top
+  <->
+  (left <|> center <|> right)
+  <->
+  bottom
 
 let assemble_rotated_borders ~left ~right ~top ~bottom ~center =
   let open Stitchy.Types in
@@ -127,15 +134,15 @@ let expand_center ~desired_width ~desired_height ~pattern ~fill =
   in
   (* tile-fill the center including the padding, masking off the original center dimensions. *)
   let dimensions : dimensions = { x_off = 0; y_off = 0;
-                                  width = desired_width;
-                                  height = desired_height; } in
+                                  w = desired_width;
+                                  h = desired_height; } in
   let x_off, y_off =
     fst @@ halfway_with_left_bias ~whole:desired_width ~part:(width pattern),
     fst @@ halfway_with_left_bias ~whole:desired_height ~part:(height pattern)
   in
   let mask_dimensions = [{
-      width = (width pattern);
-      height = (height pattern);
+      w = (width pattern);
+      h = (height pattern);
       x_off;
       y_off;
     }] in
@@ -160,11 +167,7 @@ let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
     let top = vrepeat corner.pattern (width_needed + 2) in
     let left = hrepeat corner.pattern height_needed in
     let tiled_center = expand_center ~desired_width:fill_width ~desired_height:fill_height ~pattern:center ~fill in
-      top
-        <->
-      (left <|> tiled_center <|> left)
-        <->
-        top
+    assemble_simple_borders ~top ~left ~bottom:top ~right:left ~center:tiled_center
   end
   | Turn ->
     (* since the corner image will be rotated, we have to consider its different
@@ -213,14 +216,43 @@ let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
     let tiled_center = expand_center ~fill
         ~desired_width:(width_needed * (width corner.pattern))
         ~desired_height:(height left) ~pattern:center in
-    top
-      <->
-      (left <|> tiled_center <|> right)
-      <->
-      bottom
+    assemble_simple_borders ~left ~right ~top ~bottom ~center:tiled_center
 
+let fencepost_and_corner ~center ~corner ~fencepost ~fill =
+  let open Stitchy.Types in
+  (* since we allow separate fencepost transformations, this isn't as easy as it might seem...
+   * *)
+  match corner.transformation, fencepost.transformation with
+  | Nothing, Nothing | Turn, Turn | Flip, Flip ->
+    (* in this case we can just weld the fencepost onto the end of the corner *)
+    let corner = {corner with pattern = corner.pattern <|> fencepost.pattern } in
+    just_corner ~center ~corner ~fill
+  | Nothing, Turn ->
+    (* on the top and bottom, we'll be using fencepost's width;
+     * on the left and right, we'll rotate it, so it's its height that matters *)
+    let width_needed = border_repetitions ~fencepost:(width fencepost.pattern) ~side:(width corner.pattern) ~center:(width center) in
+    let height_needed = border_repetitions ~fencepost:(height fencepost.pattern) ~side:(width corner.pattern) ~center:(height center) in
+    (* border_repetitions gives us the number of repetitions of `side` we'll need, assuming
+     * that we've fenceposted them with `fencepost`, so to cover all of `top`
+     * we need one more `corner`, the result of `border_repetitions` repetitions of fencepost + side, another fencepost, and one more corner *)
+    let top_component = corner.pattern <|> fencepost.pattern in
+    let top = top_component <|> vrepeat top_component width_needed <|> corner.pattern in
+    let left_fencepost = rotate_ccw fencepost.pattern in
+    let left_component = left_fencepost <-> corner.pattern in
+    let left = hrepeat left_component height_needed <-> left_fencepost in
+    (* bottom isn't just a rotated top, since the corner image isn't supposed to change *)
+    let bottom_fencepost = rotate_ccw @@ rotate_ccw fencepost.pattern in
+    let bottom_component = corner.pattern <|> bottom_fencepost in
+    let bottom = bottom_component <|> vrepeat bottom_component width_needed <|> corner.pattern in
+    let right_fencepost = (rotate_ccw @@ rotate_ccw @@ rotate_ccw fencepost.pattern) in
+    let right_component = right_fencepost <-> corner.pattern in
+    let right = hrepeat right_component height_needed <-> right_fencepost in
 
-let fencepost_and_corner ~center:_ ~corner:_ ~fencepost:_ ~fill:_ = assert false
+    let desired_width = (width top) - (2 * (width corner.pattern)) in
+    let desired_height = (height left) in
+    let tiled_center  = expand_center ~desired_width ~desired_height ~pattern:center ~fill in
+    assemble_simple_borders ~left ~right ~top ~bottom ~center:tiled_center
+  | _, _ -> assert false
 
 let side_no_fencepost ~center:_ ~corner:_ ~side:_ ~fill:_ = assert false
 
