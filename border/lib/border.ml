@@ -382,7 +382,38 @@ let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
     let right = rotate_ccw @@ rotate_ccw left in
     let tiled_center = expand_center ~desired_width:fill_width ~desired_height:fill_height ~pattern:center ~fill in
     assemble_rotated_borders ~left ~right ~top ~bottom ~center:tiled_center
-  | Flip -> assert false
+  | Flip ->
+    (* we may need to insert an extra repetition of the corner pattern,
+     * since we need to have an even number to get the desired effect.
+     * (otherwise we would have a 'tile' in the middle and it will probably look weird.)
+     *)
+    let width_needed = border_repetitions ~fencepost:0 ~center:(width center) ~side:(width corner.pattern) in
+    let height_needed = border_repetitions ~fencepost:0 ~center:(height center) ~side:(height corner.pattern) in
+    (* make them even numbers *)
+    let width_needed = width_needed + (width_needed mod 2)
+    and height_needed = height_needed + (height_needed mod 2)
+    in
+    let hflipped = hflip corner.pattern
+    and vflipped = vflip corner.pattern
+    in
+    (* corners are included with bottom and top, so add an extra repetition there *)
+    let horizontal_repetitions = (width_needed / 2) + 1 in
+    let vertical_repetitions = height_needed / 2 in
+    let top =
+      vrepeat corner.pattern horizontal_repetitions <|> vrepeat hflipped horizontal_repetitions
+    in
+    let bottom = vflip top in
+    let left = hrepeat corner.pattern vertical_repetitions <-> hrepeat vflipped vertical_repetitions in
+    let right = hflip left in
+    let tiled_center = expand_center ~fill
+        ~desired_width:(width_needed * (width corner.pattern))
+        ~desired_height:(height left) ~pattern:center in
+    top
+      <->
+      (left <|> tiled_center <|> right)
+      <->
+      bottom
+
 
 let fencepost_and_corner ~center:_ ~corner:_ ~fencepost:_ ~fill:_ = assert false
 
