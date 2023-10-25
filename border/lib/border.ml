@@ -290,37 +290,31 @@ let halfway_with_left_bias ~whole ~part =
   left_part, (gap / 2)
 
 let expand_center ~desired_width ~desired_height ~pattern ~fill =
-  match fill with
-  | Some fill ->
-    (* tile-fill the center including the padding, masking off the original center dimensions. *)
-    let dimensions : dimensions = { x_off = 0; y_off = 0;
-                                    width = desired_width;
-                                    height = desired_height; } in
-    let x_off, y_off = 
-        halfway_with_left_bias ~whole:desired_width ~part:(width pattern)
-    in
-    let mask_dimensions = [{
-        width = (width pattern);
-        height = (height pattern);
-        x_off;
-        y_off;
-      }] in
-    tile fill ~dimensions ~mask_dimensions
-  | _ -> (* no fill, so we can pad with empty space *)
-    (* the <|> and <-> operators automatically center the smaller image,
-     * so we only need to explicitly pad on one axis;
-     * it's a little easier to do with left and right
-     * since the corners are included with the top and bottom borders,
-     * so choose that one *)
-    let left_padding, right_padding = halfway_with_left_bias ~whole:desired_width ~part:(width pattern) in
-    let padded_center =
-      (empty pattern.substrate (left_padding - 1) (height pattern))
-      <|>
-      pattern
-      <|>
-      (empty pattern.substrate (right_padding - 1) (height pattern))
-    in
-    padded_center
+  let fill = match fill with
+    | Some fill -> fill
+    | None -> (* 1x1 empty pattern, of the same substrate as pattern *)
+      let open Stitchy.Types in
+      let substrate = { pattern.substrate with max_x = 1; max_y = 1} in
+      { substrate; layers = []; backstitch_layers = [] }
+  in
+  (* tile-fill the center including the padding, masking off the original center dimensions. *)
+  let dimensions : dimensions = { x_off = 0; y_off = 0;
+                                  width = desired_width;
+                                  height = desired_height; } in
+  let x_off, y_off =
+    halfway_with_left_bias ~whole:desired_width ~part:(width pattern)
+  in
+  let mask_dimensions = [{
+      width = (width pattern);
+      height = (height pattern);
+      x_off;
+      y_off;
+    }] in
+  let background = tile fill ~dimensions ~mask_dimensions in
+  (* now drop the pattern in the masked-off area *)
+  let displacement = RightAndDown (x_off, y_off) in
+  let shifted_pattern = displace_pattern displacement pattern in
+  merge_patterns ~substrate:(background.substrate) background shifted_pattern
 
 let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
   let open Stitchy.Types in
