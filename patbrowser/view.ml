@@ -8,11 +8,6 @@ type traverse = {
   direction : direction;
 }
 
-type db_info = {
-  filename_matches : int;
-  tags : string list;
-}
-
 let reset_view view = Controls.({
   view with x_off = 0; y_off = 0;
 })
@@ -25,14 +20,6 @@ let filesystem_pane {n; contents; _} (_width, _height) =
       else
         (i + 1, Notty.I.(vcat [acc; string Notty.A.empty @@ Fpath.basename filename]))
     ) (0, Notty.I.empty) contents |> snd
-
-let database_pane db_info (_width, _height) =
-  let open Notty.Infix in
-  Notty.I.strf "%d patterns tagged w/this filename" @@ db_info.filename_matches
-  <->
-  Notty.I.string Notty.A.(st bold) "all tags"
-  <->
-  Notty.I.vcat (List.map (Notty.I.string Notty.A.empty) db_info.tags)
 
 let success (width, height) s = 
     Notty.I.hsnap width @@ Notty.I.vsnap height @@
@@ -190,58 +177,20 @@ let key_help view =
   in
   quit <|> sp <|> symbol <|> sp <|> nav_text <|> sp <|> shift_text
 
-let finalize_tags tags =
-  match tags.Controls.active with
-  | [] -> tags
-  | uchars ->
-    (* TODO: this definitely isn't right, but I don't know what is *)
-    let buffer = Buffer.create (List.length uchars) in 
-    List.iter (Buffer.add_utf_8_uchar buffer) @@ List.rev uchars;
-    {Controls.active = []; completed = ((Buffer.contents buffer)::tags.completed)}
-
-let tag_view _traverse _db _pattern state (width, height) =
-  match state.Controls.mode with
-  | Browse | Preview -> Notty.I.string Notty.A.empty "mode confusion. PULL UP"
-  | Tag tags ->
-    (* reverse the order, so new tags go on the bottom *)
-    let completed_tags = Notty.I.vcat @@ List.rev_map (Notty.I.string Notty.A.empty) tags.Controls.completed in
-    let active_tag = 
-      (* reverse the order, so new uchars go on the end *)
-      List.rev_map (fun u -> Notty.I.uchar Notty.A.empty u 1 1) tags.Controls.active
-    in
-    let open Notty.Infix in
-    Notty.I.hsnap width @@ Notty.I.vsnap height (
-    Notty.I.string Notty.A.empty "<Tab> to end a tag, <Enter> to finish entering tags"
-    <->
-    Notty.I.string Notty.A.(st bold) "tags so far:"
-    <->
-    completed_tags
-    <->
-    Notty.I.string Notty.A.(st bold) "tag in progress:"
-    <->
-    (Notty.I.hcat active_tag <|> Notty.I.char Notty.A.empty '.' 1 1)
-  )
-
-let main_view traverse db_info pattern state (width, height) =
+let main_view traverse pattern state (width, height) =
   let open Notty.Infix in
   let aux {substrate; layers; backstitch_layers} =
     let symbol_map = symbol_map @@ List.map (fun (layer : Stitchy.Types.layer) -> layer.thread) layers in
     let left_pane = left_pane substrate (width, height) in
     let stitch_grid = show_left_pane {substrate; layers; backstitch_layers;} symbol_map state left_pane in
     (* to separate into two panes vertically, divide then remove 2 more rows for spacer and key help *)
-    let half_vertical = height / 2 - 2 in
-    let fs_and_db = (Notty.I.vsnap ~align:`Top half_vertical @@ filesystem_pane traverse (width, half_vertical)
-                                                                <->
-                                                                Notty.I.void 1 1
-                                                                <->
-                                                                Notty.I.vsnap ~align:`Top half_vertical @@ database_pane db_info (width, half_vertical))
+    let fs = (Notty.I.vsnap ~align:`Top height @@ filesystem_pane traverse (width, height))
     in
-    (stitch_grid <|> Notty.I.void 1 1 <|> fs_and_db)
+    (stitch_grid <|> Notty.I.void 1 1 <|> fs)
     <->
     key_help state.view
   in
   match state.Controls.mode with
-  | Tag _ -> Notty.I.string Notty.A.empty "mode confusion: Tag in main_view"
   | Browse -> aux pattern
   | Preview ->
     (* in the preview mode, see how it looks tiled *)
@@ -304,31 +253,6 @@ let handle_mouse state left_pane button =
   end
   | _ -> `None, state
 
-let handle_typing state tags (key, mods) :
-  ([> `Crop | `Insert of Controls.tags | `Next | `None | `Prev | `Quit | `Tag ] * Controls.state) =
-  let open Controls in
-  match key, mods with
-  | `Backspace, _ ->
-    begin
-      match tags.active with
-      | [] -> `Tag, state
-      | _::l -> `Tag, {state with mode = Tag {tags with active = l}}
-    end
-  | `Uchar u, _ ->
-    let active = u :: (tags.active) in
-    `Tag, {state with mode = Tag {tags with active;};}
-  | `ASCII a, _ ->
-    let active = (Uchar.of_char a) :: (tags.active) in
-    `Tag, {state with mode = Tag {tags with active;};}
-  | `Tab, _ ->
-     let tags = finalize_tags tags in
-    `Tag, {state with mode = Tag tags;}
-  | `Enter, _ ->
-    let tags = finalize_tags tags in
-    (`Insert tags), {state with mode = Tag tags;}
-  | _ ->
-    `None, {state with mode = Browse}
-
 let step state pattern (width, height) event =
   let left_pane = left_pane pattern.substrate (width, height) in
   match event with
@@ -336,7 +260,6 @@ let step state pattern (width, height) event =
   | `Mouse button -> handle_mouse state left_pane button
   | `Key (key, mods) -> begin
       match state.mode with
-      | Tag tags -> handle_typing state tags (key, mods)
       | Browse | Preview ->
         match key, mods with
         (* application control *)
@@ -349,12 +272,6 @@ let step state pattern (width, height) event =
         | ( `ASCII 'n', _) -> `Next, {state with view = reset_view state.view; selection = None}
         | (`ASCII 'p', _) -> `Prev, {state with view = reset_view state.view; selection = None}
         | (`ASCII 'c', _) -> `Crop, {state with mode = Preview}
-        (* tag control *)
-        | (`ASCII 't', _) -> begin
-            match state.Controls.mode with
-            | Preview -> `Tag, {state with mode = Controls.(Tag {completed = []; active = [];})}
-            | _ -> `None, state
-        end
         (* default *)
         | _ -> (`None, state)
     end

@@ -1,8 +1,8 @@
 open Stitchy.Types
 
-type tags = {
-  completed : string list;
+type filename_entry = {
   active : Uchar.t list; (* probably reversed *)
+  completed : string;
 }
 
 type selection = {
@@ -13,7 +13,6 @@ type selection = {
 type mode = 
   | Browse
   | Preview
-  | Tag of tags
 
 type view = {
   x_off : int;

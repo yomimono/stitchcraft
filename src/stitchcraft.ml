@@ -114,8 +114,7 @@ let patbrowse_cmd =
     Cmdliner.Arg.(value & pos 0 dir "." & info [] ~doc)
   in
   Cmdliner.Cmd.v (Cmdliner.Cmd.info "browse") @@
-  Term.(const Browse.disp $ Db.CLI.db_t $ dir)
-
+  Term.(const Browse.disp $ dir)
 
 let assemble_program = Assembler.go
 let assemble_cmd =
