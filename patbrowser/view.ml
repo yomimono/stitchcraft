@@ -176,9 +176,11 @@ let key_help view =
   in
   quit <|> sp <|> symbol <|> sp <|> nav_text <|> sp <|> shift_text
 
-let save_dialog filename_entry =
+let save_dialog pattern_name filename_entry =
   let open Notty in
-  Infix.(<->) (I.string A.empty "save to filename:")
+  let open Notty.Infix in
+  (I.string A.empty @@ "source file: " ^ pattern_name) <->
+  (I.string A.empty "save to filename:") <->
   (I.hcat @@ List.rev_map (fun u -> I.uchar A.empty u 1 1) filename_entry)
 
 let main_view traverse pattern state (width, height) =
@@ -195,7 +197,7 @@ let main_view traverse pattern state (width, height) =
     key_help state.view
   in
   match state.Controls.mode with
-  | Save f -> save_dialog f
+  | Save f -> save_dialog (Fpath.to_string @@ List.nth traverse.contents traverse.n) f
   | Browse -> aux pattern
   | Preview ->
     (* in the preview mode, see how it looks tiled *)

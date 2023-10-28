@@ -78,7 +78,8 @@ let disp dir =
           (* base case: let's bail *)
           | `Quit, _ -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
           | `Typing f, state ->
-            Notty_lwt.Term.image term (View.save_dialog f) >>= fun () ->
+            let pattern_name = Fpath.to_string @@ List.nth traverse.contents traverse.n in
+            Notty_lwt.Term.image term (View.save_dialog pattern_name f) >>= fun () ->
             loop pattern {state with mode = Save f}
           | (`Save f), state ->
             let message = save_pattern f pattern in
