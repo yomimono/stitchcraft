@@ -93,7 +93,6 @@ let label_x_axis ~height ~start_x ~max_x style =
   in
   Notty.I.hcat @@ next_line [] start_x
 
-
 (* given a width and height for the left pane,
    figure out the dimensions appropriate for the x and y axis labels
    as well as the stitch grid representation itself. *)
@@ -166,16 +165,21 @@ let key_help view =
   and lowlight = A.(fg yellow ++ bg black)
   in
   let symbol_text = match view.Controls.block_display with
-    | `Solid -> "ymbol view"
-    | `Symbol -> "olid view"
+    | `Solid -> "symbol view"
+    | `Symbol -> "solid view"
   in
+  let sp = I.void 1 1 in
   let nav_text = I.string highlight "←↑→↓" <|> I.string lowlight " to scroll"
   and shift_text = I.string highlight "Shift + ←↑→↓" <|> I.string lowlight " to page"
   and quit = I.string highlight "Q" <|> I.string lowlight "uit"
-  and symbol = I.string highlight "S" <|> I.string lowlight symbol_text
-  and sp = I.void 1 1
+  and symbol = I.string highlight "Tab" <|> sp <|> I.string lowlight symbol_text
   in
   quit <|> sp <|> symbol <|> sp <|> nav_text <|> sp <|> shift_text
+
+let save_dialog filename_entry =
+  let open Notty in
+  Infix.(<->) (I.string A.empty "save to filename:")
+  (I.hcat @@ List.rev_map (fun u -> I.uchar A.empty u 1 1) filename_entry)
 
 let main_view traverse pattern state (width, height) =
   let open Notty.Infix in
@@ -191,6 +195,7 @@ let main_view traverse pattern state (width, height) =
     key_help state.view
   in
   match state.Controls.mode with
+  | Save f -> save_dialog f
   | Browse -> aux pattern
   | Preview ->
     (* in the preview mode, see how it looks tiled *)
@@ -198,12 +203,12 @@ let main_view traverse pattern state (width, height) =
 
 let crop source_pattern state =
   match state.Controls.selection with
-  | None -> None
+  | None -> Error "crop with no selection"
   | Some s ->
     let {Controls.start_cell; end_cell} = Controls.normalize_selection s in
     let min_x, min_y = start_cell and max_x, max_y = end_cell in
     match source_pattern.backstitch_layers with
-    | _::_ -> None
+    | _::l -> Error (Format.asprintf "%d layers of backstitch present" ((+) 1 @@ List.length l))
     | [] ->
       (* because `transform` wants a pattern, we somewhat counterintuitively
        * transform all the stitches first, then ask for the subview on
@@ -220,7 +225,7 @@ let crop source_pattern state =
       let substrate = { source_pattern.substrate with max_x = max_x - min_x;
                                                       max_y = max_y - min_y;
                       } in
-      Some { layers;
+      Ok { layers;
         backstitch_layers = [];
         substrate;
       }
@@ -259,19 +264,22 @@ let step state pattern (width, height) event =
   | `Resize _ | `Paste _ -> `None, state
   | `Mouse button -> handle_mouse state left_pane button
   | `Key (key, mods) -> begin
-      match state.mode with
-      | Browse | Preview ->
-        match key, mods with
-        (* application control *)
-        | (`Escape, _) | (`ASCII 'q', _) -> `Quit, state
-        (* view control *)
-        | (`Arrow dir, l) when List.mem `Shift l -> `None, {state with view = Controls.page pattern.substrate state.view left_pane dir}
-        | (`Arrow dir, _) -> `None, {state with view = Controls.scroll pattern.substrate state.view dir }
-        | (`ASCII 's', _) -> `None, {state with view = Controls.switch_view state.view}
-        (* pattern control *)
-        | ( `ASCII 'n', _) -> `Next, {state with view = reset_view state.view; selection = None}
-        | (`ASCII 'p', _) -> `Prev, {state with view = reset_view state.view; selection = None}
-        | (`ASCII 'c', _) -> `Crop, {state with mode = Preview}
-        (* default *)
-        | _ -> (`None, state)
+      match state.mode, key, mods with
+      | Save f, `Enter, _ -> (`Save f), state
+      | Save f, k, _ -> Controls.handle_typing state f k
+      | Preview, `ASCII 's', _ ->
+        let filename_entry = [] in
+        (`Typing filename_entry, { state with mode = Controls.(Save filename_entry)})
+      (* application control *)
+      | _, `Escape, _ | _, `ASCII 'q', _ -> `Quit, state
+      (* view control *)
+      | _, `Arrow dir, l when List.mem `Shift l -> `None, {state with view = Controls.page pattern.substrate state.view left_pane dir}
+      | _, `Arrow dir, _ -> `None, {state with view = Controls.scroll pattern.substrate state.view dir }
+      | _, `Tab, _ -> `None, {state with view = Controls.switch_view state.view}
+      (* pattern control *)
+      | Browse,  `ASCII 'n', _ -> `Next, {state with view = reset_view state.view; selection = None}
+      | Browse, `ASCII 'p', _ -> `Prev, {state with view = reset_view state.view; selection = None}
+      | Browse, `ASCII 'c', _ -> `Crop, {state with mode = Preview}
+      (* default *)
+      | _, _, _ -> (`None, state)
     end

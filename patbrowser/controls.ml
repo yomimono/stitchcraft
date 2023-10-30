@@ -1,9 +1,6 @@
 open Stitchy.Types
 
-type filename_entry = {
-  active : Uchar.t list; (* probably reversed *)
-  completed : string;
-}
+type filename_entry = Uchar.t list (* reversed *)
 
 type selection = {
   start_cell : (int * int);
@@ -13,6 +10,7 @@ type selection = {
 type mode = 
   | Browse
   | Preview
+  | Save of filename_entry
 
 type view = {
   x_off : int;
@@ -100,3 +98,20 @@ let page substrate view left_pane = function
   | `Left -> page_left view left_pane
   | `Up -> page_up view left_pane
   | `Down -> page_down substrate view left_pane
+
+let handle_typing state f key =
+  match key with
+  | `Escape -> (`Quit, state)
+  | `Enter -> (`Save f), state
+  | `Backspace -> begin
+      match f with
+      | _::l -> (`Typing l, {state with mode = Save f})
+      | _ -> `Typing f, state
+    end
+  | `Uchar u ->
+    let f = u::f in
+    `Typing f, {state with mode = Save f}
+  | `ASCII a ->
+    let f = (Uchar.of_char a)::f in
+    `Typing f, {state with mode = Save f}
+  | _ -> `Typing f, state

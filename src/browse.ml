@@ -47,8 +47,14 @@ let rec ingest dir traverse =
       ingest dir {traverse with n = next_index}
     | _ -> Error "no more files to try"
 
-let save_pattern pattern output_filename =
-  Yojson.Safe.to_file output_filename @@ Stitchy.Types.pattern_to_yojson pattern
+let save_pattern f pattern =
+  let buffer = Buffer.create (List.length f) in
+  List.iter (Buffer.add_utf_8_uchar buffer) (List.rev f);
+  let output_filename = Buffer.contents buffer in
+  try
+    Yojson.Safe.to_file output_filename @@ Stitchy.Types.pattern_to_yojson pattern;
+    Format.asprintf "successfully wrote to %s" output_filename
+  with _ -> Format.asprintf "failure writing to %s" output_filename
 
 let disp dir =
   let open Lwt.Infix in
@@ -71,13 +77,21 @@ let disp dir =
           match View.step state pattern size event with
           (* base case: let's bail *)
           | `Quit, _ -> Notty_lwt.Term.release term >>= fun () -> Lwt.return (Ok ())
+          | `Typing f, state ->
+            Notty_lwt.Term.image term (View.save_dialog f) >>= fun () ->
+            loop pattern {state with mode = Save f}
+          | (`Save f), state ->
+            let message = save_pattern f pattern in
+            Notty_lwt.Term.image term (View.failure size message) >>= fun () ->
+            let state = {state with mode = Preview; selection = None} in
+            loop pattern state
           (* we should be able to further subselect stuff when in the preview *)
           | `Crop, state -> begin
             match View.crop pattern state with
-            | None ->
-              Notty_lwt.Term.image term (View.failure size "crop failed! check for backstitch") >>= fun () ->
+            | Error s ->
+              Notty_lwt.Term.image term (View.failure size s) >>= fun () ->
               loop pattern state
-            | Some subpattern ->
+            | Ok subpattern ->
               let state = {state with mode = Preview; selection = None} in
               Notty_lwt.Term.image term (View.main_view traverse subpattern state size) >>= fun () ->
               loop subpattern state

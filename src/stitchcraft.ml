@@ -148,11 +148,6 @@ let rect_cmd =
   let open Generation in
   Cmdliner.Cmd.v rect_info @@ Term.(const Rect.rect $ width $ height $ background $ thread $ gridsize $ x $ y)
 
-let fontcheck_info = Cmdliner.Cmd.info "fontcheck"
-let fontcheck_cmd =
-  let phrase = Cmdliner.Arg.(value & pos_all string ["HELLO"; "WORLD"] & info [] ~docv:"PHRASE") in
-  Cmdliner.Cmd.v fontcheck_info @@ Term.(const Words.find_font $ Db.CLI.db_t $ phrase)
-
 let textstitch_info = Cmdliner.Cmd.info "textstitch"
 let textstitch_cmd =
   let open Generation in
@@ -162,11 +157,11 @@ let textstitch_cmd =
     Cmdliner.Arg.(value & opt int 0 & info ["interline"] ~doc)
   in
   let font_name =
-    let doc = "font to use (should match a database name)" in
+    let doc = "file containing a usable font in stitchy's glyph map JSON format" in
     let env = Cmdliner.Cmd.Env.info "STITCH_FONT" ~doc in
-    Cmdliner.Arg.(value & opt string "c64" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
+    Cmdliner.Arg.(value & opt string "font.json" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
   in
-  Cmdliner.Cmd.v textstitch_info @@ Term.(const Words.stitch $ font_name $ Db.CLI.db_t $ thread $ background $ gridsize $ phrase $ interline $ output)
+  Cmdliner.Cmd.v textstitch_info @@ Term.(const Words.stitch $ font_name $ thread $ background $ gridsize $ phrase $ interline $ output)
 
 let hcat_cmd =
   let hcat_t = Term.(const Hcat.go $ Manipulation.files $ output) in
@@ -220,52 +215,43 @@ let font_cmd =
   let fontformat = Cmdliner.Arg.enum ["otf", `Otf;
                                       "psf", `Psf;
                                       "yaff", `Yaff;
+                                      "jsonl", `Jsonl;
                                      ]
   in
-  let debug =
+  let _debug =
     let doc = "print debug output on stdout" in
     Cmdliner.Arg.(value & flag & info ["debug"; "d"] ~doc ~docv:"VERBOSE")
   in
-  let src =
+  let _src =
     let doc = "source font" in
     Cmdliner.Arg.(value & pos 0 file "fonts" & info [] ~doc ~docv:"SRC")
   in
-  let fmt =
+  let _fmt =
     let doc = "type of font parser to use" in
     Cmdliner.Arg.(value & opt fontformat `Otf & info ["format"] ~doc ~docv:"FORMAT")
   in
   (* TODO: use the filename (minus extension) if the user
    * didn't give us a font name *)
-  let font_name =
+  let _font_name =
     let doc = "name by which to refer to this font" in
     Cmdliner.Arg.(value & opt string "c64" & info ["n"; "name"] ~doc ~docv:"FONT_NAME")
   in
   let info = Cmd.info "font" in
-  Cmd.v info Term.(const Ingest.ingest $ fmt $ Db.CLI.db_t $ src $ font_name $ debug)
+  (* Cmd.v info Term.(const Ingest.ingest $ fmt $ Db.CLI.db_t $ src $ font_name $ debug) *)
+  Cmd.v info @@ Term.const ()
 
-let insert_cmd =
-  let p_name =
-    let doc = "name to associate with the pattern" in
-    Cmdliner.Arg.(value & pos 0 string "My Very Excellent Mother Just Served Us Nine Patterns!" & info [] ~doc ~docv:"NAME")
-  in
-  let tags =
-    let doc = "tags to associate with the pattern" in
-    Cmdliner.Arg.(value & opt_all string [] & info ["t"; "tag"] ~doc ~docv:"TAG")
-  in
-  let info = Cmd.info "insert" in
-  Cmd.v info Term.(const Insert.go $ Db.CLI.db_t $ input $ p_name $ tags)
 let pat_cmd =
   let verbose = Cmdliner.Arg.(value & flag & info ["v"; "verbose"]) in
   let info = Cmd.info "pat" in
   Cmd.v info Term.(const Pat.main $ verbose $ input)
 
-let importers = Cmdliner.Cmd.(group @@ info "import") [ emborder_cmd; font_cmd; insert_cmd; pat_cmd ]
+let importers = Cmdliner.Cmd.(group @@ info "import") [ emborder_cmd; font_cmd; pat_cmd; ]
 
 let browsers = Cmdliner.Cmd.(group @@ info "browse") [ patbrowse_cmd; ]
 
 let exporters = Cmdliner.Cmd.(group @@ info "export") [ listing_cmd ; pdf_cmd ]
 
-let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; fontcheck_cmd; rect_cmd; textstitch_cmd])
+let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; rect_cmd; textstitch_cmd])
 
 let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hflip_cmd; piece_cmd; rotate_cmd; surround_cmd; vcat_cmd; vflip_cmd ])
 
