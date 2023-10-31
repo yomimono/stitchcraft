@@ -14,13 +14,22 @@ let get_dims (lookup : Uchar.t -> Stitchy.Types.glyph option) uchar =
 
 let default_char = Uchar.of_char '#' (* we assume "#" is in most fonts and pretty big *)
 
-let add_glyph_to_layer ~x_off ~y_off glyph (layer : layer) : layer =
+let add_glyph_to_layers ~x_off ~y_off glyph (layer : layer) (bs_layer : backstitch_layer)
+  : (layer * backstitch_layer) =
+  let move (x, y) =
+    (x + x_off, y + y_off)
+  in
   let with_new_stitches =
     CoordinateSet.fold (fun (x, y) stitches ->
-        CoordinateSet.add (x_off + x, y_off + y) stitches
+        CoordinateSet.add (move (x, y)) stitches
       ) glyph.Stitchy.Types.stitches layer.stitches
   in
-  {layer with stitches = with_new_stitches}
+  let with_new_backstitches =
+    SegmentSet.fold (fun (src, dst) backstitches ->
+        SegmentSet.add (move src, move dst) backstitches
+      ) glyph.Stitchy.Types.backstitches bs_layer.stitches
+  in
+  {layer with stitches = with_new_stitches}, {bs_layer with stitches = with_new_backstitches}
 
 let uchars_of_phrase phrase =
   let phrase = Uunf_string.normalize_utf_8 `NFC phrase in
@@ -53,27 +62,32 @@ let uchars_of_phrase phrase =
   advance decoder []
 
 let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread uchars interline =
-  let add_stitches_for_glyph ~x_off ~y_off letter layer =
+  let add_stitches_for_glyph ~x_off ~y_off letter layer bs_layer =
     match lookup letter with
-    | None -> layer
-    | Some glyph -> add_glyph_to_layer ~x_off ~y_off glyph layer
+    | None -> layer, bs_layer
+    | Some glyph -> add_glyph_to_layers ~x_off ~y_off glyph layer bs_layer
   in
   let empty_layer = {
     thread;
     stitch = Cross Full;
     stitches = CoordinateSet.empty;
   } in
-  let _, _, stitches, max_x, max_y =
+  let empty_bs_layer = {
+    thread;
+    stitches = SegmentSet.empty
+  } in
+  let _, _, stitches, backstitches, max_x, max_y =
     (* TODO: this is going to be wrong sometimes for variable-width fonts.
      * We should probably have a look-uppable or settable value for the
      * default font size *)
     let (starting_x, starting_y) = get_dims lookup default_char in
-    List.fold_left (fun (x_off, y_off, stitches, max_x, max_y) uchar ->
+    List.fold_left (fun (x_off, y_off, stitches, backstitches, max_x, max_y) uchar ->
         match Uucp.Gc.general_category uchar with
         | `Zl | `Cc when Uchar.to_char uchar = '\n' ->
           let _, height = get_dims lookup default_char in
           let y_increase = height + interline in
-          (0, y_off + y_increase, stitches, max_x, max_y + y_increase)
+          (0, y_off + y_increase,
+           stitches, backstitches, max_x, max_y + y_increase)
         | `Ll | `Lm | `Lo | `Lt | `Lu
         (* for the moment, we ignore all combining marks *)
         (* there are many fonts for which we could do the right thing here -- TODO *)
@@ -83,15 +97,15 @@ let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread uchars
         | `Zs ->
           let width, _ = get_dims lookup uchar in
           let new_max_x = max (x_off + width) max_x in
-          let stitches = add_stitches_for_glyph ~x_off ~y_off uchar stitches in
-          ((x_off + width), y_off, stitches, new_max_x, max_y)
+          let stitches, backstitches = add_stitches_for_glyph ~x_off ~y_off uchar stitches backstitches in
+          ((x_off + width), y_off, stitches, backstitches, new_max_x, max_y)
         | _ -> (* not a lot of chance we know what to do with this; ignore it *)
-          (x_off, y_off, stitches, max_x, max_y)
-      ) (0, 0, empty_layer, starting_x, starting_y) uchars
+          (x_off, y_off, stitches, backstitches, max_x, max_y)
+      ) (0, 0, empty_layer, empty_bs_layer, starting_x, starting_y) uchars
   in
-  (stitches, max_x, max_y)
+  (stitches, backstitches, max_x, max_y)
 
 let stitch lookup thread background gridsize uchars interline =
-  let (phrase, max_x, max_y) = render_phrase lookup thread uchars interline in
+  let (layer, backstitch_layer, max_x, max_y) = render_phrase lookup thread uchars interline in
   let substrate = make_substrate ~max_x ~max_y background gridsize in
-  {layers = [phrase]; substrate; backstitch_layers = []}
+  {layers = [layer]; substrate; backstitch_layers = [backstitch_layer];}

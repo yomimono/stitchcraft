@@ -34,6 +34,7 @@ let parse_glyph_table ~width ~height table =
       let stitches = Rawbytes.read_rows table ~bytes_in_row ~height ~width [] 0 |> Stitchy.Types.CoordinateSet.of_list in
       let glyph : Stitchy.Types.glyph = {
         stitches;
+        backstitches = Stitchy.Types.SegmentSet.empty;
         height;
         width;
       } in

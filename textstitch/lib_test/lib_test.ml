@@ -2,6 +2,7 @@ module X = Stitchy.Types
 
 let stitches = X.CoordinateSet.of_list [(1, 0); (0, 1); (2, 2);]
 let test_glyph = { X.stitches;
+                   backstitches = Stitchy.Types.SegmentSet.empty;
                    height = 3;
                    width = 4; }
 
@@ -21,7 +22,7 @@ let always_test_glyph _ = Some test_glyph
 let never_a_glpyh _ = None
 
 let one_glyph () =
-  let layer, width, height = Textstitch.render_phrase always_test_glyph thread [Uchar.of_char 'j'] 0 in
+  let layer, _, width, height = Textstitch.render_phrase always_test_glyph thread [Uchar.of_char 'j'] 0 in
   let pattern = {backstitch_layers = []; X.substrate; layers = [layer]} in
   Format.printf "%a\n" Stitchy.Types.pp_pattern pattern;
   Alcotest.(check int "phrase with one glyph has the right number of stitches"

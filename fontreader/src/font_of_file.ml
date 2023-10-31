@@ -9,6 +9,9 @@ let dispatch_read debug input fmt =
   | `Psf ->
     let module R = Fontreader.Readfiles.Reader(Fontreader.Yaff2stitchfont) in
     R.read debug input
+  | `Js ->
+    let module R = Fontreader.Readfiles.Reader(Fontreader.Js2stitchfont) in
+    R.read debug input
 
 let read debug input fmt output =
   match dispatch_read debug input fmt with

@@ -102,6 +102,7 @@ val pp_pattern : Format.formatter -> pattern -> unit [@@ocaml.toplevel_printer]
 
 type glyph = {
   stitches : CoordinateSet.t;
+  backstitches : SegmentSet.t;
   height : int;
   width : int;
 } [@@deriving yojson]

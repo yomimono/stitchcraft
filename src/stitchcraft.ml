@@ -212,9 +212,10 @@ let emborder_cmd =
   Cmd.v info Term.(const Emborder.go $ corner $ side $ fencepost $ corner_xform $ side_xform $ fencepost_xform $ output )
 
 let font_cmd =
-  let fontformat = Cmdliner.Arg.enum ["otf", `Otf;
-                                      "psf", `Psf;
+  let fontformat = Cmdliner.Arg.enum ["otf",  `Otf;
+                                      "psf",  `Psf;
                                       "yaff", `Yaff;
+                                      "js",   `Js;
                                      ]
   in
   let debug =

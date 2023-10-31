@@ -12,5 +12,7 @@ let unicode_glyph_data_to_stitchy_glyph debug ~width ~height ~offset ebdt n_glyp
   let coordinates = Rawbits.glyphs_of_bytes debug ~height ~width data in
   let open Stitchy.Types in
   List.map (fun stitches ->
-      {stitches = CoordinateSet.of_list stitches; width; height }
+      {stitches = CoordinateSet.of_list stitches;
+       backstitches = SegmentSet.empty;
+       width; height }
     ) coordinates

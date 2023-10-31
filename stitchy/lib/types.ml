@@ -149,6 +149,7 @@ let pp_pattern = fun fmt {substrate; layers; backstitch_layers} ->
 (* lack of dependent types makes us Zalgo-compatible by default *)
 type glyph = {
   stitches : CoordinateSet.t;
+  backstitches : SegmentSet.t;
   height : int;
   width : int;
 } [@@deriving yojson {strict=false}]

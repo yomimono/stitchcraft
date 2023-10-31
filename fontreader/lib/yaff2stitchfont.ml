@@ -69,7 +69,8 @@ let lines_to_glyph lines =
    * max_x, max_y *)
   { Stitchy.Types.width = max_x;
     height = max_y;
-    stitches
+    stitches;
+    backstitches = Stitchy.Types.SegmentSet.empty;
   }
 
 let stitch_line debug =
