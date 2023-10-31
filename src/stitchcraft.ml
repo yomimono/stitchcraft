@@ -215,30 +215,20 @@ let font_cmd =
   let fontformat = Cmdliner.Arg.enum ["otf", `Otf;
                                       "psf", `Psf;
                                       "yaff", `Yaff;
-                                      "jsonl", `Jsonl;
                                      ]
   in
-  let _debug =
+  let debug =
     let doc = "print debug output on stdout" in
     Cmdliner.Arg.(value & flag & info ["debug"; "d"] ~doc ~docv:"VERBOSE")
   in
-  let _src =
-    let doc = "source font" in
-    Cmdliner.Arg.(value & pos 0 file "fonts" & info [] ~doc ~docv:"SRC")
-  in
-  let _fmt =
+  let fmt =
     let doc = "type of font parser to use" in
     Cmdliner.Arg.(value & opt fontformat `Otf & info ["format"] ~doc ~docv:"FORMAT")
   in
   (* TODO: use the filename (minus extension) if the user
    * didn't give us a font name *)
-  let _font_name =
-    let doc = "name by which to refer to this font" in
-    Cmdliner.Arg.(value & opt string "c64" & info ["n"; "name"] ~doc ~docv:"FONT_NAME")
-  in
   let info = Cmd.info "font" in
-  (* Cmd.v info Term.(const Ingest.ingest $ fmt $ Db.CLI.db_t $ src $ font_name $ debug) *)
-  Cmd.v info @@ Term.const ()
+  Cmd.v info Term.(const Font_of_file.read $ debug $ input $ fmt $ output)
 
 let pat_cmd =
   let verbose = Cmdliner.Arg.(value & flag & info ["v"; "verbose"]) in

@@ -9,7 +9,7 @@
              stitchcraft.assemble
              stitchcraft.border
              stitchcraft.estimator
-             stitchcraft.fontreader
+             stitchcraft.font_of_file
              stitchcraft.listing
              stitchcraft.patbrowser
              stitchcraft.patreader

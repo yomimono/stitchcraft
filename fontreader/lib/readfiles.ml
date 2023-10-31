@@ -38,19 +38,22 @@ module Reader(Interpreter : INTERPRETER ) = struct
         Format.eprintf "%a\n%!" Interpreter.pp_error e;
         Error (`Msg "parsing failed")
       | Ok l ->
-        if debug then Printf.printf "glyphmap read succeeded\n%!";
+        if debug then Printf.eprintf "glyphmap read succeeded\n%!";
         let spoo (glyph, uchars) =
           let scratch = Buffer.create 16 in
           List.iter (fun uchar ->
               Buffer.reset scratch;
               Uutf.Buffer.add_utf_8 scratch uchar;
-              Buffer.output_buffer stdout scratch;
+              Buffer.output_buffer stderr scratch;
               Stdlib.flush_all ();
-              Format.printf " (int %d 0x%x) " (Uchar.to_int uchar) (Uchar.to_int uchar);
+              if debug then
+              Format.eprintf " (int %d 0x%x) " (Uchar.to_int uchar) (Uchar.to_int uchar);
             ) uchars;
-          Format.printf
-            " glyph: %a\n%!" print_glyph glyph;
+          if debug then Format.eprintf " glyph: %a\n%!" print_glyph glyph;
         in
-        List.iter spoo l;
-        Ok ()
+        if debug then List.iter spoo l;
+
+        let flatten (glyph, uchars) = List.map (fun uchar -> (uchar, glyph)) uchars in
+        let flattened = List.map flatten l |> List.flatten in
+        Ok (Stitchy.Types.UcharMap.of_list flattened)
 end

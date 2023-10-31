@@ -1,0 +1,5 @@
+(library
+  (public_name stitchcraft.font_of_file)
+  (name font_of_file)
+  (libraries bos fontreader stitchy)
+)
