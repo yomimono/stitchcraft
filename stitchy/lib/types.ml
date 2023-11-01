@@ -116,17 +116,24 @@ type pattern = {
 let stitches_at pattern coordinate =
   List.find_all (fun (layer : layer) -> CoordinateSet.(mem coordinate layer.stitches)) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
 
-let submap ~x_off ~y_off ~width ~height layers =
-  let only_stitches_in_submap (layer : layer) =
-    let stitches =
-      CoordinateSet.filter (fun (x, y) -> (x >= x_off &&
-                                           x < (x_off + width) &&
-                                           y >= y_off &&
-                                           y < y_off + height)) layer.stitches
-    in
-    {layer with stitches = stitches}
+let submap ~x_off ~y_off ~width ~height pattern =
+  let stitch_inside (x, y) = (x >= x_off &&
+                              x < (x_off + width) &&
+                              y >= y_off &&
+                              y < y_off + height)
   in
-  List.map only_stitches_in_submap layers
+  let segment_inside (src, dst) = stitch_inside src && stitch_inside dst in
+  let only_stitches_in_submap (layer : layer) =
+    {layer with stitches = 
+                  CoordinateSet.filter stitch_inside layer.stitches}
+  in
+  let only_backstitches_in_submap (bs_layer : backstitch_layer) =
+    {bs_layer with stitches = SegmentSet.filter segment_inside bs_layer.stitches }
+  in
+  let focused_layers = List.map only_stitches_in_submap pattern.layers in
+  let focused_bs_layers = List.map only_backstitches_in_submap pattern.backstitch_layers in
+  let substrate = {pattern.substrate with max_x = width - 1; max_y = height - 1} in
+  {substrate; layers = focused_layers; backstitch_layers = focused_bs_layers;}
 
 let pp_pattern = fun fmt {substrate; layers; backstitch_layers} ->
   Format.fprintf fmt "@[background: %a; full size %d x %d@]@." pp_substrate substrate (substrate.max_x + 1) (substrate.max_y + 1);

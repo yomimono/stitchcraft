@@ -48,11 +48,11 @@ let color_map (r, g, b) =
 let colors ~x_off ~y_off ~width ~height pattern =
   (* give an accounting of which colors are represented in the box
    * defined by [(x_off, y_off) ... (x_off + width), (y_off + height)) *)
-  let view : layer list = Stitchy.Types.submap ~x_off ~y_off ~width ~height pattern.layers in
+  let view = Stitchy.Types.submap ~x_off ~y_off ~width ~height pattern in
   List.filter_map (fun (layer : layer) ->
       match CoordinateSet.is_empty layer.stitches with
       | true -> None
-      | false -> Some layer.thread) view
+      | false -> Some layer.thread) view.layers
 
 let uchar_of_cross_stitch = function
   | Full -> Uchar.of_int 0x2588
@@ -209,28 +209,18 @@ let crop source_pattern state =
   | Some s ->
     let {Controls.start_cell; end_cell} = Controls.normalize_selection s in
     let min_x, min_y = start_cell and max_x, max_y = end_cell in
-    match source_pattern.backstitch_layers with
-    | _::l -> Error (Format.asprintf "%d layers of backstitch present" ((+) 1 @@ List.length l))
-    | [] ->
-      (* because `transform` wants a pattern, we somewhat counterintuitively
-       * transform all the stitches first, then ask for the subview on
-       * the selected area *)
-      let shifted =
-        Stitchy.Operations.transform_all_stitches
-          ~f:(fun (x, y) -> x - min_x, y - min_y)
-          source_pattern
-      in
-      let layers = Stitchy.Types.submap
-          ~x_off:0 ~y_off:0
-          ~width:(max_x - min_x + 1) ~height:(max_y - min_y + 1)
-      shifted.layers in
-      let substrate = { source_pattern.substrate with max_x = max_x - min_x;
-                                                      max_y = max_y - min_y;
-                      } in
-      Ok { layers;
-        backstitch_layers = [];
-        substrate;
-      }
+    (* because `transform` wants a pattern, we somewhat counterintuitively
+     * transform all the stitches first, then ask for the subview on
+     * the selected area *)
+    let shifted =
+      Stitchy.Operations.transform_all_stitches
+        ~f:(fun (x, y) -> x - min_x, y - min_y)
+        source_pattern
+    in
+    Ok (Stitchy.Types.submap
+        ~x_off:0 ~y_off:0
+        ~width:(max_x - min_x + 1) ~height:(max_y - min_y + 1)
+        shifted)
 
 let handle_mouse state left_pane button =
   let offset_click (x, y) =

@@ -84,7 +84,7 @@ let disp dir =
           | (`Save f), state ->
             let message = save_pattern f pattern in
             Notty_lwt.Term.image term (View.failure size message) >>= fun () ->
-            let state = {state with mode = Preview; selection = None} in
+            let state = {state with mode = Browse; selection = None} in
             loop pattern state
           (* we should be able to further subselect stuff when in the preview *)
           | `Crop, state -> begin

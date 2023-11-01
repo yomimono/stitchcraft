@@ -96,7 +96,7 @@ type pattern = {
 } [@@deriving yojson]
 
 val stitches_at: pattern -> (int * int) -> (stitch * thread) list
-val submap : x_off:int -> y_off:int -> width:int -> height:int -> layer list -> layer list
+val submap : x_off:int -> y_off:int -> width:int -> height:int -> pattern -> pattern
 
 val pp_pattern : Format.formatter -> pattern -> unit [@@ocaml.toplevel_printer]
 

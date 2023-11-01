@@ -16,11 +16,11 @@ let color_map (r, g, b) =
 let colors ~x_off ~y_off ~width ~height pattern =
   (* give an accounting of which colors are represented in the box
    * defined by [(x_off, y_off) ... (x_off + width), (y_off + height)) *)
-  let view : layer list = Stitchy.Types.submap ~x_off ~y_off ~width ~height pattern.layers in
+  let view = Stitchy.Types.submap ~x_off ~y_off ~width ~height pattern in
   List.filter_map (fun (layer : layer) ->
       match CoordinateSet.is_empty layer.stitches with
       | true -> None
-      | false -> Some layer.thread) view
+      | false -> Some layer.thread) view.layers
 
 let uchar_of_cross_stitch = function
   | Full -> Uchar.of_int 0x2588
