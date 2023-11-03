@@ -372,10 +372,10 @@ let side_no_fencepost ~center ~corner ~side ~fill =
     (* we always have at least one corner iteration. This might be wide enough
      * to cover some of the width we need to make;
      * the amount of 'overhang' is the corner's width minus its length. *)
+    (* It's correct that this can be negative. If the corner is taller than it is wide,
+     * the side pattern will have to cover extra area. *)
     let overhang = corner_w - corner_h in
     let width_needed =
-      (* It's correct that this can be negative. If the corner is taller than it is wide,
-       * the side pattern will have to cover extra area. *)
       border_repetitions ~fencepost:0 ~side:(side_w) ~center:((width center) - overhang)
     in
     let height_needed =
@@ -385,8 +385,8 @@ let side_no_fencepost ~center ~corner ~side ~fill =
      * so their numbers reflect sides. *)
     (* unfortunately we need some more arithmetic to reconstruct the width of the center
      * thing. *)
-    let fill_width = width_needed * (width side.pattern) - overhang in
-    let fill_height = height_needed * (width side.pattern) - overhang in
+    let fill_width = width_needed * (width side.pattern) + overhang in
+    let fill_height = height_needed * (width side.pattern) + overhang in
     let center = expand_center ~desired_width:fill_width ~desired_height:fill_height
         ~pattern:center ~fill in
     let top = corner.pattern <|> (vrepeat side.pattern width_needed) in
