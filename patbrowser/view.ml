@@ -269,8 +269,8 @@ let step state pattern (width, height) event =
       | _, `Arrow dir, _ -> `None, {state with view = Controls.scroll pattern.substrate state.view dir }
       | _, `Tab, _ -> `None, {state with view = Controls.switch_view state.view}
       (* pattern control *)
-      | Browse,  `ASCII 'n', _ -> `Next, {state with view = reset_view state.view; selection = None}
-      | Browse, `ASCII 'p', _ -> `Prev, {state with view = reset_view state.view; selection = None}
+      | Browse,  `ASCII 'n', _ | Preview, `ASCII 'n', _ -> `Next, {state with view = reset_view state.view; selection = None}
+      | Browse, `ASCII 'p', _ | Preview, `ASCII 'p', _ -> `Prev, {state with view = reset_view state.view; selection = None}
       | Browse, `ASCII 'c', _ -> `Crop, {state with mode = Preview}
       (* default *)
       | _, _, _ -> (`None, state)
