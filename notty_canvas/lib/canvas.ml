@@ -10,19 +10,17 @@ let symbol_map colors =
       SymbolMap.add thread symbol map
     ) SymbolMap.empty lookups
 
-let color_map (a, b, c) =
-  let to_6_channels n = n / ((256 / 6) + 1) in
-  Notty.A.rgb ~r:(to_6_channels a)
-      ~g:(to_6_channels b) ~b:(to_6_channels c)
+let color_map (r, g, b) =
+  Notty.A.rgb_888 ~r ~g ~b
 
 let colors ~x_off ~y_off ~width ~height pattern =
   (* give an accounting of which colors are represented in the box
    * defined by [(x_off, y_off) ... (x_off + width), (y_off + height)) *)
-  let view : layer list = Stitchy.Types.submap ~x_off ~y_off ~width ~height pattern.layers in
+  let view = Stitchy.Types.submap ~x_off ~y_off ~width ~height pattern in
   List.filter_map (fun (layer : layer) ->
       match CoordinateSet.is_empty layer.stitches with
       | true -> None
-      | false -> Some layer.thread) view
+      | false -> Some layer.thread) view.layers
 
 let uchar_of_cross_stitch = function
   | Full -> Uchar.of_int 0x2588

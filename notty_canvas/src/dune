@@ -1,5 +1,0 @@
-(executable
- (public_name notty_canvas)
- (name notty_canvas)
- (libraries cmdliner notty notty.lwt canvas stitchy estimator inotify inotify.lwt)
-)

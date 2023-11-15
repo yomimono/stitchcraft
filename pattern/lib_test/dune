@@ -1,9 +1,0 @@
-(executable
-  (name test)
-  (libraries camlpdf pattern stitchy alcotest)
-  )
-
-(rule
-  (alias runtest)
-  (action (run %{exe:test.exe}))
-)

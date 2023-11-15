@@ -1,0 +1,9 @@
+(executable
+  (name test)
+  (libraries camlpdf stitchcraft.stitchpdf stitchy alcotest)
+  )
+
+(rule
+  (alias runtest)
+  (action (run %{exe:test.exe}))
+)

@@ -1,4 +1,5 @@
 (library
+  (public_name stitchcraft.estimator)
   (name estimator)
   (libraries stitchy)
 )

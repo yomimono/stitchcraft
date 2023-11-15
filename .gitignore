@@ -1,5 +1,5 @@
 _build
+*.ml.swp
 *.install
 *.merlin
-c64say/isaid.png
 examples/

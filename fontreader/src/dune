@@ -1,16 +1,5 @@
 (library
- (name sqlite)
- (modules sqlite)
- (libraries bos caqti caqti-driver-sqlite3 caqti-lwt fontreader lwt sqlite3 stitchy)
-)
-
-(executable
- (public_name readpsf)
- (modules readpsf)
- (libraries cmdliner bos fontreader fmt)
-)
-(executable
- (public_name font2sqlite)
- (modules font2sqlite)
- (libraries cmdliner fontreader sqlite)
+  (public_name stitchcraft.font_of_file)
+  (name font_of_file)
+  (libraries bos fontreader stitchy)
 )

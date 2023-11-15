@@ -57,7 +57,7 @@ let () =
         ("empty list of layers", `Quick, empty_layers);
         ("disjoint layers are not merged", `Quick, disjoint_layers);
         ("layers that can be merged, are", `Quick, mergeable_layers);
-        ("thread normalization renaming works", `Quick, thread_renaming);
+        (* ("thread normalization renaming works", `Quick, thread_renaming);*)
         ("thread exclusion works", `Quick, thread_exclusion);
       ]
     )

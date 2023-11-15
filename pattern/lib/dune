@@ -1,5 +1,0 @@
-(library
- (name pattern)
- (libraries camlpdf stitchy)
- (instrumentation (backend bisect_ppx))
-)

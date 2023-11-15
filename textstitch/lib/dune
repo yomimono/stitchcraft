@@ -1,0 +1,5 @@
+(library
+ (name textstitch)
+ (public_name stitchcraft.textstitch)
+ (libraries astring lwt stitchy uucp uunf uunf.string uutf)
+)

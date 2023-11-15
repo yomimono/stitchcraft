@@ -22,22 +22,7 @@ A better user experience for such folks is coming someday.
 
 # How can I use it?
 
-Stitchcraft bundles several executables for command-line use.  Many assume the presence of a `fonts.sqlite3` file in /tmp (location customizable with `--db`), which stores raster font information; if this file is missing, you're gonna have a bad time.  You can create entries for it with `font2sqlite`, or use the version distributed in this git repository.
-
-## Pattern Generation and Manipulation
-
-* assemble , for assembling color- and placement-free components into a full cross-stitch pattern
-* c64stitch , for taking text input and making a cross-stitch pattern from it
-* embellish , for composing cross-stitch patterns in various ways
-* estimator , which gives very loose time and materials estimates for cross-stitch patterns
-* listing , which makes supplementary files useful in listing cross-stitch patterns on Etsy
-* pat2stitchy , which reads some .pat files and converts them to Stitchy's format
-* font2sqlite, for importing bitmap fonts to the font database
-
-## Pattern Viewing
-
-* notty_canvas , for displaying patterns in the terminal
-* stitchpattern , for converting patterns to PDFs
+Stitchcraft bundles several executables for command-line use.  Most are subcommands under `stitchcraft`, further subdivided into several categories. `stitchcraft --help` should help you find what you're looking for.
 
 ## Importing Graphics
 
@@ -55,11 +40,10 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 
 # Future Features
 
+* defined types and files for `border`s and `glyphset`s
+* a few included `glyphset`s for getting started
 * nicer `listing` preview graphics
-* Etsy API integration (blocked on a bug either in Etsy's OpenAPI 3.0 or our implementation )
 * Zoom in `notty_canvas`
-* sensible names or possibly subcommands
-* more full-featured composition binaries
 
 # Anti-features / out-of-scope stuff
 
@@ -75,4 +59,4 @@ The fonts included with this software were originally packaged by VileR and are 
 
 This software depends heavily on [notty](https://github.com/pqwy/notty), [camlpdf](https://github.com/johnwhitington/camlpdf), and various small and useful libraries from [erratique.ch](https://erratique.ch/software).
 
-Lastly, the authors and maintainers of the OCaml langauge and its tooling have made an environment that I find joyful to work in. Thank you for helping me make things!
+Lastly, the authors and maintainers of the OCaml language and its tooling have made an environment that I find joyful to work in. Thank you for helping me make things!

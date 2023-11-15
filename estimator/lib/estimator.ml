@@ -2,6 +2,18 @@ open Stitchy.Types
 
 module ThreadMap = Map.Make(Stitchy.DMC.Thread)
 
+type hoop_size = 
+  | Embroidery_hoop of int | Scroll_frame of int
+
+type frame_size =
+  | Custom_frame of (float * float)
+  | Frame of (float * float)
+
+type tools = {
+  hoop_size : hoop_size;
+  frame_size : frame_size;
+}
+
 (* TODO metric!!! *)
 
 (* TODO this is for white fourteen-count; it might be different for different sizes and colors *)
@@ -46,13 +58,13 @@ let hoop_size substrate =
   let width_in, height_in = substrate_size_in_inches ~margin_inches:0. substrate in
   let raw_size = int_of_float @@ (max width_in height_in) +. 1. in
   if raw_size > 12 then
-    `Scroll_frame (int_of_float @@ (min width_in height_in) +. 1.)
+    Scroll_frame (int_of_float @@ (min width_in height_in) +. 1.)
   else
-    `Embroidery_hoop (if raw_size > 4 then raw_size else 4)
+    Embroidery_hoop (if raw_size > 4 then raw_size else 4)
 
 let pp_hoop_size fmt = function
-  | `Scroll_frame size -> Format.fprintf fmt "a scroll frame with small dimension of %d inches" size
-  | `Embroidery_hoop size -> Format.fprintf fmt "an embroidery hoop with diameter %d inches" size
+  | Scroll_frame size -> Format.fprintf fmt "a scroll frame with small dimension of %d inches" size
+  | Embroidery_hoop size -> Format.fprintf fmt "an embroidery hoop with diameter %d inches" size
 
 let smallest_frame ~margin_inches substrate =
   let width_in, height_in = substrate_size_in_inches ~margin_inches substrate in
@@ -67,7 +79,7 @@ let smallest_frame ~margin_inches substrate =
     in
     s < frame_small && b < frame_large && proportions small_prop large_prop
   in
-  let frame s b = `Frame (s, b) in
+  let frame s b = Frame (s, b) in
   (* custom frames are available in arbitrary sizes,
    * but it can be convenient to know the smallest
    * standard frame size a completed work
@@ -82,12 +94,12 @@ let smallest_frame ~margin_inches substrate =
   | size when fits size 18. 24. -> frame 18. 24.
   | size when fits size 20. 24. -> frame 20. 24.
   | size when fits size 24. 36. -> frame 24. 36.
-  | size -> `Custom_frame size
+  | size -> Custom_frame size
 
 let pp_frame fmt = function
-  | `Frame (s, b) -> Format.fprintf fmt "standard %.1f x %.1f frame" s b
-  | `Custom_frame (s, b) -> Format.fprintf fmt "custom frame, of minimum size %.1f x %.1f" s b
- 
+  | Frame (s, b) -> Format.fprintf fmt "standard %.1f x %.1f frame" s b
+  | Custom_frame (s, b) -> Format.fprintf fmt "custom frame, of minimum size %.1f x %.1f" s b
+
 (* 2 * sqrt(2) + 1 is 3.8 which is close enough to 4 *)
 (* logic: if the X crosses a unit square, the length from corner to corner is sqrt(1^2 + 1^2) = sqrt(2), and we do it twice, plus one stitch on a unit side to get us from one leg to the other. *)
 let stitch_length_units = 4
@@ -128,17 +140,34 @@ type thread_info = {
   seconds : int;
 }
 
+let merge thread_1 thread_2 =
+  { thread = thread_1.thread;
+    amount = thread_1.amount + thread_2.amount;
+    length = thread_1.length +. thread_2.length;
+    skeins = thread_1.skeins +. thread_2.skeins;
+    cost = thread_1.cost +. thread_2.cost;
+    seconds = thread_1.seconds + thread_2.seconds;
+  }
+
 type materials = {
   threads : thread_info list;
   fabric : float * float;
 }
 
-let totals threads =
+let thread_totals threads =
   List.fold_left (fun (total_cost, total_seconds) {cost; seconds; _} ->
      (total_cost +. cost, total_seconds + seconds)) (0., 0) threads
 
-let print_thread_info {thread; amount; length; skeins; cost; seconds } =
-  Printf.printf "%s: %d stitches (%.02f linear inches, %.02f standard skeins, USD %.02f, ~%d seconds)\n%!"
+let fabric_total (w, h) =
+  w *. h *. aida_price_per_square_inch
+
+let totals {threads; fabric} =
+  let fabric_money = fabric_total fabric in
+  let thread_money, thread_time = thread_totals threads in
+  (thread_money +. fabric_money), thread_time
+
+let pp_thread_info fmt {thread; amount; length; skeins; cost; seconds } =
+  Format.fprintf fmt "%s: %d stitches (%.02f linear inches, %.02f standard skeins, USD %.02f, ~%d seconds)\n%!"
     (Stitchy.DMC.Thread.to_string thread) amount length skeins cost seconds
 
 let backstitch_thread_info grid (layer : backstitch_layer) =
@@ -164,5 +193,20 @@ let cross_thread_info grid (layer : layer) =
 let materials ~margin_inches pattern =
   let cross_threads = List.map (cross_thread_info pattern.substrate.grid) pattern.layers in
   let backstitch_threads = List.map (backstitch_thread_info pattern.substrate.grid) pattern.backstitch_layers in
-  { threads = cross_threads @ backstitch_threads;
+  let combined_threads =
+    List.fold_left (fun map (thread : thread_info) ->
+      match ThreadMap.find_opt thread.thread map with
+      | Some t1 -> ThreadMap.add thread.thread (merge t1 thread) map
+      | None -> ThreadMap.add thread.thread thread map
+    ) ThreadMap.empty (cross_threads @ backstitch_threads) in
+  { threads = ThreadMap.bindings combined_threads |> List.map snd;
     fabric = substrate_size_in_inches ~margin_inches pattern.substrate }
+
+let compile pattern ~margin_inches =
+  let materials = materials ~margin_inches pattern in
+  let (substrate_w, substrate_h) = materials.fabric in
+  let substrate_cost = substrate_w *. substrate_h *. aida_price_per_square_inch in
+  let hoop_size = hoop_size pattern.substrate in
+  let frame_size = smallest_frame ~margin_inches pattern.substrate in
+  let tools = {hoop_size; frame_size} in
+  (materials, tools, substrate_cost)

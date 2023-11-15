@@ -116,17 +116,24 @@ type pattern = {
 let stitches_at pattern coordinate =
   List.find_all (fun (layer : layer) -> CoordinateSet.(mem coordinate layer.stitches)) pattern.layers |> List.map (fun layer -> (layer.stitch, layer.thread))
 
-let submap ~x_off ~y_off ~width ~height layers =
-  let only_stitches_in_submap (layer : layer) =
-    let stitches =
-      CoordinateSet.filter (fun (x, y) -> (x >= x_off &&
-                                           x < (x_off + width) &&
-                                           y >= y_off &&
-                                           y < y_off + height)) layer.stitches
-    in
-    {layer with stitches = stitches}
+let submap ~x_off ~y_off ~width ~height pattern =
+  let stitch_inside (x, y) = (x >= x_off &&
+                              x < (x_off + width) &&
+                              y >= y_off &&
+                              y < y_off + height)
   in
-  List.map only_stitches_in_submap layers
+  let segment_inside (src, dst) = stitch_inside src && stitch_inside dst in
+  let only_stitches_in_submap (layer : layer) =
+    {layer with stitches = 
+                  CoordinateSet.filter stitch_inside layer.stitches}
+  in
+  let only_backstitches_in_submap (bs_layer : backstitch_layer) =
+    {bs_layer with stitches = SegmentSet.filter segment_inside bs_layer.stitches }
+  in
+  let focused_layers = List.map only_stitches_in_submap pattern.layers in
+  let focused_bs_layers = List.map only_backstitches_in_submap pattern.backstitch_layers in
+  let substrate = {pattern.substrate with max_x = width - 1; max_y = height - 1} in
+  {substrate; layers = focused_layers; backstitch_layers = focused_bs_layers;}
 
 let pp_pattern = fun fmt {substrate; layers; backstitch_layers} ->
   Format.fprintf fmt "@[background: %a; full size %d x %d@]@." pp_substrate substrate (substrate.max_x + 1) (substrate.max_y + 1);
@@ -149,12 +156,52 @@ let pp_pattern = fun fmt {substrate; layers; backstitch_layers} ->
 (* lack of dependent types makes us Zalgo-compatible by default *)
 type glyph = {
   stitches : CoordinateSet.t;
+  backstitches : SegmentSet.t;
   height : int;
   width : int;
 } [@@deriving yojson {strict=false}]
 
 
-module UcharMap = Map.Make(Uchar)
+module UcharMap = struct
+  include Map.Make(Uchar)
+
+  type uchar = Uchar.t
+  let uchar_to_yojson u = Uchar.to_int u |> fun i -> `Int i
+  let uchar_of_yojson = function
+    | `Int i -> Ok (Uchar.of_int i)
+    | _ -> Error "uchar must be presented as an int"
+
+  let to_yojson m = bindings m |> [%to_yojson: (uchar * glyph) list]
+
+  type entry = (uchar * glyph) [@@deriving yojson]
+
+  let of_yojson = function
+    | `List l ->
+      let add_or_error acc j =
+        match acc with | Error e -> Error e | Ok m ->
+          match entry_of_yojson j with
+          | Ok (k, v) -> Ok (add k v m)
+          | Error e -> Error e
+      in
+      List.fold_left add_or_error (Ok empty) l
+    | _ -> Error "font entries must be in a list"
+end
 
 type font = glyph UcharMap.t
+let font_to_yojson f =
+  UcharMap.to_yojson f
 
+let font_of_yojson f =
+  UcharMap.of_yojson f
+
+type transformation = | Turn | Flip | Nothing [@@deriving yojson]
+type transformable_pattern = {
+  transformation : transformation; [@default Nothing]
+  pattern : pattern;
+} [@@deriving yojson]
+
+type border = {
+  corner : transformable_pattern; 
+  side : transformable_pattern option;
+  fencepost : transformable_pattern option;
+} [@@deriving yojson]

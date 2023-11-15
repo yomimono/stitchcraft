@@ -52,6 +52,16 @@ let displace_pattern displacement pattern =
   in
   {displaced with substrate = expand_substrate displacement pattern.substrate}
 
+let hflip pattern =
+  let max_x = pattern.substrate.max_x in
+  let transform (x, y) = ((max_x - x), y) in
+  transform_all_stitches ~f:transform pattern
+
+let vflip pattern =
+  let max_y = pattern.substrate.max_y in
+  let transform (x, y) = (x, (max_y - y)) in
+  transform_all_stitches ~f:transform pattern
+
 let padding one two =
   let which_to_pad, bigger, smaller =
     if one > two
