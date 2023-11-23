@@ -7,7 +7,7 @@ end = struct
   type t = { name : string; (* prose name (e.g. "Lavender-VY DK") *)
              identifier : string; (* floss number (except white & ecru) *)
              rgb : RGB.t;
-           } [@@deriving yojson, eq]
+           } [@@deriving yojson]
 
   let to_rgb t = t.rgb
   let pp fmt t = Format.fprintf fmt "DMC %s: %s" t.identifier t.name
@@ -15,6 +15,7 @@ end = struct
   let neighbors _ = []
 
   let compare a b = String.compare a.identifier b.identifier
+  let equal a b = (compare a b) = 0
 
   module RGBMap = Map.Make(RGB)
   module StringMap = Map.Make(String)
