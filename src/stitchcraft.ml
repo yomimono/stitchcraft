@@ -152,6 +152,10 @@ let text_info = Cmdliner.Cmd.info "text"
 let text_cmd =
   let open Generation in
   let phrase = Cmdliner.Arg.(value & pos_all string ["HELLO"; "WORLD"] & info [] ~docv:"PHRASE") in
+  let strict =
+    let doc = "fail if any character is not present in the source font" in
+    Cmdliner.Arg.(value & flag & info ["s";"strict"] ~doc ~docv:"STRICT")
+  in
   let min_width =
     let doc = "minimum width for each character" in
     Cmdliner.Arg.(value & opt int 0 & info ["min-width"] ~doc ~docv:"MIN_WIDTH")
@@ -169,7 +173,7 @@ let text_cmd =
     let env = Cmdliner.Cmd.Env.info "STITCH_FONT" ~doc in
     Cmdliner.Arg.(value & opt string "font.json" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
   in
-  Cmdliner.Cmd.v text_info @@ Term.(const Words.stitch $ font_name $ thread $ background $ gridsize $ phrase $ min_width $ min_height $ interline $ output)
+  Cmdliner.Cmd.v text_info @@ Term.(const Words.stitch $ strict $ font_name $ thread $ background $ gridsize $ phrase $ min_width $ min_height $ interline $ output)
 
 let hcat_cmd =
   let hcat_t = Term.(const Hcat.go $ Manipulation.files $ output) in

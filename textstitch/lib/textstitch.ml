@@ -111,8 +111,7 @@ let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread uchars
   in
   (missing_chars, stitches, backstitches, max_x, max_y)
 
-let stitch lookup thread background gridsize uchars ~min_width ~min_height interline =
-  let strict = true in
+let stitch strict lookup thread background gridsize uchars ~min_width ~min_height interline =
   let (missing_chars, layer, backstitch_layer, max_x, max_y) = render_phrase lookup thread uchars ~min_width ~min_height interline in
   let substrate = make_substrate ~max_x ~max_y background gridsize in
   match missing_chars, strict with
