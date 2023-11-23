@@ -23,7 +23,7 @@ let never_a_glpyh _ = None
 
 let one_glyph () =
   let min_width = 0 and min_height = 0 in
-  let layer, _, width, height = Textstitch.render_phrase ~min_width ~min_height always_test_glyph thread [Uchar.of_char 'j'] 0 in
+  let _, layer, _, width, height = Textstitch.render_phrase ~min_width ~min_height always_test_glyph thread [Uchar.of_char 'j'] 0 in
   let pattern = {backstitch_layers = []; X.substrate; layers = [layer]} in
   Format.printf "%a\n" Stitchy.Types.pp_pattern pattern;
   Alcotest.(check int "phrase with one glyph has the right number of stitches"

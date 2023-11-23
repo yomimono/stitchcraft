@@ -62,10 +62,11 @@ let uchars_of_phrase phrase =
   advance decoder []
 
 let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread uchars ~min_height ~min_width interline =
-  let add_stitches_for_glyph ~x_off ~y_off letter layer bs_layer =
+  let add_stitches_for_glyph ~x_off ~y_off letter missing_chars layer bs_layer =
     match lookup letter with
-    | None -> layer, bs_layer
-    | Some glyph -> add_glyph_to_layers ~x_off ~y_off glyph layer bs_layer
+    | None -> letter::missing_chars, layer, bs_layer
+    | Some glyph -> let layer, backstitch_layer = add_glyph_to_layers ~x_off ~y_off glyph layer bs_layer in
+      missing_chars, layer, backstitch_layer
   in
   let empty_layer = {
     thread;
@@ -76,19 +77,19 @@ let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread uchars
     thread;
     stitches = SegmentSet.empty
   } in
-  let _, _, stitches, backstitches, max_x, max_y =
+  let _, _, missing_chars, stitches, backstitches, max_x, max_y =
     (* TODO: this is going to be wrong sometimes for variable-width fonts.
      * We should probably have a look-uppable or settable value for the
      * default font size *)
     let (starting_x, starting_y) = get_dims lookup default_char in
     let (starting_x, starting_y) = max min_width starting_x, max min_height starting_y in
-    List.fold_left (fun (x_off, y_off, stitches, backstitches, max_x, max_y) uchar ->
+    List.fold_left (fun (x_off, y_off, missing_chars, stitches, backstitches, max_x, max_y) uchar ->
         match Uucp.Gc.general_category uchar with
         | `Zl | `Cc when Uchar.to_char uchar = '\n' ->
           let _, height = get_dims lookup default_char in
           let height = max min_height height in
           let y_increase = height + interline in
-          (0, y_off + y_increase,
+          (0, y_off + y_increase, missing_chars,
            stitches, backstitches, max_x, max_y + y_increase)
         | `Ll | `Lm | `Lo | `Lt | `Lu
         (* for the moment, we ignore all combining marks *)
@@ -102,15 +103,18 @@ let render_phrase (lookup : Uchar.t -> Stitchy.Types.glyph option) thread uchars
           let width, _ = get_dims lookup uchar in
           let width = max min_width width in
           let new_max_x = max (x_off + width) max_x in
-          let stitches, backstitches = add_stitches_for_glyph ~x_off ~y_off uchar stitches backstitches in
-          ((x_off + width), y_off, stitches, backstitches, new_max_x, max_y)
+          let missing_chars, stitches, backstitches = add_stitches_for_glyph ~x_off ~y_off uchar missing_chars stitches backstitches in
+          ((x_off + width), y_off, missing_chars, stitches, backstitches, new_max_x, max_y)
         | _ -> (* not a lot of chance we know what to do with this; ignore it *)
-          (x_off, y_off, stitches, backstitches, max_x, max_y)
-      ) (0, 0, empty_layer, empty_bs_layer, starting_x, starting_y) uchars
+          (x_off, y_off, missing_chars, stitches, backstitches, max_x, max_y)
+      ) (0, 0, [], empty_layer, empty_bs_layer, starting_x, starting_y) uchars
   in
-  (stitches, backstitches, max_x, max_y)
+  (missing_chars, stitches, backstitches, max_x, max_y)
 
 let stitch lookup thread background gridsize uchars ~min_width ~min_height interline =
-  let (layer, backstitch_layer, max_x, max_y) = render_phrase lookup thread uchars ~min_width ~min_height interline in
+  let strict = true in
+  let (missing_chars, layer, backstitch_layer, max_x, max_y) = render_phrase lookup thread uchars ~min_width ~min_height interline in
   let substrate = make_substrate ~max_x ~max_y background gridsize in
-  {layers = [layer]; substrate; backstitch_layers = [backstitch_layer];}
+  match missing_chars, strict with
+  | [], _ | _, false -> Ok {layers = [layer]; substrate; backstitch_layers = [backstitch_layer];}
+  | l, _ -> Error l
