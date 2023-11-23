@@ -191,6 +191,14 @@ let piece_cmd =
   let piece_t = Term.(const Piece.piece $ x $ y $ width $ height $ input) in
   Cmd.v info piece_t
 
+let replace_cmd =
+  let info = Cmdliner.Cmd.info "replace" ~doc:"replace a thread with another thread" in
+  let default = List.hd Stitchy.DMC.Thread.basic in
+  let src = Cmdliner.Arg.(value & pos 0 Generation.thread_conv default & info [] ~doc:"replace this thread" ~docv:"SRC") in
+  let dst = Cmdliner.Arg.(value & pos 1 Generation.thread_conv default & info [] ~doc:"use this thread instead" ~docv:"DST") in
+  let replace_t = Term.(const Replace.replace $ input $ output $ src $ dst) in
+  Cmd.v info replace_t
+
 let rotate_cmd =
   let info = Cmdliner.Cmd.info "rotate" ~doc:"rotate a pattern 90 degrees counterclockwise" in
   let rotate_t = Term.(const (Apply.go Stitchy.Operations.rotate_ccw) $ input) in
@@ -256,7 +264,7 @@ let exporters = Cmdliner.Cmd.(group @@ info "export") [ listing_cmd ; pdf_cmd ]
 
 let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; rect_cmd; text_cmd])
 
-let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hflip_cmd; piece_cmd; rotate_cmd; surround_cmd; vcat_cmd; vflip_cmd ])
+let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hflip_cmd; piece_cmd; replace_cmd; rotate_cmd; surround_cmd; vcat_cmd; vflip_cmd ])
 
 let viewers = Cmdliner.Cmd.(group @@ info "view") [ estimate_cmd; term_cmd; ]
 

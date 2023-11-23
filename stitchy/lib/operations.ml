@@ -12,6 +12,7 @@ type t =
   | Transform of ((int * int) -> (int * int))
   | Merge of substrate
   | Repeat of displacement
+  | Replace of (thread * thread)
   | Rotate
 
 let displace_stitch displacement (x, y) =
@@ -174,6 +175,18 @@ let repeat dimensions image =
   | Right n -> hrepeat image n
   | RightAndDown (i, j) ->
     vrepeat (hrepeat image i) j
+
+let replace_thread ~src ~dst {layers; backstitch_layers; substrate} =
+  let matches thread (l : layer) = DMC.Thread.equal l.thread thread in
+  let backstitch_matches thread (l : backstitch_layer) = DMC.Thread.equal l.thread thread in
+  (* TODO: merge replacement layers, because we might already have layers with the dst thread *)
+  let replace_layer (l : layer) = {l with thread = dst;} in
+  let replace_bs_layer (l : backstitch_layer) = {l with thread = dst;} in
+  let yes_l, no_l = List.partition (matches src) layers
+  and yes_bs, no_bs = List.partition (backstitch_matches src) backstitch_layers in
+  let layers = Layers.merge_threads (List.map replace_layer yes_l) no_l
+  and backstitch_layers = Layers.merge_backstitch_threads (List.map replace_bs_layer yes_bs) no_bs in
+  { layers; backstitch_layers; substrate}
     
 let rotate_ccw (pattern : pattern) =
   let rotate (x, y) =
@@ -201,6 +214,7 @@ let perform op l =
     Ok [List.fold_left (fun acc p -> merge_patterns ~substrate acc p) hd tl]
   | Hcat, _ | Vcat, _ | Merge _, _ ->
     Error (`Msg "list must contain at least one pattern")
+  | Replace (src, dst), l -> Ok (List.map (replace_thread ~src ~dst) l)
   | Rotate, l -> Ok (List.map rotate_ccw l)
   | Displace d, _ -> Ok (List.map (displace_pattern d) l)
   | Repeat d, _ -> Ok (List.map (repeat d) l)
