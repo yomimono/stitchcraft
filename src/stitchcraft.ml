@@ -148,8 +148,8 @@ let rect_cmd =
   let open Generation in
   Cmdliner.Cmd.v rect_info @@ Term.(const Rect.rect $ width $ height $ background $ thread $ gridsize $ x $ y)
 
-let textstitch_info = Cmdliner.Cmd.info "textstitch"
-let textstitch_cmd =
+let text_info = Cmdliner.Cmd.info "text"
+let text_cmd =
   let open Generation in
   let phrase = Cmdliner.Arg.(value & pos_all string ["HELLO"; "WORLD"] & info [] ~docv:"PHRASE") in
   let min_width =
@@ -169,7 +169,7 @@ let textstitch_cmd =
     let env = Cmdliner.Cmd.Env.info "STITCH_FONT" ~doc in
     Cmdliner.Arg.(value & opt string "font.json" & info ~env ["f"; "font"] ~doc ~docv:"FONT")
   in
-  Cmdliner.Cmd.v textstitch_info @@ Term.(const Words.stitch $ font_name $ thread $ background $ gridsize $ phrase $ min_width $ min_height $ interline $ output)
+  Cmdliner.Cmd.v text_info @@ Term.(const Words.stitch $ font_name $ thread $ background $ gridsize $ phrase $ min_width $ min_height $ interline $ output)
 
 let hcat_cmd =
   let hcat_t = Term.(const Hcat.go $ Manipulation.files $ output) in
@@ -250,7 +250,7 @@ let browsers = Cmdliner.Cmd.(group @@ info "browse") [ patbrowse_cmd; ]
 
 let exporters = Cmdliner.Cmd.(group @@ info "export") [ listing_cmd ; pdf_cmd ]
 
-let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; rect_cmd; textstitch_cmd])
+let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; rect_cmd; text_cmd])
 
 let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hflip_cmd; piece_cmd; rotate_cmd; surround_cmd; vcat_cmd; vflip_cmd ])
 
