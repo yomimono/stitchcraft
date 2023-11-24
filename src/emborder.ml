@@ -155,11 +155,7 @@ let with_fencepost = {|
   +----+-+----+-+----+-+----+
   |}
 
-let try_pattern s =
-  Yojson.Safe.(from_file s) |>
-  Stitchy.Types.pattern_of_yojson |> function
-  | Error s -> failwith s
-  | Ok p -> p
+let try_pattern = Util.pattern_or_die
 
 let entypify file transformation =
   match file with
@@ -171,19 +167,14 @@ let entypify file transformation =
 
 
 let go corner side fencepost corner_xform side_transform fencepost_transform output =
-  match Util.stdin_or_file corner with
+  let pattern = Util.pattern_or_die corner in
+  let open Stitchy.Types in
+  let corner = { pattern; transformation = corner_xform } in
+  let border = { corner;
+                 side = entypify side side_transform;
+                 fencepost = entypify fencepost fencepost_transform;
+               }
+  in
+  match Util.stdout_or_file (border_to_yojson border) output with
   | Error s -> failwith s
-  | Ok json ->
-    match Stitchy.Types.pattern_of_yojson json with
-    | Error s -> failwith s
-    | Ok pattern ->
-      let open Stitchy.Types in
-      let corner = { pattern; transformation = corner_xform } in
-      let border = { corner;
-                     side = entypify side side_transform;
-                     fencepost = entypify fencepost fencepost_transform;
-                   }
-      in
-      match Util.stdout_or_file (border_to_yojson border) output with
-      | Error s -> failwith s
-      | Ok () -> ()
+  | Ok () -> ()

@@ -37,7 +37,7 @@ let read_one verbose filename =
       let pattern = {Stitchy.Types.substrate = substrate;
                      backstitch_layers;
                      layers } in
-      Format.printf "%s" (Stitchy.Types.pattern_to_yojson pattern |> Yojson.Safe.to_string);
+      Yojson.Safe.to_channel stdout (Stitchy.Types.pattern_to_yojson pattern);
       Lwt.return (Ok ())
     end
 

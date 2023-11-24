@@ -35,22 +35,12 @@ let paper_size =
   Arg.(value & opt (enum sizes) Pdfpaper.usletter & info ["paper"] ~docv:"PAPER" ~doc)
 
 let write_pattern paper_size watermark pixel_size fat_line_interval src dst =
-  let json = function
-    | s when 0 = String.compare s "-" -> begin
-        try Yojson.Safe.from_channel stdin with _exn -> failwith "couldn't understand input"
-      end
-    | src ->
-      try Yojson.Safe.from_file src with _exn -> failwith "couldn't read file"
-  in
-  match Stitchy.Types.pattern_of_yojson (json src) with
-  | Error e -> failwith @@ Printf.sprintf "couldn't parse input file: %s" e
-  | Ok pattern ->
-    let font_size = pixel_size - 2 in
-    let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.layers in
-    let cover = Stitchpdf.Coverpage.coverpage paper_size pattern in
-    let symbols = symbolpage ~font_size:12 paper_size symbol_map in
-    let pages = cover :: symbols :: (pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in
-    let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in
-    let pdf = Pdfpage.add_root pageroot [] pdf in
-    Pdfwrite.pdf_to_file pdf dst
-
+  let pattern = Util.pattern_or_die src in
+  let font_size = pixel_size - 2 in
+  let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.layers in
+  let cover = Stitchpdf.Coverpage.coverpage paper_size pattern in
+  let symbols = symbolpage ~font_size:12 paper_size symbol_map in
+  let pages = cover :: symbols :: (pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbol_map pattern) in
+  let pdf, pageroot = Pdfpage.add_pagetree pages (Pdf.empty ()) in
+  let pdf = Pdfpage.add_root pageroot [] pdf in
+  Pdfwrite.pdf_to_file pdf dst

@@ -90,8 +90,5 @@ let process pattern is_kit =
   image
 
 let go input output is_kit =
-  match Util.pattern_of_input input with
-  | Error e -> failwith e
-  | Ok pattern ->
-    let image = process pattern is_kit in
-    ImageLib_unix.writefile output image
+  let image = process (Util.pattern_or_die input) is_kit in
+  ImageLib_unix.writefile output image
