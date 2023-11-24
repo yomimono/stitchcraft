@@ -12,7 +12,7 @@ let make_pattern strict font textcolor background gridsize phrases min_width min
       Error (Format.asprintf "no glyphs found for uchars %a" Fmt.(list int) (List.map Uchar.to_int charlist))
     | Ok pattern ->
       let json = Stitchy.Types.pattern_to_yojson pattern in
-      Stitchy.Files.stdout_or_file json output
+      Util.stdout_or_file json output
 
 let stitch strict font textcolor background gridsize phrase interline min_width min_height output =
   match (make_pattern strict font textcolor background gridsize phrase interline min_width min_height output) with

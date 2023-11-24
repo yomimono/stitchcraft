@@ -171,7 +171,7 @@ let entypify file transformation =
 
 
 let go corner side fencepost corner_xform side_transform fencepost_transform output =
-  match Stitchy.Files.stdin_or_file corner with
+  match Util.stdin_or_file corner with
   | Error s -> failwith s
   | Ok json ->
     match Stitchy.Types.pattern_of_yojson json with
@@ -184,6 +184,6 @@ let go corner side fencepost corner_xform side_transform fencepost_transform out
                      fencepost = entypify fencepost fencepost_transform;
                    }
       in
-      match Stitchy.Files.stdout_or_file (border_to_yojson border) output with
+      match Util.stdout_or_file (border_to_yojson border) output with
       | Error s -> failwith s
       | Ok () -> ()
