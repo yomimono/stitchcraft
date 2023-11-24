@@ -78,7 +78,6 @@ let surround_cmd =
   let info = Cmd.info "surround" in
   Cmd.v info Term.(const Surround.go $ border $ center $ output)
 
-
 let listing_cmd = 
   let annotation =
     let doc = "annotate with 'KIT!' instead of default 'PDF!'" in
