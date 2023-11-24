@@ -144,8 +144,13 @@ let empty_cmd =
 
 let rect_info = Cmdliner.Cmd.info "rect"
 let rect_cmd =
+  let rect width height bg thread gridsize x y =
+    let substrate = Primitives.empty bg gridsize ~width:(x + width) ~height:(y + height) in
+    let pattern = Primitives.rect substrate.Stitchy.Types.substrate thread x y width height in
+    Yojson.Safe.to_channel stdout @@ Stitchy.Types.pattern_to_yojson pattern
+  in
   let open Generation in
-  Cmdliner.Cmd.v rect_info @@ Term.(const Rect.rect $ width $ height $ background $ thread $ gridsize $ x $ y)
+  Cmdliner.Cmd.v rect_info @@ Term.(const rect $ width $ height $ background $ thread $ gridsize $ x $ y)
 
 let text_info = Cmdliner.Cmd.info "text"
 let text_cmd =
@@ -175,8 +180,9 @@ let text_cmd =
   Cmdliner.Cmd.v text_info @@ Term.(const Words.stitch $ strict $ font_name $ thread $ background $ gridsize $ phrase $ min_width $ min_height $ interline $ output)
 
 let hcat_cmd =
-  let hcat_t = Term.(const Hcat.go $ Manipulation.files $ output) in
-  let info = Cmd.info "hcat" ~doc:"concatenate patterns around a vertical axis" in
+  let operation = Stitchy.Operations.Hcat in
+  let hcat_t = Term.(const Apply.operate $ const operation $ Manipulation.files $ output) in
+  let info = Cmd.info "hcat" ~doc:"concatenate patterns around a horizontal axis" in
   Cmd.v info hcat_t
 
 let hflip_cmd =
@@ -187,15 +193,25 @@ let hflip_cmd =
 let piece_cmd =
   let open Generation in
   let info = Cmdliner.Cmd.info "piece" ~doc:"slice a piece out of an existing pattern" in
-  let piece_t = Term.(const Piece.piece $ x $ y $ width $ height $ input) in
+  let piece x_off y_off width height file =
+    let pattern = Util.pattern_or_die file in
+    let submap = Stitchy.Types.submap ~x_off ~y_off ~width ~height pattern in
+    Yojson.Safe.to_channel stdout @@ Stitchy.Types.pattern_to_yojson submap
+  in
+  let piece_t = Term.(const piece $ x $ y $ width $ height $ input) in
   Cmd.v info piece_t
 
 let replace_cmd =
+  let replace input output src dst =
+    let pattern = Util.pattern_or_die input in
+    let p = Stitchy.Operations.replace_thread ~src ~dst pattern in
+    Util.output_or_die p output
+  in
   let info = Cmdliner.Cmd.info "replace" ~doc:"replace a thread with another thread" in
   let default = List.hd Stitchy.DMC.Thread.basic in
   let src = Cmdliner.Arg.(value & pos 0 Generation.thread_conv default & info [] ~doc:"replace this thread" ~docv:"SRC") in
   let dst = Cmdliner.Arg.(value & pos 1 Generation.thread_conv default & info [] ~doc:"use this thread instead" ~docv:"DST") in
-  let replace_t = Term.(const Replace.replace $ input $ output $ src $ dst) in
+  let replace_t = Term.(const replace $ input $ output $ src $ dst) in
   Cmd.v info replace_t
 
 let rotate_cmd =
@@ -205,8 +221,9 @@ let rotate_cmd =
 
 let vcat_info = Cmdliner.Cmd.info "vcat"
 let vcat_cmd =
-  let vcat_t = Term.(const Vcat.go $ Manipulation.files $ output) in
-  let info = Cmd.info "vcat" ~doc:"concatenate patterns around a horizontal axis" in
+  let operation = Stitchy.Operations.Vcat in
+  let vcat_t = Term.(const Apply.operate $ const operation $ Manipulation.files $ output) in
+  let info = Cmd.info "vcat" ~doc:"concatenate patterns around a vertical axis" in
   Cmd.v info vcat_t
 
 let vflip_cmd =
