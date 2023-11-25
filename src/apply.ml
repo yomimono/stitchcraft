@@ -10,3 +10,11 @@ let operate operation files output =
   | Ok [] -> Format.eprintf "no patterns returned\n%!"; exit 1
   | Ok (bigpattern::_) ->
     Util.output_or_die bigpattern output
+
+let hcenter amount files output =
+  let operation = Stitchy.Operations.Hcenter amount in
+  operate operation files output
+
+let vcenter amount files output =
+  let operation = Stitchy.Operations.Vcenter amount in
+  operate operation files output

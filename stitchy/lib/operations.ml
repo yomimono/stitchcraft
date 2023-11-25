@@ -8,6 +8,8 @@ type displacement =
 type t =
   | Hcat
   | Vcat
+  | Hcenter of int
+  | Vcenter of int
   | Displace of displacement
   | Transform of ((int * int) -> (int * int))
   | Merge of substrate
@@ -169,6 +171,37 @@ let rec hrepeat image = function
   | n when n <= 1 -> image
   | n -> hcat image (hrepeat image (n - 1))
 
+let hcenter new_width pattern =
+  let current_width = pattern.substrate.max_x + 1 in
+  let with_new_width {layers; backstitch_layers; substrate} =
+    let new_substrate = { substrate with max_x = new_width - 1 } in
+    {layers; backstitch_layers; substrate = new_substrate; }
+  in
+  if current_width = new_width then pattern
+  else begin
+    let difference = new_width - current_width in
+    (* add difference mod 2 so we favor padding the left side *)
+    let displacement = difference / 2 + difference mod 2 in
+    (* we need to coerce the width to its full value, since displacing right will only get us halfway there *)
+    if displacement >= 0 then with_new_width @@ displace_pattern (Right displacement) pattern
+    else submap ~x_off:(abs displacement) ~y_off:0 ~width:new_width ~height:(pattern.substrate.max_y + 1) pattern
+  end
+
+let vcenter new_height pattern =
+  let current_height = pattern.substrate.max_y + 1 in
+  let with_new_height {layers; backstitch_layers; substrate} =
+    let new_substrate = { substrate with max_y = new_height - 1 } in
+    { layers; backstitch_layers; substrate = new_substrate; }
+  in
+  if current_height = new_height then pattern
+  else begin
+    let difference = new_height - current_height in
+    let displacement = difference / 2 + difference mod 2 in
+    if displacement >= 0 then with_new_height @@ displace_pattern (Down displacement) pattern
+    else submap ~x_off:0 ~y_off:(abs displacement) ~width:(pattern.substrate.max_x + 1) ~height:new_height pattern
+  end
+
+
 let repeat dimensions image =
   match dimensions with
   | Down n -> vrepeat image n
@@ -214,6 +247,8 @@ let perform op l =
   match op, l with
   | Hcat, hd::tl -> Ok [List.fold_left hcat hd tl]
   | Vcat, hd::tl -> Ok [List.fold_left vcat hd tl]
+  | Hcenter n, l -> Ok (List.map (hcenter n) l)
+  | Vcenter n, l -> Ok (List.map (vcenter n) l)
   | Merge substrate, hd::tl ->
     Ok [List.fold_left (fun acc p -> merge_patterns ~substrate acc p) hd tl]
   | Hcat, _ | Vcat, _ | Merge _, _ ->

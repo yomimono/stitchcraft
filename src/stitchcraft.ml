@@ -185,6 +185,12 @@ let hcat_cmd =
   let info = Cmd.info "hcat" ~doc:"concatenate patterns around a horizontal axis" in
   Cmd.v info hcat_t
 
+let hcenter_cmd =
+  let width = Cmdliner.Arg.(value & opt int 0 & info ["w";"width"] ~doc:"width of new pattern" ~docv:"WIDTH") in
+  let info = Cmd.info "hcenter" ~doc:"coerce a pattern's width to a specified size" in
+  let hcenter_t = Term.(const Apply.hcenter $ width $ Manipulation.files $ output) in
+  Cmd.v info hcenter_t
+
 let hflip_cmd =
   let info = Cmd.info "hflip" ~doc:"flip patterns around a vertical axis" in
   let hflip_t = Term.(const (Apply.go Stitchy.Operations.hflip) $ input) in
@@ -225,6 +231,12 @@ let vcat_cmd =
   let vcat_t = Term.(const Apply.operate $ const operation $ Manipulation.files $ output) in
   let info = Cmd.info "vcat" ~doc:"concatenate patterns around a vertical axis" in
   Cmd.v info vcat_t
+
+let vcenter_cmd =
+  let height = Cmdliner.Arg.(value & opt int 0 & info ["height";"h"] ~doc:"height of new pattern" ~docv:"HEIGHT") in
+  let info = Cmd.info "vcenter" ~doc:"coerce a pattern's height to a specified size" in
+  let vcenter_t = Term.(const Apply.vcenter $ height $ Manipulation.files $ output) in
+  Cmd.v info vcenter_t
 
 let vflip_cmd =
   let info = Cmd.info "vflip" ~doc:"flip patterns around a horizontal axis" in
@@ -280,7 +292,7 @@ let exporters = Cmdliner.Cmd.(group @@ info "export") [ listing_cmd ; pdf_cmd ]
 
 let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; rect_cmd; text_cmd])
 
-let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hflip_cmd; piece_cmd; replace_cmd; rotate_cmd; surround_cmd; vcat_cmd; vflip_cmd ])
+let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hcenter_cmd; hflip_cmd; piece_cmd; replace_cmd; rotate_cmd; surround_cmd; vcat_cmd; vcenter_cmd; vflip_cmd ])
 
 let viewers = Cmdliner.Cmd.(group @@ info "view") [ estimate_cmd; term_cmd; ]
 
