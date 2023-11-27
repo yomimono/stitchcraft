@@ -75,8 +75,12 @@ let surround_cmd =
     let doc = "center pattern to surround with a border" in
     Cmdliner.Arg.(value & opt file "center.pattern" & info ["center"; "c"] ~doc ~docv:"CENTER")
   in
+  let fill =
+    let doc = "optional pattern to use when filling space" in
+    Cmdliner.Arg.(value & opt (some file) None & info ["fill"; "f"] ~doc ~docv:"FILL")
+  in
   let info = Cmd.info "surround" in
-  Cmd.v info Term.(const Surround.go $ border $ center $ output)
+  Cmd.v info Term.(const Surround.go $ border $ fill $ center $ output)
 
 let listing_cmd = 
   let annotation =
