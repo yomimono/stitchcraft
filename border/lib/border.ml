@@ -153,15 +153,16 @@ let expand_center ~desired_width ~desired_height ~pattern ~fill =
   let shifted_pattern = displace_pattern displacement pattern in
   merge_patterns ~substrate:(background.substrate) background shifted_pattern
 
-let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
+let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill ~min_width ~min_height =
   let open Stitchy.Types in
-  let width p = p.substrate.max_x + 1 in
-  let height p = p.substrate.max_y + 1 in
+  let min_width = max min_width @@ width center
+  and min_height = max min_height @@ height center
+  in
   match corner.transformation with
   | Nothing -> begin
       (* easiest case I guess? *)
-    let width_needed = border_repetitions ~fencepost:0 ~side:(width corner.pattern) ~center:(width center) in
-    let height_needed = border_repetitions ~fencepost:0 ~side:(height corner.pattern) ~center:(height center) in
+    let width_needed = border_repetitions ~fencepost:0 ~side:(width corner.pattern) ~center:min_width in
+    let height_needed = border_repetitions ~fencepost:0 ~side:(height corner.pattern) ~center:min_height in
     let fill_width = (width_needed * (width corner.pattern)) in
     let fill_height = (height_needed * (height corner.pattern)) in
     (* top and bottom are the same, as are left and right, so just use top/left for both *)
@@ -219,7 +220,7 @@ let just_corner ~(center : Stitchy.Types.pattern) ~corner ~fill =
         ~desired_height:(height left) ~pattern:center in
     assemble_simple_borders ~left ~right ~top ~bottom ~center:tiled_center
 
-let fencepost_and_corner ~center ~corner ~fencepost ~fill =
+let fencepost_and_corner ~center ~corner ~fencepost ~fill ~min_width ~min_height =
   let open Stitchy.Types in
   (* since we allow separate fencepost transformations, this isn't as easy as it might seem...
    * *)
@@ -227,7 +228,7 @@ let fencepost_and_corner ~center ~corner ~fencepost ~fill =
   | Turn, Turn ->
     (* in this case we can just weld the fencepost onto the end of the corner *)
     let corner = {corner with pattern = corner.pattern <|> fencepost.pattern } in
-    just_corner ~center ~corner ~fill
+    just_corner ~center ~corner ~fill ~min_width ~min_height
   | Nothing, Nothing ->
     let width_needed = border_repetitions ~fencepost:(width fencepost.pattern)
         ~side:(width corner.pattern) ~center:(width center) in
@@ -353,12 +354,15 @@ let fencepost_and_corner ~center ~corner ~fencepost ~fill =
   | Flip, Nothing -> assert false
   | Flip, Turn -> assert false
 
-let side_no_fencepost ~center ~corner ~side ~fill =
+let side_no_fencepost ~center ~corner ~side ~fill ~min_width ~min_height =
   let open Stitchy.Types in
   match corner.transformation, side.transformation with
   | Nothing, Nothing ->
-    let treps = border_repetitions ~fencepost:0 ~side:(width side.pattern) ~center:(width center) in
-    let lreps = border_repetitions ~fencepost:0 ~side:(height side.pattern) ~center:(height center) in
+    let min_width = max min_width @@ width center
+    and min_height = max min_height @@ height center
+    in
+    let treps = border_repetitions ~fencepost:0 ~side:(width side.pattern) ~center:min_width in
+    let lreps = border_repetitions ~fencepost:0 ~side:(height side.pattern) ~center:min_height in
     let top = corner.pattern <|> vrepeat side.pattern treps <|> corner.pattern in
     let left = hrepeat side.pattern lreps in
     let center = expand_center ~desired_width:(width @@ vrepeat side.pattern treps)
@@ -375,11 +379,14 @@ let side_no_fencepost ~center ~corner ~side ~fill =
     (* It's correct that this can be negative. If the corner is taller than it is wide,
      * the side pattern will have to cover extra area. *)
     let overhang = corner_w - corner_h in
+    let min_width = max min_width @@ width center
+    and min_height = max min_height @@ height center
+    in
     let width_needed =
-      border_repetitions ~fencepost:0 ~side:(side_w) ~center:((width center) - overhang)
+      border_repetitions ~fencepost:0 ~side:(side_w) ~center:(min_width - overhang)
     in
     let height_needed =
-      border_repetitions ~fencepost:0 ~side:(side_w) ~center:((height center) - overhang)
+      border_repetitions ~fencepost:0 ~side:(side_w) ~center:(min_height - overhang)
     in
     (* width_needed and height_needed have removed the "overhang" of a corner,
      * so their numbers reflect sides. *)
@@ -398,13 +405,16 @@ let side_no_fencepost ~center ~corner ~side ~fill =
   | _, _ ->
     assert false
 
-let side_and_fencepost ~center ~corner ~side ~fencepost ~fill =
+let side_and_fencepost ~center ~corner ~side ~fencepost ~fill ~min_width ~min_height =
   let open Stitchy.Types in
+  let min_width = max min_width @@ width center
+  and min_height = max min_height @@ height center
+  in
   match corner.transformation, side.transformation, fencepost.transformation with
   | Nothing, Nothing, Nothing ->
     let fp_w, fp_h = (width fencepost.pattern), (height fencepost.pattern) in
-    let treps = border_repetitions ~fencepost:fp_w ~side:(width side.pattern) ~center:(width center) in
-    let lreps = border_repetitions ~fencepost:fp_h ~side:(height side.pattern) ~center:(height center) in
+    let treps = border_repetitions ~fencepost:fp_w ~side:(width side.pattern) ~center:min_width in
+    let lreps = border_repetitions ~fencepost:fp_h ~side:(height side.pattern) ~center:min_height in
     let top =
       let top_component = side.pattern <|> fencepost.pattern in
       corner.pattern <|>
@@ -420,14 +430,14 @@ let side_and_fencepost ~center ~corner ~side ~fencepost ~fill =
     assemble_simple_borders ~top ~left ~center ~right:left ~bottom:top
   | _, _, _ -> assert false
 
-let emborder ~border ~(center : Stitchy.Types.pattern) ~fill =
+let emborder ~border ~(center : Stitchy.Types.pattern) ~fill ~min_width ~min_height =
   let open Stitchy.Types in
   match border.side, border.fencepost with
   | None, None ->
-    just_corner ~corner:border.corner ~center ~fill
+    just_corner ~corner:border.corner ~center ~fill ~min_width ~min_height
   | None, Some fencepost ->
-    fencepost_and_corner ~center ~corner:border.corner ~fencepost ~fill
+    fencepost_and_corner ~center ~corner:border.corner ~fencepost ~fill ~min_width ~min_height
   | Some side, None ->
-    side_no_fencepost ~center ~corner:border.corner ~side ~fill
+    side_no_fencepost ~center ~corner:border.corner ~side ~fill ~min_width ~min_height
   | Some side, Some fencepost ->
-    side_and_fencepost ~center ~corner:border.corner ~side ~fencepost ~fill
+    side_and_fencepost ~center ~corner:border.corner ~side ~fencepost ~fill ~min_width ~min_height

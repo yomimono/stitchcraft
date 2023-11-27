@@ -79,8 +79,16 @@ let surround_cmd =
     let doc = "optional pattern to use when filling space" in
     Cmdliner.Arg.(value & opt (some file) None & info ["fill"; "f"] ~doc ~docv:"FILL")
   in
+  let min_width =
+    let doc = "minimum width of the final pattern" in
+    Cmdliner.Arg.(value & opt int 0 & info ["w"; "width"] ~doc ~docv:"MIN_WIDTH")
+  in
+  let min_height =
+    let doc = "minimum height of the final pattern" in
+    Cmdliner.Arg.(value & opt int 0 & info ["h"; "height"] ~doc ~docv:"MIN_HEIGHT")
+  in
   let info = Cmd.info "surround" in
-  Cmd.v info Term.(const Surround.go $ border $ fill $ center $ output)
+  Cmd.v info Term.(const Surround.go $ border $ fill $ center $ output $ min_width $ min_height )
 
 let listing_cmd = 
   let annotation =
