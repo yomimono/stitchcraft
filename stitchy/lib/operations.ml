@@ -211,7 +211,6 @@ let repeat dimensions image =
 
 let replace_thread ~src ~dst {layers; backstitch_layers; substrate} =
   let matches thread (l : layer) =
-    Format.printf "checking %a against %a\n%!" DMC.Thread.pp thread DMC.Thread.pp l.thread;
     DMC.Thread.equal l.thread thread
   in
   let backstitch_matches thread (l : backstitch_layer) = DMC.Thread.equal l.thread thread in
@@ -219,8 +218,6 @@ let replace_thread ~src ~dst {layers; backstitch_layers; substrate} =
   let replace_bs_layer (l : backstitch_layer) = {l with thread = dst;} in
   let yes_l, no_l = List.partition (matches src) layers
   and yes_bs, no_bs = List.partition (backstitch_matches src) backstitch_layers in
-  Format.printf "found %d layers and %d backstitch layers matching the src, %d and %d not\n%!"
-    (List.length yes_l) (List.length yes_bs) (List.length no_l) (List.length no_bs);
   let layers = Layers.merge_threads (List.map replace_layer yes_l) no_l
   and backstitch_layers = Layers.merge_backstitch_threads (List.map replace_bs_layer yes_bs) no_bs in
   { layers; backstitch_layers; substrate}
