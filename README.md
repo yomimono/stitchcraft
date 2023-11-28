@@ -43,13 +43,13 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 * defined types and files for `border`s and `glyphset`s
 * a few included `glyphset`s for getting started
 * nicer `listing` preview graphics
-* Zoom in `notty_canvas`
+* Zoom in `stitchcraft view terminal`
 
 # Anti-features / out-of-scope stuff
 
 * taking raster images and converting them to patterns. `ih` does a great job and can interoperate with `stitchcraft`.
 * vector font scaling and rasterization. `kxstitch` does this well.
-* backstitch support in `notty_canvas`. I anticipate any other `notty_canvas` users also hating backstitch.
+* backstitch support in `stitchcraft view terminal`. I anticipate any other terminal users also hating backstitch.
 
 # Acknowledgements
 
