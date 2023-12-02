@@ -11,8 +11,11 @@ let estimate file margin =
   Format.printf "%a\n%!" pp_hoop_size tools.hoop_size;
   Format.printf "%a\n%!" pp_frame tools.frame_size;
 
-  List.iter (fun thread -> Format.printf "%a\n" pp_thread_info thread) materials.threads;
+  let total_stitches = List.fold_left (fun acc thread ->
+      Format.printf "%a\n%!" pp_thread_info thread;
+      acc + thread.amount
+    ) 0 materials.threads in
 
-  Printf.printf "total cost: %.02G; total time: %d seconds (%d minutes) (%.02G hours)\n%!"
-    total_cost total_seconds (total_seconds / 60)
-    ((float_of_int total_seconds) /. 3600.)
+  Printf.printf "total cost: %.02G; total stitches: %d; total time: %d seconds (%d minutes) (%.02G hours)\n%!"
+    total_cost total_stitches total_seconds (total_seconds / 60)
+    ((float_of_int total_seconds) /. 3600.);

@@ -193,12 +193,13 @@ let cross_thread_info grid (layer : layer) =
 let materials ~margin_inches pattern =
   let cross_threads = List.map (cross_thread_info pattern.substrate.grid) pattern.layers in
   let backstitch_threads = List.map (backstitch_thread_info pattern.substrate.grid) pattern.backstitch_layers in
+  let to_examine = List.filter (fun t -> t.amount > 0) (cross_threads @ backstitch_threads) in
   let combined_threads =
     List.fold_left (fun map (thread : thread_info) ->
       match ThreadMap.find_opt thread.thread map with
-      | Some t1 -> ThreadMap.add thread.thread (merge t1 thread) map
+        | Some t1 -> ThreadMap.add thread.thread (merge t1 thread) map
       | None -> ThreadMap.add thread.thread thread map
-    ) ThreadMap.empty (cross_threads @ backstitch_threads) in
+    ) ThreadMap.empty to_examine in
   { threads = ThreadMap.bindings combined_threads |> List.map snd;
     fabric = substrate_size_in_inches ~margin_inches pattern.substrate }
 
