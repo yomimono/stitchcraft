@@ -10,8 +10,8 @@ let check_coords = Alcotest.check coords
 
 let pixel_size = 10
 let paper = Pdfpaper.usletter
-let get_coords = Stitchpdf.Output_pdf.page_of_stitch ~pixel_size ~paper
-let get_big_coords = Stitchpdf.Output_pdf.page_of_stitch ~pixel_size:20 ~paper
+let get_coords = Stitchpdf.Output_pdf.which_page_contains ~pixel_size ~paper
+let get_big_coords = Stitchpdf.Output_pdf.which_page_contains ~pixel_size:20 ~paper
 
 let origin () = check_coords "origin" (0, 0, 0, 0) (get_coords (0, 0))
 let first_page () =

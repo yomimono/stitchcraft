@@ -2,6 +2,10 @@ let create ~font_size color_to_symbol =
   let paint_symbol (r, g, b) description s n =
     let font_key, symbol = Font.key_and_symbol s in
     let r, g, b = Colors.scale r, Colors.scale g, Colors.scale b in
+    (* The strange vertical behavior is an artifact of an old design
+     * where we tried to produce the symbol table at the bottom of each chart page.
+     * It'd probably be less surprising if we went top-down now that the symbol
+     * table has its own page. *)
     let vertical_offset = 1. *. 72. in
     let vertical_step n = (font_size + 4) * n |> float_of_int in
     let swatch_x_offset = 72. -. vertical_step 1 in
@@ -27,9 +31,11 @@ let create ~font_size color_to_symbol =
       Op_Q;
     ]
   in
-  Stitchy.Types.SymbolMap.fold (fun thread symbol (placement, ops) ->
+  let _last_placement, ops = Stitchy.Types.SymbolMap.fold (fun thread symbol (placement, ops) ->
       let description = Stitchy.DMC.Thread.to_string thread in
       let color = Stitchy.DMC.Thread.to_rgb thread in
       let ops = paint_symbol color description symbol placement @ ops in
       (placement + 1, ops)
     ) color_to_symbol (0, [])
+  in
+  ops

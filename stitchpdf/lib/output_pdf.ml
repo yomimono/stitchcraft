@@ -162,7 +162,7 @@ let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
     ])
 
 let symbolpage ~font_size paper symbols =
-  let content = [ Pdfops.stream_of_ops @@ snd (Symbolpage.create ~font_size symbols) ] in
+  let content = [ Pdfops.stream_of_ops @@ Symbolpage.create ~font_size symbols ] in
   {(Pdfpage.blankpage paper) with content; resources = Font.font_resources;}
  
 let which_page_contains ~pixel_size ~paper (x, y) =
@@ -264,7 +264,7 @@ let pdfpage_of_page ~substrate ~page_number ~doc ~watermark (page_x, page_y) pdf
    Pdfpage.resources = Font.font_resources;
   }
 
-let pages ~font_size doc watermark pattern =
+let make_chart_pages ~font_size doc watermark pattern =
   let open Stitchy.Types in
   let xpp = Positioning.x_per_page ~grid_label_size ~margin_size
       ~paper:doc.paper_size ~pixel_size:doc.pixel_size
@@ -294,3 +294,16 @@ let pages ~font_size doc watermark pattern =
     end
   in
   page 0 0 1 []
+
+let doc pixel_size paper_size symbols fat_line_interval =
+  {pixel_size; paper_size; symbols; fat_line_interval; }
+
+let make_pattern paper_size watermark pixel_size fat_line_interval pattern =
+    let font_size = pixel_size - 2 in
+    let symbol_map = snd @@ assign_symbols pattern.Stitchy.Types.layers in
+    let cover = Coverpage.coverpage paper_size pattern in
+    let symbols = symbolpage ~font_size:12 paper_size symbol_map in
+    let doc = doc pixel_size paper_size symbol_map fat_line_interval in
+    let chart = cover :: symbols :: (make_chart_pages ~font_size doc watermark pattern) in
+    let pdf, pageroot = Pdfpage.add_pagetree chart (Pdf.empty ()) in
+    Pdfpage.add_root pageroot [] pdf
