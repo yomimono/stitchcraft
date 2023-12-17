@@ -15,20 +15,6 @@ let margin_size = Pdfunits.(points 0.5 Inch)
  * both dimensions. *)
 let grid_label_size = Pdfunits.(points 0.5 Inch)
 
-let t1_font name =
-  Pdf.(Dictionary
-         [("/Type", Name "/Font");
-          ("/Subtype", Name "/Type1");
-          ("/BaseFont", Name name);])
-
-let symbol_font = t1_font "/Symbol"
-and zapf_font = t1_font "/ZapfDingbats"
-and helvetica_font = t1_font "/Helvetica"
-
-let symbol_key = "/F0"
-and zapf_key = "/F1"
-and helvetica_key = "/F2"
-
 let symbol_of_color symbols thread =
   match Stitchy.Types.SymbolMap.find_opt thread symbols with
     | None -> Stitchy.Symbol.default
@@ -74,7 +60,7 @@ let make_grid_label ~text_size n n_x_pos n_y_pos =
   Pdfops.([
       Op_q;
       Op_cm (Pdftransform.matrix_of_transform [Pdftransform.Translate (n_x_pos, n_y_pos)]);
-      Op_Tf (helvetica_key, text_size);
+      Font.helvetica_font_op text_size;
       Op_BT; (* begin text object *)
       Op_Tj (string_of_int n); (* actual label *)
       Op_ET; (* done! *)
@@ -121,7 +107,7 @@ let add_watermark watermark =
   Pdfops.([
       Op_q;
       Op_cm (Pdftransform.matrix_of_transform [Pdftransform.Translate ((72. *. 0.5), 36.)]);
-      Op_Tf (helvetica_key, 12.);
+      Font.helvetica_font_op 12.;
       Op_BT;
       Op_Tj watermark;
       Op_ET;
@@ -132,16 +118,12 @@ let number_page number =
   Pdfops.([
       Op_q;
       Op_cm (Pdftransform.matrix_of_transform [Pdftransform.Translate ((72. *. 8.), 36.)]);
-      Op_Tf (helvetica_key, 12.);
+      Font.helvetica_font_op 12.;
       Op_BT;
       Op_Tj (string_of_int number);
       Op_ET;
       Op_Q;
     ])
-
-let key_and_symbol s = match s.Stitchy.Symbol.pdf with
-  | `Zapf symbol -> zapf_key, symbol
-  | `Symbol symbol -> symbol_key, symbol
 
 (* note that this paints *only* the pixels - the grid lines should be added later *)
 (* (otherwise we end up with a lot of tiny segments when we could have just one through-line,
@@ -149,7 +131,7 @@ let key_and_symbol s = match s.Stitchy.Symbol.pdf with
 (* x_pos and y_pos are the position of the upper left-hand corner of the pixel on the page *)
 let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
   let stroke_width = 3. in (* TODO this should be relative to the thickness of fat lines *)
-  let (font_key, symbol) = key_and_symbol symbol in
+  let (font_key, symbol) = Font.key_and_symbol symbol in
   let font_stroke, font_paint =
     let r, g, b = Colors.ensure_contrast_on_white (r, g, b) in
       Pdfops.Op_RG (r, g, b), Pdfops.Op_rg (r, g, b)
@@ -179,54 +161,11 @@ let paint_pixel ~font_size ~pixel_size ~x_pos ~y_pos r g b symbol =
       Op_Q;
     ])
 
-let symbol_table ~font_size color_to_symbol =
-  let paint_symbol (r, g, b) description s n =
-    let font_key, symbol = key_and_symbol s in
-    let r, g, b = Colors.scale r, Colors.scale g, Colors.scale b in
-    let vertical_offset = 1. *. 72. in
-    let vertical_step n = (font_size + 4) * n |> float_of_int in
-    let swatch_x_offset = 72. -. vertical_step 1 in
-    Pdfops.[
-      Op_q;
-      Op_rg (r, g, b);
-      Op_re (swatch_x_offset, vertical_offset +. vertical_step n, vertical_step 1, vertical_step 1);
-      Op_f;
-      Op_Q;
-      Op_q;
-      Op_cm
-        (Pdftransform.matrix_of_transform
-           [Pdftransform.Translate
-              (72., vertical_offset +. vertical_step n);
-           ]);
-      Op_Tf (font_key, (float_of_int font_size));
-      Op_BT;
-      Op_Tj symbol;
-      Op_Tf (helvetica_key, (float_of_int font_size));
-      Op_Tj " : ";
-      Op_Tj description;
-      Op_ET;
-      Op_Q;
-    ]
-  in
-  Stitchy.Types.SymbolMap.fold (fun thread symbol (placement, ops) ->
-      let description = Stitchy.DMC.Thread.to_string thread in
-      let color = Stitchy.DMC.Thread.to_rgb thread in
-      let ops = paint_symbol color description symbol placement @ ops in
-      (placement + 1, ops)
-    ) color_to_symbol (0, [])
-
-let font_resources =
-   Pdf.(Dictionary [
-       ("/Font", Pdf.Dictionary [(symbol_key, symbol_font);
-                                 (zapf_key, zapf_font);
-                                 (helvetica_key, helvetica_font)]);
-     ])
-
 let symbolpage ~font_size paper symbols =
-  let content = [ Pdfops.stream_of_ops @@ snd (symbol_table ~font_size symbols) ] in
-  {(Pdfpage.blankpage paper) with content; resources = font_resources;}
+  let content = [ Pdfops.stream_of_ops @@ snd (Symbolpage.create ~font_size symbols) ] in
+  {(Pdfpage.blankpage paper) with content; resources = Font.font_resources;}
  
-let page_of_stitch ~pixel_size ~paper (x, y) =
+let which_page_contains ~pixel_size ~paper (x, y) =
   let xpp = Positioning.x_per_page ~grid_label_size ~margin_size ~paper ~pixel_size
   and ypp = Positioning.y_per_page ~grid_label_size ~margin_size ~paper ~pixel_size
   in
@@ -239,7 +178,7 @@ let page_of_stitch ~pixel_size ~paper (x, y) =
 
 let pdfops_of_stitch ~font_size ~doc ~(layer : Stitchy.Types.layer) (x, y) =
   let open Stitchy.Types in
-  let page_row, page_column, pagewise_x, pagewise_y = page_of_stitch ~pixel_size:doc.pixel_size ~paper:doc.paper_size (x, y) in
+  let page_row, page_column, pagewise_x, pagewise_y = which_page_contains ~pixel_size:doc.pixel_size ~paper:doc.paper_size (x, y) in
   let r, g, b = Stitchy.DMC.Thread.to_rgb layer.thread in
   (* x_pos and y_pos are the PDF-oriented coordinates of the upper left pixel on the
    * specific page, expressed as points *)
@@ -322,16 +261,11 @@ let pdfpage_of_page ~substrate ~page_number ~doc ~watermark (page_x, page_y) pdf
      Pdfops.stream_of_ops @@ add_watermark watermark;
      Pdfops.stream_of_ops @@ number_page page_number;
    ];
-   Pdfpage.resources = Pdf.(Dictionary [
-       ("/Font", Pdf.Dictionary [(symbol_key, symbol_font);
-                                 (zapf_key, zapf_font);
-                                 (helvetica_key, helvetica_font)]);
-     ])
+   Pdfpage.resources = Font.font_resources;
   }
 
-let pages ~font_size paper_size watermark ~pixel_size ~fat_line_interval symbols pattern =
+let pages ~font_size doc watermark pattern =
   let open Stitchy.Types in
-  let doc = { Types.paper_size; pixel_size; fat_line_interval; symbols; } in
   let xpp = Positioning.x_per_page ~grid_label_size ~margin_size
       ~paper:doc.paper_size ~pixel_size:doc.pixel_size
   and ypp = Positioning.y_per_page ~grid_label_size ~margin_size
