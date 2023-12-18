@@ -1,6 +1,6 @@
 # What is this?
 
-This is "stitchcraft", a collection of interoperable tools for generating cross-stitch patterns.
+This is "stitchcraft", a collection of interoperable terminal-oriented tools for generating cross-stitch patterns.
 
 # How good is it?
 
@@ -18,11 +18,13 @@ Pinning the package with `opam pin` and then installing should work as well.
 
 Stitchcraft is written in OCaml and uses several OCaml tools including the [dune](https://github.com/ocaml/dune) build system.  See documentation there to get started.
 
-A better user experience for such folks is coming someday.
+A better user experience for such folks may come someday.
 
 # How can I use it?
 
-Stitchcraft bundles several executables for command-line use.  Most are subcommands under `stitchcraft`, further subdivided into several categories. `stitchcraft --help` should help you find what you're looking for.
+Stitchcraft bundles several subcommands under `stitchcraft`, further subdivided into several categories. `stitchcraft --help` should help you find what you're looking for.
+
+If you're interested in writing your own OCaml program using these libraries, you'll probably be interested in `stitchy/lib`, where core type definitions and several helpful operations are defined.  Try a `dune utop` in the top-level `stitchcraft` directory to play around with what `stitchcraft` offers.
 
 ## Importing Graphics
 
@@ -40,7 +42,7 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 
 # Future Features
 
-* defined types and files for `border`s and `glyphset`s
+* PDF export for large numbers of threads (currently the symbol and materials pages will overflow)
 * a few included `glyphset`s for getting started
 * nicer `listing` preview graphics
 * Zoom in `stitchcraft view terminal`
