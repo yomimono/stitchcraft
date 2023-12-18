@@ -36,7 +36,7 @@ let fabric_options ~font_size ~margin_inches start_position pattern =
     let open Stitchy.Types in
     let as_described = { substrate with grid = size} in
     let width, height = Estimator.substrate_size_in_inches ~margin_inches as_described in
-    Format.asprintf "On Aida cloth count %a, the pattern will require %.02f x %.02f inches (with a %.01f inch margin)" Stitchy.Types.pp_grid size width height margin_inches
+    Format.asprintf "On %a Aida cloth, the pattern will require %.02f x %.02f inches (including a %.01f inch margin)" Stitchy.Types.pp_grid size width height margin_inches
   in
   let ops position size = pdfops_text ~font_size position @@ describe_option size pattern.Stitchy.Types.substrate in
   let position = start_position in
