@@ -14,15 +14,15 @@ let metadata =
   else return (label, value)
 
 let eight_bit debug =
-  (* these are "plain" 8-bit chars, so we run them through Char.chr *)
-  let uchar_of_string s = int_of_string s |> Char.chr |> Uchar.of_char in
   string "0x" >>= fun _ ->
   if debug then Format.eprintf "looks like an eight-bit label\n%!";
-  take_till (Char.equal ':') >>| fun s ->
+  take_till (Char.equal ':') >>= fun s ->
   (* we need to reappend this so int_of_string knows what to do with hex *)
   let hex = "0x" ^ s in
-  if debug then Format.eprintf "string value of label: %s\n%!" s;
-  uchar_of_string hex
+  (* these are "plain" 8-bit chars, so we run them through Char.chr *)
+  match int_of_string_opt hex with
+  | Some n when n < 0x100 -> return (Char.chr n |> Uchar.of_char)
+  | _ -> Angstrom.fail "not mapping ASCII characters over 0xff"
 
 let unicode debug =
   (* unicode values get to go directly to Uchar.of_int *)
