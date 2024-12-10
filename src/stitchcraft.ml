@@ -291,12 +291,22 @@ let font_cmd =
   let info = Cmd.info "font" in
   Cmd.v info Term.(const Font_of_file.read $ debug $ input $ fmt $ output)
 
+(* TODO: oh jeez this is going to want a zillion options.
+ * for the very first, a palette to use *)
+let image_cmd =
+  let debug =
+    let doc = "print debug output on stdout" in
+    Cmdliner.Arg.(value & flag & info ["debug"; "d"] ~doc ~docv:"VERBOSE")
+  in
+  let info = Cmd.info "image" in
+  Cmd.v info Term.(const Image_of_file.read $ debug $ input $ output)
+
 let pat_cmd =
   let verbose = Cmdliner.Arg.(value & flag & info ["v"; "verbose"]) in
   let info = Cmd.info "pat" in
   Cmd.v info Term.(const Pat.main $ verbose $ input)
 
-let importers = Cmdliner.Cmd.(group @@ info "import") [ emborder_cmd; font_cmd; pat_cmd; ]
+let importers = Cmdliner.Cmd.(group @@ info "import") [ emborder_cmd; font_cmd; image_cmd; pat_cmd; ]
 
 let browsers = Cmdliner.Cmd.(group @@ info "browse") [ patbrowse_cmd; ]
 

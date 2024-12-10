@@ -10,6 +10,7 @@
              stitchcraft.border
              stitchcraft.estimator
              stitchcraft.font_of_file
+             stitchcraft.imagereader
              stitchcraft.listing
              stitchcraft.patbrowser
              stitchcraft.patreader
