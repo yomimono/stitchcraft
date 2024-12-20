@@ -28,7 +28,9 @@ If you're interested in writing your own OCaml program using these libraries, yo
 
 ## Importing Graphics
 
-`ih` is a fabulous command-line tool for automatically generating cross-stitch patterns from raster images. There is a fork of `ih` available at [https://github.com/yomimono/ih/tree/stitchy_interchange](https://github.com/yomimono/ih/tree/stitchy_interchange) which adds a `-o json` output mode; the output of `ih` in this mode is a list of layers, which can be imported into a Stitchcraft workflow with the `assemble` tool.
+Stitchcraft has a very limited facility for importing graphics. It understands only ASCII-mode netppm files, which you can generate via ImageMagick with `magick -compress none inputfile.png outputfile.ppm`.  Since that format does not support transparency, the user will probably want to invoke `stitchcraft import image` with `--ignore` to exclude pixels representing the background. The color matching is done against the built-in DMC color palette and uses `redmean`, as described [here](https://en.wikipedia.org/wiki/Color_difference), for finding the closest match.
+
+This is implemented begrudgingly, and the results should not be expected to dazzle the viewer. [Doing this well is difficult](https://tallcoleman.me/crafts/2022/01/01/experimenting-rgb-colours-cosmo-embroidery-floss.html), and [other programs do a better job](https://github.com/sharlagelfand/dmc).
 
 # Design Goals
 

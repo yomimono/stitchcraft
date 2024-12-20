@@ -298,8 +298,12 @@ let image_cmd =
     let doc = "print debug output on stdout" in
     Cmdliner.Arg.(value & flag & info ["debug"; "d"] ~doc ~docv:"VERBOSE")
   in
+  let stitch = Term.(const Stitchy.Types.(Cross Full)) in
+  let ignore =
+    let doc = "RGB values to ignore when translating pixels to stitches" in
+    Cmdliner.Arg.(value & opt_all (t3 int int int) [] & info ["ignore"] ~doc ~docv:"IGNORE") in
   let info = Cmd.info "image" in
-  Cmd.v info Term.(const Image_of_file.read $ debug $ input $ output)
+  Cmd.v info Term.(const Image_of_file.read $ debug $ Generation.gridsize $ stitch $ ignore $ Generation.background $ input $ output)
 
 let pat_cmd =
   let verbose = Cmdliner.Arg.(value & flag & info ["v"; "verbose"]) in

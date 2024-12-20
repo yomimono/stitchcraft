@@ -1,5 +1,5 @@
 (library
   (public_name stitchcraft.imagereader)
   (name imagereader)
-  (libraries angstrom imagelib stitchy)
+  (libraries angstrom astring imagelib stitchy)
 )
