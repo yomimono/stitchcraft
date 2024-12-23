@@ -1,6 +1,10 @@
 (* some PPX-generated code results in warning 39; turn that off *)
 [@@@ocaml.warning "-32-39"]
 
+type algo =
+  | Redmean
+  | Oklab
+
 type cross_stitch =
   | Full (* X *) (* full stitch *)
     (* half stitches *)

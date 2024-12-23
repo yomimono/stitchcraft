@@ -96,12 +96,12 @@ let read_ppm ~ignore ~debug =
     if debug then Printf.printf "reading a %d x %d image\n%!" h.width h.height;
     image ~ignore RGBMap.empty h.width h.height >>= fun layers -> return (h, layers)
 
-let patternfy ~grid ~stitch ~ignore ~background debug image =
+let patternfy ~grid ~algo ~stitch ~ignore ~background debug image =
   (* image is a good ol' string fulla bytes *)
   match Angstrom.parse_string ~consume:Prefix (read_ppm ~debug ~ignore) image with
   | Error s -> Error (`Msg s)
   | Ok (header, color_to_coordinates) ->
-    let layers = Color_matcher.translate ~debug ~stitch color_to_coordinates in
+    let layers = Color_matcher.translate ~debug ~algo ~stitch color_to_coordinates in
     let max_x = header.width - 1
     and max_y = header.height - 1
     in

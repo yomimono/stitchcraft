@@ -1,6 +1,10 @@
 (* some PPX-generated code results in warning 39; turn that off *)
 [@@@ocaml.warning "-39"]
 
+type algo =
+  | Redmean
+  | Oklab
+
 (* there are two grids of concern:
  * the grid formed by the intersecting warp and weft of the fabric,
  * which is covered by a cross-stitch,

@@ -301,9 +301,20 @@ let image_cmd =
   let stitch = Term.(const Stitchy.Types.(Cross Full)) in
   let ignore =
     let doc = "RGB values to ignore when translating pixels to stitches" in
-    Cmdliner.Arg.(value & opt_all (t3 int int int) [] & info ["ignore"] ~doc ~docv:"IGNORE") in
+    Cmdliner.Arg.(value & opt_all (t3 int int int) [] & info ["ignore"] ~doc ~docv:"IGNORE")
+  in
+  let color_algo_converter : (string * Stitchy.Types.algo) list = [
+    "redmean", Stitchy.Types.Redmean;
+    "oklab", Oklab;
+  ] in
+  let algo =
+    let doc = "which to translate colors with" in
+    Cmdliner.Arg.(value & opt (enum color_algo_converter) Stitchy.Types.Oklab & info ["algo"] ~doc ~docv:"ALGO")
+  in
   let info = Cmd.info "image" in
-  Cmd.v info Term.(const Image_of_file.read $ debug $ Generation.gridsize $ stitch $ ignore $ Generation.background $ input $ output)
+  Cmd.v info Term.(const Image_of_file.read $ debug $ algo
+                   $ Generation.gridsize $ stitch $ ignore
+                   $ Generation.background $ input $ output)
 
 let pat_cmd =
   let verbose = Cmdliner.Arg.(value & flag & info ["v"; "verbose"]) in
