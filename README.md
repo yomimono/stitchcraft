@@ -51,7 +51,6 @@ All tools are built around the central `stitchy` library and a simple JSON-based
 
 # Anti-features / out-of-scope stuff
 
-* taking raster images and converting them to patterns. `ih` does a great job and can interoperate with `stitchcraft`.
 * vector font scaling and rasterization. `kxstitch` does this well.
 * backstitch support in `stitchcraft view terminal`. I anticipate any other terminal users also hating backstitch.
 
