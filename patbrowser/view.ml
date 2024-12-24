@@ -203,6 +203,7 @@ let main_view traverse pattern state (width, height) =
     (* in the preview mode, see how it looks tiled *)
     aux Stitchy.Operations.(vrepeat (hrepeat pattern 3) 3)
 
+(* TODO: this does the wrong thing if the view isn't at the default position (0, 0) *)
 let crop source_pattern state =
   match state.Controls.selection with
   | None -> Error "crop with no selection"
