@@ -168,13 +168,13 @@ let normalize (glyph : Stitchy.Types.glyph) ~font_metadata ~glyph_metadata =
     let coordinates = Stitchy.Types.CoordinateSet.map (fun (x, y) -> (x + leftness, y)) glyph.stitches in
     { glyph with stitches = coordinates; width = glyph.width + leftness;}
   in
-  (* TODO we should probably filter the coordinate set to get rid of anything
-   * that rests outside the new substrate if rightness or upness is negative *)
   let rightify glyph =
-    { glyph with width = glyph.width + rightness;}
+    let rightest = Stitchy.Types.CoordinateSet.fold (fun (x, _y) acc -> max acc x) glyph.stitches 0 in
+    { glyph with width = (max rightest (glyph.width + rightness));}
   in
   let raise glyph =
-    { glyph with height = glyph.height + upness; }
+    let highest = Stitchy.Types.CoordinateSet.fold (fun (_x, y) acc -> max acc y) glyph.stitches 0 in
+    { glyph with height = (max highest (glyph.height + upness)); }
   in
   leftify glyph |> rightify |> raise
 
@@ -205,20 +205,25 @@ let missing_glyph debug =
   many metadata >>= fun _ ->
   return None
 
- let glyph font_metadata debug =
+let glyph font_metadata debug =
   peek_string 10 >>= fun s ->
   if debug then Format.eprintf "looking for a glyph starting at %S\n%!" s;
   (real_glyph font_metadata debug <|> missing_glyph debug)
 
-let placeholder debug =
-  (* for some reason, it seems common to put a one-dash placeholder
-   * for some characters? I'm not sure what the point is *)
-  if debug then Format.eprintf "placeholder?\n%!";
+let placeholder font_metadata debug =
+  (* sometimes we have a placeholder with no raster data,
+   * but with some attached properties that change how we
+   * render the 'nothing' that the character is --
+   * most often this is whitespace *)
+  if debug then Format.eprintf "placeholder\n%!";
+  (many1 (glyph_label debug)) >>= fun labels ->
   take_while (Char.equal ' ') >>= fun _ ->
-  char '-' >>= fun _ -> return None
+  char '-' >>= fun _ ->
+  many metadata >>= fun glyph_metadata ->
+  return @@ Some (normalize ~font_metadata ~glyph_metadata (lines_to_glyph []), labels)
 
 let glyph_or_placeholder font_metadata debug =
-  placeholder debug <|> glyph font_metadata debug
+  placeholder font_metadata debug <|> glyph font_metadata debug
 
 let comment =
   char '#' >>= fun _ ->
