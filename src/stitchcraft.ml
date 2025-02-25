@@ -154,6 +154,15 @@ let empty_cmd =
   let info = Cmdliner.Cmd.info "empty" in
   Cmdliner.Cmd.v info @@ Term.(const empty_program $ width $ height $ background $ gridsize)
 
+let hex_cmd =
+  let open Generation in
+  let info =
+    let doc = "Stitches in hex, e.g. \"\x0f\x96\" for 4 blanks, 4 stitches, 1 stitch, 2 blanks, 1 stitch, 1 blank, 2 stitches, 1 blank." in
+    Cmdliner.Cmd.info ~doc "hex"
+  in
+  let width = Cmdliner.Arg.(value & pos 0 int 0 & info [] ~doc:"pattern width") in
+  Cmdliner.Cmd.v info @@ Term.(const Hex.hex $ width $ background $ gridsize $ thread)
+
 let rect_info = Cmdliner.Cmd.info "rect"
 let rect_cmd =
   let rect width height bg thread gridsize x y =
@@ -327,7 +336,7 @@ let browsers = Cmdliner.Cmd.(group @@ info "browse") [ patbrowse_cmd; ]
 
 let exporters = Cmdliner.Cmd.(group @@ info "export") [ listing_cmd ; pdf_cmd ]
 
-let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; rect_cmd; text_cmd])
+let generators = Cmdliner.Cmd.(group (info "gen") [assemble_cmd; backstitch_cmd; empty_cmd; hex_cmd; rect_cmd; text_cmd])
 
 let manipulators = Cmdliner.Cmd.(group (info "manip") [ hcat_cmd; hcenter_cmd; hflip_cmd; piece_cmd; replace_cmd; rotate_cmd; surround_cmd; vcat_cmd; vcenter_cmd; vflip_cmd ])
 
