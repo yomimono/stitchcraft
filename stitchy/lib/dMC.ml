@@ -25,7 +25,6 @@ end = struct
     and id_map = StringMap.add identifier {name; identifier; rgb} identifier_keyed in
     (rgb_map, id_map)
 
-  (* 
   (* mappings from schemes/dmc.xml in kxstitch *)
   let (rgb_map, id_map) =
     let rgb = RGBMap.empty and id = StringMap.empty in
@@ -484,9 +483,10 @@ end = struct
     let (rgb, id) = add_thread rgb id "3864" "Mocha Beige Light" (203, 182, 156) in
     let (rgb, id) = add_thread rgb id "3865" "Winter White" (249, 247, 241) in
     let (rgb, id) = add_thread rgb id "3866" "Mocha Brn Ult Vy Lt" (250, 246, 240) in
-    (rgb, id)*)
+    (rgb, id)
 
   (* updated mappings from ehashman's scrapes *)
+    (*
   let (rgb_map, id_map) =
     let rgb = RGBMap.empty and id = StringMap.empty in
 let (rgb, id) = add_thread rgb id "01" "" (211, 210, 207) in
@@ -978,6 +978,7 @@ let (rgb, id) = add_thread rgb id "White" "" (238, 238, 238) in
 let (rgb, id) = add_thread rgb id "Ecru" "" (255, 247, 231) in
 let (rgb, id) = add_thread rgb id "B5200" "" (255, 255, 255) in
     (rgb, id)
+       *)
 
 
   let all =
