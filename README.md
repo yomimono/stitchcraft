@@ -28,7 +28,7 @@ If you're interested in writing your own OCaml program using these libraries, yo
 
 ## Importing Graphics
 
-Stitchcraft has a very limited facility for importing graphics. It understands only ASCII-mode netppm files, which you can generate via ImageMagick with `magick -compress none inputfile.png outputfile.ppm`.  Since that format does not support transparency, the user will probably want to invoke `stitchcraft import image` with `--ignore` to exclude pixels representing the background. The color matching is done against the built-in DMC color palette and uses `redmean`, as described [here](https://en.wikipedia.org/wiki/Color_difference), for finding the closest match.
+Stitchcraft has a very limited facility for importing graphics. It understands only ASCII-mode netppm files, which you can generate via ImageMagick with `magick -compress none inputfile.png outputfile.ppm`.  Since that format does not support transparency, the user will probably want to invoke `stitchcraft import image` with `--ignore` to exclude pixels representing the background. The color matching is done against the built-in DMC color palette and multiple algorithms for determining the nearest match are available.
 
 This is implemented begrudgingly, and the results should not be expected to dazzle the viewer. [Doing this well is difficult](https://tallcoleman.me/crafts/2022/01/01/experimenting-rgb-colours-cosmo-embroidery-floss.html), and [other programs do a better job](https://github.com/sharlagelfand/dmc).
 
